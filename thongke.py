@@ -3,13 +3,16 @@
 """
 Created on Thu Nov  6 20:50:24 2025
 📋 Ứng dụng Quản lý Công việc (QLCV)
-streamlit run "/Users/trieukimlanh/Library/CloudStorage/GoogleDrive-trieukimlanh@gmail.com/My Drive/Từ OneDrive/Spyder/app_QLCV/thongke.py"
+streamlit run "/Users/trieukimlanh/Library/CloudStorage/GoogleDrive-trieukimlanh@gmail.com/My Drive/Từ OneDrive/Spyder/app_QLCV/thongke.py"
 @author: trieukimlanh
 """
 import io
 import re
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 import streamlit as st
 
 # ==========================================================
@@ -115,12 +118,11 @@ with col2:
     st.dataframe(df2, height=180, use_container_width=True)
 
 # ==========================================================
-# 📚 TẢI DỮ LIỆU CHI TIẾT (Được thu gọn vào Expander + Radio)
+# 📚 TẢI DỮ LIỆU CHI TIẾT
 # ==========================================================
 st.header("📘 Các nhóm công việc chi tiết")
 
 detail_dfs = {}
-# Tải ngầm dữ liệu vào dictionary trước
 for key in ["GD", "NCKH", "Other"]:
   df = read_gsheet(links[key])
   if df is not None:
@@ -128,42 +130,43 @@ for key in ["GD", "NCKH", "Other"]:
 
 st.session_state["detail_dfs"] = detail_dfs
 
-# Thiết kế giao diện Expander chứa Radio Mode theo yêu cầu của bạn
 with st.expander(
     "🔍 Click để xem danh sách các nhóm công việc chi tiết", expanded=False
 ):
   if detail_dfs:
-    # Tạo thanh chọn radio nằm ngang
-    selected_group = st.radio(
+    selected_group_view = st.radio(
         "Chọn nhóm công việc muốn xem:",
         options=["GD (Giảng dạy)", "NCKH (Nghiên cứu)", "Other (Khác)"],
         horizontal=True,
     )
-
-    # Ánh xạ từ lựa chọn hiển thị sang key dữ liệu tương ứng
-    key_mapping = {
+    key_mapping_view = {
         "GD (Giảng dạy)": "GD",
         "NCKH (Nghiên cứu)": "NCKH",
         "Other (Khác)": "Other",
     }
-
-    chosen_key = key_mapping[selected_group]
-
-    if chosen_key in detail_dfs:
-      st.success(f"✅ Đang hiển thị dữ liệu nhóm: {selected_group}")
-      st.dataframe(detail_dfs[chosen_key], height=250, use_container_width=True)
+    chosen_key_view = key_mapping_view[selected_group_view]
+    if chosen_key_view in detail_dfs:
+      st.success(f"✅ Đang hiển thị dữ liệu nhóm: {selected_group_view}")
+      st.dataframe(detail_dfs[chosen_key_view], height=250, use_container_width=True)
   else:
     st.error("❌ Không thể tải dữ liệu chi tiết từ Google Sheets.")
 
 # ==========================================================
-# 🔍 TRA CỨU CÔNG VIỆC NÂNG CAO
+# 🔍 TAB RADIO LỌC PHẠM VI TÌM KIẾM NÂNG CAO
 # ==========================================================
 st.header("🔍 Tra cứu công việc nâng cao")
+
+# Thanh radio lựa chọn phạm vi tìm kiếm theo yêu cầu cấu trúc mới
+search_scope = st.radio(
+    "📂 Chọn phạm vi / hạng mục cần tìm kiếm:",
+    options=["🌐 Tất cả các bảng", "📚 GD (Giảng dạy)", "🔬 NCKH (Nghiên cứu)", "📌 Other (Khác)"],
+    horizontal=True,
+)
 
 keyword_input = (
     st.text_input(
         "🔎 Nhập từ khóa cần tìm (các điều kiện cách nhau bằng & hoặc ,)\nVí"
-        " dụ: đề tài & cấp cơ sở"
+        " dụ: SCK & chủ biên hoặc TLTK, cấp cơ sở"
     )
     .strip()
     .lower()
@@ -179,38 +182,105 @@ if keyword_input:
   if df1 is None or df1.empty or df2 is None or df2.empty or not detail_dfs:
     st.warning("⚠️ Vui lòng đảm bảo đã tải đủ df1, df2 và các bảng công việc.")
   else:
-    # Tách các từ khóa dựa trên dấu & hoặc ,
-    keywords = [
+    raw_keywords = [
         k.strip() for k in re.split(r"[&,]", keyword_input) if k.strip()
     ]
+
+    # --- MỞ RỘNG TỪ KHÓA THÔNG MINH & TỪ VIẾT TẮT (SYNONYMS) ---
+    expanded_keywords = []
+    for kw in raw_keywords:
+      synonyms = [kw]
+
+      if any(k in kw for k in ["sách tham khảo", "sck", "tltk", "sách"]):
+        for s in ["sách tham khảo", "sck", "tltk", "sách"]:
+          if s not in synonyms:
+            synonyms.append(s)
+
+      elif "bài báo" in kw and "khoa học" not in kw:
+        synonyms.append("bài báo khoa học")
+
+      elif "đề tài" in kw:
+        synonyms.append("đề tài")
+
+      expanded_keywords.append(synonyms)
+
     st.info(
-        f"🔍 Đang tìm theo điều kiện BẮT BUỘC CHỨA ĐỒNG THỜI: **{', '.join(keywords)}**"
+        f"🔍 Đang tìm theo điều kiện BẮT BUỘC CHỨA ĐỒNG THỜI các nhóm từ khóa:"
+        f" **{raw_keywords}** trong phạm vi: **{search_scope}**"
     )
 
-    for name, df in detail_dfs.items():
+    # Xác định tập hợp các bảng cần tìm dựa vào lựa chọn trên radio tab
+    target_search_dict = {}
+    if "GD" in search_scope:
+      if "GD" in detail_dfs:
+        target_search_dict["GD"] = detail_dfs["GD"]
+    elif "NCKH" in search_scope:
+      if "NCKH" in detail_dfs:
+        target_search_dict["NCKH"] = detail_dfs["NCKH"]
+    elif "Other" in search_scope:
+      if "Other" in detail_dfs:
+        target_search_dict["Other"] = detail_dfs["Other"]
+    else:  # Tất cả
+      target_search_dict = detail_dfs
+
+    for name, df in target_search_dict.items():
       df.columns = [c.strip() for c in df.columns]
       df_temp = df.copy()
 
-      # Quét trên toàn bộ các cột chữ/đối tượng
-      text_cols = [
+      priority_target_cols = [
+          c
+          for c in df_temp.columns
+          if any(
+              x in c.lower()
+              for x in [
+                  "loại hoạt động",
+                  "cấp độ",
+                  "phân loại cấp 1",
+                  "phân loại cấp 2",
+                  "phân loại cấp 3",
+                  "vai trò",
+              ]
+          )
+      ]
+
+      all_text_cols = [
           c for c in df_temp.columns if df_temp[c].dtype == "object" or c == "id"
       ]
 
-      if text_cols:
-        # THAY ĐỔI LOGIC: Dùng phép toán AND (&) cho từng từ khóa
-        # Dòng nào phải chứa TẤT CẢ các từ khóa mới được giữ lại
+      if all_text_cols:
         mask = pd.Series(True, index=df_temp.index)
-        for kw in keywords:
-          mask_kw = (
-              df_temp[text_cols]
-              .apply(
-                  lambda col: col.astype(str)
-                  .str.lower()
-                  .str.contains(kw, na=False)
+        for syn_list in expanded_keywords:
+          mask_syn = pd.Series(False, index=df_temp.index)
+          for kw in syn_list:
+            cols_to_check = (
+                priority_target_cols
+                if priority_target_cols
+                else all_text_cols
+            )
+
+            mask_kw = (
+                df_temp[cols_to_check]
+                .apply(
+                    lambda col: col.astype(str)
+                    .str.lower()
+                    .str.contains(kw, na=False)
+                )
+                .any(axis=1)
+            )
+
+            if not mask_kw.any() and priority_target_cols:
+              mask_kw = (
+                  df_temp[all_text_cols]
+                  .apply(
+                      lambda col: col.astype(str)
+                      .str.lower()
+                      .str.contains(kw, na=False)
+                  )
+                  .any(axis=1)
               )
-              .any(axis=1)
-          )
-          mask &= mask_kw  # Dùng &= để bắt buộc thỏa mãn tất cả các từ khóa
+
+            mask_syn |= mask_kw
+          mask &= mask_syn
       else:
         mask = pd.Series(False, index=df_temp.index)
 
@@ -240,213 +310,17 @@ if keyword_input:
       for name, rec_df in found_records:
         st.markdown(
             f"### 📘 Nhóm kết quả tìm thấy từ bảng: **{name}** — {len(rec_df)}"
-            " dòng"
+            " dòng (Hiển thị đầy đủ định dạng cột gốc)"
         )
-
-        priority_cols = [
-            "name",
-            "surname",
-            "Loại hoạt động",
-            "Vai trò",
-            "Cấp độ",
-            "Tên sản phẩm",
-            "Đợt kê khai",
-            "SỐ TIẾT KÊ KHAI",
-            "term",
-            "code",
-        ]
-        display_cols = [c for c in priority_cols if c in rec_df.columns]
-
-        st.dataframe(
-            rec_df[
-                display_cols
-                + [c for c in rec_df.columns if c not in display_cols]
-            ],
-            use_container_width=True,
-        )
-
-        # ==========================================================
-        # 📈 ĐỒ THỊ VÀ BẢNG THỐNG KÊ ĐẶC THÙ RIÊNG CHO NCKH
-        # ==========================================================
-        dot_col = next(
-            (
-                c
-                for c in rec_df.columns
-                if c.lower() in ["đợt kê khai", "dot ke khai", "term"]
-            ),
-            None,
-        )
-        tiet_col = next(
-            (
-                c
-                for c in rec_df.columns
-                if any(x in c.lower() for x in ["số tiết kê khai", "tiết"])
-            ),
-            None,
-        )
-
-        if name.upper().startswith("NCKH") and dot_col and tiet_col:
-          st.markdown(
-              "#### 📆 Thống kê chi tiết NCKH theo Đợt kê khai, Năm học, Loại"
-              " hoạt động & Cấp độ"
-          )
-          df_nckh = rec_df.copy()
-          df_nckh[tiet_col] = pd.to_numeric(
-              df_nckh[tiet_col], errors="coerce"
-          ).fillna(0)
-
-          # Quy đổi cột Đợt kê khai thành Năm học
-          df_nckh["Năm học"] = df_nckh[dot_col].apply(quy_doi_nam_hoc)
-
-          # Xác định cột Loại hoạt động và Cấp độ
-          loai_col = next(
-              (
-                  c
-                  for c in df_nckh.columns
-                  if any(
-                      x in c.lower()
-                      for x in ["loại hoạt động", "phân loại", "loại"]
-                  )
-              ),
-              None,
-          )
-          cap_col = next(
-              (
-                  c
-                  for c in df_nckh.columns
-                  if any(x in c.lower() for x in ["cấp độ", "cấp"])
-              ),
-              None,
-          )
-
-          tab1, tab2 = st.tabs([
-              "📅 Tab 1: Đợt kê khai & Năm học",
-              "📌 Tab 2: Loại hoạt động & Cấp độ chéo Năm học",
-          ])
-
-          # --- TAB 1: THỐNG KÊ ĐỢT KÊ KHAI & NĂM HỌC ---
-          with tab1:
-            col_dot, col_year = st.columns(2)
-
-            with col_dot:
-              st.markdown("**📋 Tổng tiết & sản phẩm theo đợt kê khai**")
-              df_dot = (
-                  df_nckh.groupby(dot_col)[tiet_col]
-                  .agg(
-                      **{
-                          "Tổng số tiết kê khai": "sum",
-                          "Số lượng sản phẩm": "count",
-                      }
-                  )
-                  .reset_index()
-                  .sort_values(dot_col)
-              )
-              total_dot_tiet = df_dot["Tổng số tiết kê khai"].sum()
-              total_dot_sp = df_dot["Số lượng sản phẩm"].sum()
-
-              df_dot_disp = df_dot.copy()
-              df_dot_disp.loc[len(df_dot_disp)] = [
-                  "**Tổng cộng**",
-                  total_dot_tiet,
-                  total_dot_sp,
-              ]
-              st.dataframe(df_dot_disp, use_container_width=True)
-
-            with col_year:
-              st.markdown("**📅 Tổng tiết & sản phẩm gộp theo năm học**")
-              df_year = (
-                  df_nckh.groupby("Năm học")[tiet_col]
-                  .agg(
-                      **{
-                          "Tổng số tiết kê khai": "sum",
-                          "Số lượng sản phẩm": "count",
-                      }
-                  )
-                  .reset_index()
-                  .sort_values("Năm học")
-              )
-              total_year_tiet = df_year["Tổng số tiết kê khai"].sum()
-              total_year_sp = df_year["Số lượng sản phẩm"].sum()
-
-              df_year_disp = df_year.copy()
-              df_year_disp.loc[len(df_year_disp)] = [
-                  "**Tổng cộng**",
-                  total_year_tiet,
-                  total_year_sp,
-              ]
-              st.dataframe(df_year_disp, use_container_width=True)
-
-            # Vẽ biểu đồ Năm học
-            df_plot = df_year[df_year["Năm học"] != "**Tổng cộng**"]
-            if not df_plot.empty:
-              fig, ax = plt.subplots(figsize=(6, 3))
-              bars = ax.bar(
-                  df_plot["Năm học"],
-                  df_plot["Tổng số tiết kê khai"],
-                  color="#4C72B0",
-              )
-              for bar in bars:
-                height = bar.get_height()
-                ax.text(
-                    bar.get_x() + bar.get_width() / 2,
-                    height,
-                    f"{int(height)}",
-                    ha="center",
-                    va="bottom",
-                    fontsize=8,
-                    fontweight="bold",
-                )
-              ax.set_xlabel("Năm học", fontsize=9)
-              ax.set_ylabel("Tổng số tiết kê khai", fontsize=9)
-              ax.tick_params(axis="x", rotation=45)
-
-              col1_chart, col2_chart, col3_chart = st.columns([2, 7, 2])
-              with col2_chart:
-                st.pyplot(fig, bbox_inches="tight")
-
-          # --- TAB 2: THỐNG KÊ LOẠI HOẠT ĐỘNG VÀ CẤP ĐỘ ---
-          with tab2:
-            group_cols = []
-            if loai_col:
-              group_cols.append(loai_col)
-            if cap_col:
-              group_cols.append(cap_col)
-
-            if group_cols:
-              group_cols.append("Năm học")
-              st.markdown(
-                  "##### 📊 Bảng thống kê Loại hoạt động, Cấp độ chéo với Năm"
-                  " học"
-              )
-
-              # Thống kê gồm Tổng số tiết và Tổng số hoạt động (tần suất đếm)
-              df_cross = (
-                  df_nckh.groupby(group_cols)[tiet_col]
-                  .agg(
-                      **{
-                          "Tổng số tiết kê khai": "sum",
-                          "Tổng số hoạt động": "count",
-                      }
-                  )
-                  .reset_index()
-              )
-
-              st.dataframe(df_cross, use_container_width=True)
-            else:
-              st.info(
-                  "ℹ️ Không tìm thấy cột 'Loại hoạt động' hoặc 'Cấp độ' trong"
-                  " bảng NCKH."
-              )
+        st.dataframe(rec_df, use_container_width=True)
     else:
-      st.warning("❌ Không tìm thấy dữ liệu phù hợp.")
+      st.warning("❌ Không tìm thấy dữ liệu phù hợp trong phạm vi đã chọn.")
 else:
-  st.info(
-      "👆 Nhập từ khóa (có thể nhiều điều kiện nối bằng & hoặc ,) để bắt đầu."
-  )
+  st.info("👆 Chọn phạm vi và nhập từ khóa để bắt đầu tìm kiếm và thống kê.")
 
 
 # ==========================================================
-# 📊 BIỂU ĐỒ THỐNG KÊ TỔNG HỢP KẾT QUẢ TÌM KIẾM THEO NĂM & NĂM HỌC
+# 📊 THỐNG KÊ, TRỪ TRÙNG LẶP VÀ VẼ ĐỒ THỊ
 # ==========================================================
 st.divider()
 
@@ -461,12 +335,8 @@ else:
   total_rec_df = pd.DataFrame()
 
 if not total_rec_df.empty:
-  st.markdown(
-      "#### 📈 Thống kê tổng số tiết thực hiện theo Năm / Năm học (Dựa trên kết"
-      " quả tìm kiếm)"
-  )
+  st.markdown("#### 📈 THỐNG KÊ VÀ XỬ LÝ TRÙNG LẶP SẢN PHẨM")
 
-  # Nhận diện cột chứa số tiết
   tiet_col_target = next(
       (
           c
@@ -477,8 +347,6 @@ if not total_rec_df.empty:
       ),
       None,
   )
-
-  # Nhận diện cột thời gian (Đợt kê khai hoặc Năm học)
   time_col_target = next(
       (
           c
@@ -489,77 +357,343 @@ if not total_rec_df.empty:
   )
 
   if tiet_col_target and time_col_target:
-    # Chuẩn hóa dữ liệu số tiết
     total_rec_df[tiet_col_target] = pd.to_numeric(
         total_rec_df[tiet_col_target], errors="coerce"
     ).fillna(0)
-
-    # Quy đổi sang năm học chuẩn nếu cột thời gian là đợt kê khai dạng YYYY-MM
-    df_chart_calc = total_rec_df.copy()
-    df_chart_calc["Năm học hiển thị"] = df_chart_calc[time_col_target].apply(
+    total_rec_df["Năm học hiển thị"] = total_rec_df[time_col_target].apply(
         quy_doi_nam_hoc
     )
 
-    # Groupby tính tổng số tiết và đếm số lượng sản phẩm/công việc
-    df_summary_chart = (
-        df_chart_calc.groupby("Năm học hiển thị")
+    # --- 1. THỐNG KÊ TRƯỚC KHI TRỪ TRÙNG LẶP ---
+    st.markdown("##### 📋 1. Bảng thống kê TRƯỚC khi trừ trùng lặp thành viên")
+    df_before = (
+        total_rec_df.groupby("Năm học hiển thị")
         .agg(
             **{
+                "Tổng số dòng kê khai": (tiet_col_target, "count"),
                 "Tổng số tiết": (tiet_col_target, "sum"),
-                "Số lượng công việc": (tiet_col_target, "count"),
             }
         )
         .reset_index()
         .sort_values("Năm học hiển thị")
     )
 
-    # Hiển thị bảng tổng hợp kèm dòng tổng cộng
-    total_tiet_val = df_summary_chart["Tổng số tiết"].sum()
-    total_sp_val = df_summary_chart["Số lượng công việc"].sum()
+    tot_d_b = df_before["Tổng số dòng kê khai"].sum()
+    tot_t_b = df_before["Tổng số tiết"].sum()
+    df_before_disp = df_before.copy()
+    df_before_disp.loc[len(df_before_disp)] = ["**Tổng cộng**", tot_d_b, tot_t_b]
+    st.dataframe(df_before_disp, use_container_width=True)
 
-    df_summary_display = df_summary_chart.copy()
-    df_summary_display.loc[len(df_summary_display)] = [
+    # --- 2. XỬ LÝ TRÙNG LẶP THÔNG MINH BẰNG SKLEARN (COSINE SIMILARITY) ---
+    df_clean = total_rec_df.copy()
+    name_prod_col = next(
+        (c for c in df_clean.columns if c.lower() in ["tên sản phẩm"]), None
+    )
+
+    if name_prod_col and not df_clean.empty:
+      df_clean["_normalized_name"] = (
+          df_clean[name_prod_col]
+          .astype(str)
+          .str.lower()
+          .str.replace(r"\s+", " ", regex=True)
+          .str.strip()
+      )
+      unique_names = df_clean["_normalized_name"].unique()
+
+      if len(unique_names) > 1:
+        vectorizer = TfidfVectorizer().fit(unique_names)
+        tfidf_matrix = vectorizer.transform(unique_names)
+        similarity_matrix = cosine_similarity(tfidf_matrix, tfidf_matrix)
+
+        threshold = 0.85
+        visited = set()
+        to_drop_indices = []
+
+        for i in range(len(unique_names)):
+          if i in visited:
+            continue
+          similar_indices = np.where(similarity_matrix[i] >= threshold)[0]
+          for idx in similar_indices:
+            if idx != i:
+              visited.add(idx)
+              duplicate_rows = df_clean[
+                  df_clean["_normalized_name"] == unique_names[idx]
+              ].index
+              to_drop_indices.extend(list(duplicate_rows[1:]))
+
+        df_clean = df_clean.drop(index=to_drop_indices)
+
+      if "_normalized_name" in df_clean.columns:
+        df_clean = df_clean.drop(columns=["_normalized_name"])
+    else:
+      df_clean = df_clean.drop_duplicates()
+
+    st.markdown("##### 🧹 2. Bảng thống kê SAU KHI trừ trùng lặp sản phẩm chung")
+    df_after = (
+        df_clean.groupby("Năm học hiển thị")
+        .agg(
+            **{
+                "Số lượng sản phẩm độc lập": (tiet_col_target, "count"),
+                "Tổng số tiết thực hiện": (tiet_col_target, "sum"),
+            }
+        )
+        .reset_index()
+        .sort_values("Năm học hiển thị")
+    )
+
+    tot_sp_a = df_after["Số lượng sản phẩm độc lập"].sum()
+    tot_t_a = df_after["Tổng số tiết thực hiện"].sum()
+    df_after_disp = df_after.copy()
+    df_after_disp.loc[len(df_after_disp)] = [
         "**Tổng cộng**",
-        total_tiet_val,
-        total_sp_val,
+        tot_sp_a,
+        tot_t_a,
     ]
-    st.dataframe(df_summary_display, use_container_width=True)
+    st.dataframe(df_after_disp, use_container_width=True)
 
-    # Vẽ biểu đồ cột
-    df_plot_data = df_summary_chart[
-        df_summary_chart["Năm học hiển thị"] != "**Tổng cộng**"
+    # --- 2.1 THỐNG KÊ THEO PHÂN LOẠI CẤP 1 (CÓ DÒNG TỔNG CỘNG & GOM NHÓM THÔNG MINH BẰNG SKLEARN) ---
+    phan_loai_col = next(
+        (
+            c
+            for c in df_clean.columns
+            if "phân loại cấp 1" in c.lower() or c.lower() == "phân loại cấp 1"
+        ),
+        None,
+    )
+    loai_hd_col_check = next(
+        (
+            c
+            for c in df_clean.columns
+            if any(x in c.lower() for x in ["loại hoạt động", "loại"])
+        ),
+        None,
+    )
+    name_prod_col_check = next(
+        (c for c in total_rec_df.columns if c.lower() in ["tên sản phẩm"]), None
+    )
+    id_col_check = next(
+        (c for c in total_rec_df.columns if c.lower() in ["mã sản phẩm"]), None
+    )
+    name_col_check = next(
+        (c for c in total_rec_df.columns if c.lower() == "name"), None
+    )
+    surname_col_check = next(
+        (c for c in total_rec_df.columns if c.lower() == "surname"), None
+    )
+    role_col_check = next(
+        (
+            c
+            for c in total_rec_df.columns
+            if any(x in c.lower() for x in ["vai trò", "role"])
+        ),
+        None,
+    )
+
+    if phan_loai_col:
+      st.markdown(
+          "##### 🏷️ 2.2 Thống kê tổng hợp theo Phân loại cấp 1 & Loại hoạt động"
+          " (Sau khi trừ trùng lặp)"
+      )
+
+      group_keys_summary = [phan_loai_col]
+      if loai_hd_col_check and loai_hd_col_check in df_clean.columns:
+        group_keys_summary.append(loai_hd_col_check)
+      group_keys_summary.append("Năm học hiển thị")
+
+      df_phanloai_summary = (
+          df_clean.groupby(group_keys_summary)
+          .agg(
+              **{
+                  "Số lượng sản phẩm": (tiet_col_target, "count"),
+                  "Tổng số tiết": (tiet_col_target, "sum"),
+              }
+          )
+          .reset_index()
+          .sort_values(group_keys_summary)
+      )
+
+      tot_sl_pl = df_phanloai_summary["Số lượng sản phẩm"].sum()
+      tot_tiet_pl = df_phanloai_summary["Tổng số tiết"].sum()
+
+      df_phanloai_summary_disp = df_phanloai_summary.copy()
+      total_row = ["**Tổng cộng**"] + [""] * (
+          len(df_phanloai_summary_disp.columns) - 3
+      ) + [tot_sl_pl, tot_tiet_pl]
+      df_phanloai_summary_disp.loc[len(df_phanloai_summary_disp)] = total_row
+      
+      st.dataframe(df_phanloai_summary_disp, use_container_width=True)
+
+      st.markdown(
+          "##### 🔍 2.3 Bảng chi tiết Phân loại cấp 1 kèm Tên sản phẩm & Danh sách"
+          " thành viên (Đã gom nhóm thông minh bằng Sklearn)"
+      )
+
+      # Chuẩn hóa tên sản phẩm để gom nhóm mờ (Fuzzy Grouping)
+      df_temp_detail = total_rec_df.copy()
+      df_temp_detail[tiet_col_target] = pd.to_numeric(
+          df_temp_detail[tiet_col_target], errors="coerce"
+      ).fillna(0)
+
+      if name_prod_col_check and not df_temp_detail.empty:
+        df_temp_detail["_clean_prod_name"] = (
+            df_temp_detail[name_prod_col_check]
+            .astype(str)
+            .str.lower()
+            .str.replace(r"\s+", " ", regex=True)
+            .str.strip()
+        )
+      else:
+        df_temp_detail["_clean_prod_name"] = "sản phẩm chung"
+
+      # Tạo chuỗi Họ và Tên đầy đủ
+      if name_col_check:
+        if surname_col_check:
+          df_temp_detail["_full_name"] = (
+              df_temp_detail[surname_col_check].astype(str)
+              + " "
+              + df_temp_detail[name_col_check].astype(str)
+          )
+        else:
+          df_temp_detail["_full_name"] = df_temp_detail[
+              name_col_check
+          ].astype(str)
+      else:
+        df_temp_detail["_full_name"] = "Không rõ"
+
+      # Thuật toán gom nhóm thông minh sử dụng Cosine Similarity cho tên sản phẩm tương đồng
+      unique_names_list = df_temp_detail["_clean_prod_name"].unique()
+      name_to_canonical = {}
+
+      if len(unique_names_list) > 1:
+        vectorizer = TfidfVectorizer().fit(unique_names_list)
+        tfidf_matrix = vectorizer.transform(unique_names_list)
+        similarity_matrix = cosine_similarity(tfidf_matrix, tfidf_matrix)
+
+        threshold = 0.80  # Ngưỡng 80% tương đồng sẽ được coi là cùng một sản phẩm
+        visited_set = set()
+
+        for i in range(len(unique_names_list)):
+          if i in visited_set:
+            continue
+          canonical_name = unique_names_list[i]
+          similar_idx = np.where(similarity_matrix[i] >= threshold)[0]
+          for idx in similar_idx:
+            visited_set.add(idx)
+            name_to_canonical[unique_names_list[idx]] = canonical_name
+      else:
+        for name_item in unique_names_list:
+          name_to_canonical[name_item] = name_item
+
+      df_temp_detail["Sản phẩm chuẩn hóa"] = df_temp_detail[
+          "_clean_prod_name"
+      ].map(name_to_canonical)
+
+      # Gom nhóm dữ liệu theo Phân loại cấp 1, Năm học và Tên sản phẩm đã chuẩn hóa
+      group_keys_final = [phan_loai_col, "Năm học hiển thị", "Sản phẩm chuẩn hóa"]
+      
+      # Tổng hợp danh sách thành viên (nối chuỗi bằng dấu phẩy) và vai trò (nối bằng &)
+      agg_rules_detail = {
+          tiet_col_target: "first",
+          "_full_name": lambda x: ", ".join(x.dropna().unique()),
+      }
+      
+      if name_prod_col_check and name_prod_col_check in df_temp_detail.columns:
+        agg_rules_detail[name_prod_col_check] = lambda x: " / ".join(x.dropna().unique())
+      if id_col_check and id_col_check in df_temp_detail.columns:
+        agg_rules_detail[id_col_check] = lambda x: " / ".join(x.dropna().unique())
+      if role_col_check:
+        agg_rules_detail[role_col_check] = lambda x: " & ".join(x.dropna().unique())
+
+      df_phanloai_detail = (
+          df_temp_detail.groupby(group_keys_final)
+          .agg(agg_rules_detail)
+          .reset_index()
+      )
+
+      # Đổi tên các cột hiển thị cho trực quan
+      rename_dict = {
+          tiet_col_target: "Tổng số tiết",
+          "_full_name": "Danh sách thành viên",
+      }
+      if role_col_check:
+        rename_dict[role_col_check] = "Các vai trò"
+      
+      df_phanloai_detail = df_phanloai_detail.rename(columns=rename_dict)
+      df_phanloai_detail = df_phanloai_detail.sort_values(
+          [phan_loai_col, "Năm học hiển thị"]
+      )
+
+      # Lọc bỏ cột tạm
+      if "_clean_prod_name" in df_phanloai_detail.columns:
+        df_phanloai_detail = df_phanloai_detail.drop(columns=["_clean_prod_name"])
+      if "Sản phẩm chuẩn hóa" in df_phanloai_detail.columns:
+        df_phanloai_detail = df_phanloai_detail.drop(columns=["Sản phẩm chuẩn hóa"])
+
+      st.dataframe(df_phanloai_detail, use_container_width=True)
+    else:
+      st.info(
+          "ℹ️ Không tìm thấy cột 'Phân loại cấp 1' để thực hiện thống kê chi"
+          " tiết."
+      )
+
+    # --- 3. VẼ ĐỒ THỊ ---
+    df_plot_data = df_after[
+        df_after["Năm học hiển thị"] != "**Tổng cộng**"
     ]
     if not df_plot_data.empty:
-      fig, ax = plt.subplots(figsize=(7, 3.5))
-      bars = ax.bar(
-          df_plot_data["Năm học hiển thị"],
-          df_plot_data["Tổng số tiết"],
-          color="#4C72B0",
-      )
+      st.markdown("##### 📊 3. Biểu đồ trực quan theo năm học (Sau khi trừ trùng lặp)")
 
-      for bar in bars:
-        h = bar.get_height()
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            h,
-            f"{int(h):,}",
-            ha="center",
-            va="bottom",
-            fontsize=8,
-            fontweight="bold",
+      col_chart1, col_chart2 = st.columns(2)
+
+      with col_chart1:
+        fig1, ax1 = plt.subplots(figsize=(6, 3.5))
+        bars1 = ax1.bar(
+            df_plot_data["Năm học hiển thị"],
+            df_plot_data["Số lượng sản phẩm độc lập"],
+            color="#55A868",
         )
+        for bar in bars1:
+          h = bar.get_height()
+          ax1.text(
+              bar.get_x() + bar.get_width() / 2,
+              h,
+              f"{int(h):,}",
+              ha="center",
+              va="bottom",
+              fontsize=8,
+              fontweight="bold",
+          )
+        ax1.set_xlabel("Năm học", fontsize=9)
+        ax1.set_ylabel("Số lượng sản phẩm", fontsize=9)
+        ax1.tick_params(axis="x", rotation=45)
+        st.pyplot(fig1, bbox_inches="tight")
 
-      ax.set_xlabel("Năm học", fontsize=9)
-      ax.set_ylabel("Tổng số tiết thực hiện", fontsize=9)
-      ax.tick_params(axis="x", rotation=45)
-
-      col_l, col_m, col_r = st.columns([1, 6, 1])
-      with col_m:
-        st.pyplot(fig, bbox_inches="tight")
+      with col_chart2:
+        fig2, ax2 = plt.subplots(figsize=(6, 3.5))
+        bars2 = ax2.bar(
+            df_plot_data["Năm học hiển thị"],
+            df_plot_data["Tổng số tiết thực hiện"],
+            color="#C44E52",
+        )
+        for bar in bars2:
+          h = bar.get_height()
+          ax2.text(
+              bar.get_x() + bar.get_width() / 2,
+              h,
+              f"{int(h):,}",
+              ha="center",
+              va="bottom",
+              fontsize=8,
+              fontweight="bold",
+          )
+        ax2.set_xlabel("Năm học", fontsize=9)
+        ax2.set_ylabel("Tổng số tiết thực hiện", fontsize=9)
+        ax2.tick_params(axis="x", rotation=45)
+        st.pyplot(fig2, bbox_inches="tight")
   else:
-      st.info(
-          "ℹ️ Không tìm thấy cột 'SỐ TIẾT KÊ KHAI' hoặc cột thời gian phù hợp"
-          " để vẽ biểu đồ tổng hợp."
-      )
+    st.info(
+        "ℹ️ Không tìm thấy cột 'SỐ TIẾT KÊ KHAI' hoặc cột thời gian phù hợp"
+        " để vẽ biểu đồ."
+    )
 else:
-  st.info("ℹ️ Hãy nhập từ khóa tìm kiếm để hiển thị thống kê và biểu đồ.")
+  st.info("ℹ️ Nhập từ khóa để hiển thị kết quả phân tích.")
