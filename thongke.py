@@ -485,32 +485,53 @@ if not total_rec_df.empty:
         df_before_disp.loc[len(df_before_disp)] = ["**Tổng cộng**", tot_d_b, tot_t_b]
         st.dataframe(df_before_disp, use_container_width=True)
 
-        # --- 2. XỬ LÝ TRÙNG LẶP THÔNG MINH BẰNG SKLEARN (COSINE SIMILARITY) ---
+        # ==========================================================
+        # 🧹 2. XỬ LÝ TRÙNG LẶP THÔNG MINH BẰNG SKLEARN (ĐỒNG BỘ TOÀN HỆ THỐNG)
+        # ==========================================================
         df_clean = total_rec_df.copy()
         name_prod_col = next(
             (c for c in df_clean.columns if c.lower() in ["tên sản phẩm"]), None
         )
+        id_col_check = next(
+            (c for c in df_clean.columns if c.lower() in ["mã sản phẩm"]), None
+        )
 
         if name_prod_col and not df_clean.empty:
-          df_clean["_normalized_name"] = (
+          # Làm sạch tên sản phẩm
+          df_clean["_clean_prod_name"] = (
               df_clean[name_prod_col]
               .astype(str)
               .str.lower()
               .str.replace(r"\s+", " ", regex=True)
               .str.strip()
           )
-          unique_names = df_clean["_normalized_name"].unique()
+          # Kết hợp mã sản phẩm để phân biệt rạch ròi các sản phẩm khác mã
+          if id_col_check and id_col_check in df_clean.columns:
+            df_clean["_clean_id"] = (
+                df_clean[id_col_check]
+                .astype(str)
+                .str.lower()
+                .str.replace(r"\s+", "", regex=True)
+                .str.strip()
+            )
+            df_clean["_clean_key"] = (
+                df_clean["_clean_prod_name"] + " | " + df_clean["_clean_id"]
+            )
+          else:
+            df_clean["_clean_key"] = df_clean["_clean_prod_name"]
 
-          if len(unique_names) > 1:
-            vectorizer = TfidfVectorizer().fit(unique_names)
-            tfidf_matrix = vectorizer.transform(unique_names)
+          unique_keys = df_clean["_clean_key"].unique()
+
+          if len(unique_keys) > 1:
+            vectorizer = TfidfVectorizer().fit(unique_keys)
+            tfidf_matrix = vectorizer.transform(unique_keys)
             similarity_matrix = cosine_similarity(tfidf_matrix, tfidf_matrix)
 
             threshold = 0.85
             visited = set()
             to_drop_indices = []
 
-            for i in range(len(unique_names)):
+            for i in range(len(unique_keys)):
               if i in visited:
                 continue
               similar_indices = np.where(similarity_matrix[i] >= threshold)[0]
@@ -518,20 +539,21 @@ if not total_rec_df.empty:
                 if idx != i:
                   visited.add(idx)
                   duplicate_rows = df_clean[
-                      df_clean["_normalized_name"] == unique_names[idx]
+                      df_clean["_clean_key"] == unique_keys[idx]
                   ].index
-                  to_drop_indices.extend(list(duplicate_rows[1:]))
+                  to_drop_indices.extend(list(duplicate_rows))
 
+            # Loại bỏ các dòng trùng lặp, giữ lại đại diện duy nhất
             df_clean = df_clean.drop(index=to_drop_indices)
 
-          if "_normalized_name" in df_clean.columns:
-            df_clean = df_clean.drop(columns=["_normalized_name"])
+          # Dọn dẹp cột tạm
+          for col_tmp in ["_clean_prod_name", "_clean_id", "_clean_key"]:
+            if col_tmp in df_clean.columns:
+              df_clean = df_clean.drop(columns=[col_tmp])
         else:
           df_clean = df_clean.drop_duplicates()
 
-        st.markdown(
-            "##### 🧹 2. Bảng thống kê SAU KHI trừ trùng lặp"
-        )
+        st.markdown("##### 🧹 2. Bảng thống kê SAU KHI trừ trùng lặp")
         df_after = (
             df_clean.groupby("Năm học hiển thị")
             .agg(
@@ -569,14 +591,6 @@ if not total_rec_df.empty:
                 for c in df_clean.columns
                 if any(x in c.lower() for x in ["loại hoạt động", "loại"])
             ),
-            None,
-        )
-        name_prod_col_check = next(
-            (c for c in total_rec_df.columns if c.lower() in ["tên sản phẩm"]),
-            None,
-        )
-        id_col_check = next(
-            (c for c in total_rec_df.columns if c.lower() in ["mã sản phẩm"]),
             None,
         )
         name_col_check = next(
@@ -630,28 +644,26 @@ if not total_rec_df.empty:
 
           st.markdown(
               "##### 🔍 2.3 Bảng chi tiết Phân loại cấp 1 kèm Tên sản phẩm &"
-              " Danh sách thành viên"
+              " Danh sách thành viên (Đã gom nhóm)"
           )
 
+          # Sử dụng toàn bộ bản ghi gốc (total_rec_df) để gom các thành viên chung lại một dòng
           df_temp_detail = total_rec_df.copy()
           df_temp_detail[tiet_col_target] = pd.to_numeric(
               df_temp_detail[tiet_col_target], errors="coerce"
           ).fillna(0)
 
-          # --- 🧹 LÀM SẠCH CỰC KỲ TRIỆT ĐỂ ĐỂ GOM NHÓM CHÍNH XÁC ---
-          if name_prod_col_check and not df_temp_detail.empty:
+          if name_prod_col and not df_temp_detail.empty:
             df_temp_detail["_clean_prod_name"] = (
-                df_temp_detail[name_prod_col_check]
+                df_temp_detail[name_prod_col]
                 .astype(str)
                 .str.lower()
-                # Xóa sạch khoảng trắng kép, khoảng trắng đầu đuôi
                 .str.replace(r"\s+", " ", regex=True)
                 .str.strip()
             )
           else:
             df_temp_detail["_clean_prod_name"] = "sản phẩm chung"
 
-          # Kết hợp thêm Mã sản phẩm (nếu có) vào chuỗi chuẩn hóa để ràng buộc chắc chắn
           if id_col_check and id_col_check in df_temp_detail.columns:
             df_temp_detail["_clean_id"] = (
                 df_temp_detail[id_col_check]
@@ -660,12 +672,11 @@ if not total_rec_df.empty:
                 .str.replace(r"\s+", "", regex=True)
                 .str.strip()
             )
-            # Gộp tên sản phẩm và mã sản phẩm lại làm khóa chuẩn hóa chung
-            df_temp_detail["_clean_prod_name"] = (
-                df_temp_detail["_clean_prod_name"]
-                + " | "
-                + df_temp_detail["_clean_id"]
+            df_temp_detail["_clean_key"] = (
+                df_temp_detail["_clean_prod_name"] + " | " + df_temp_detail["_clean_id"]
             )
+          else:
+            df_temp_detail["_clean_key"] = df_temp_detail["_clean_prod_name"]
 
           if name_col_check:
             if surname_col_check:
@@ -681,32 +692,34 @@ if not total_rec_df.empty:
           else:
             df_temp_detail["_full_name"] = "Không rõ"
 
-          unique_names_list = df_temp_detail["_clean_prod_name"].unique()
-          name_to_canonical = {}
+          unique_keys_detail = df_temp_detail["_clean_key"].unique()
+          key_to_canonical = {}
 
-          if len(unique_names_list) > 1:
-            vectorizer = TfidfVectorizer().fit(unique_names_list)
-            tfidf_matrix = vectorizer.transform(unique_names_list)
-            similarity_matrix = cosine_similarity(tfidf_matrix, tfidf_matrix)
+          if len(unique_keys_detail) > 1:
+            vectorizer_d = TfidfVectorizer().fit(unique_keys_detail)
+            tfidf_matrix_d = vectorizer_d.transform(unique_keys_detail)
+            similarity_matrix_d = cosine_similarity(
+                tfidf_matrix_d, tfidf_matrix_d
+            )
 
-            threshold = 0.85
-            visited_set = set()
+            threshold_d = 0.85
+            visited_d = set()
 
-            for i in range(len(unique_names_list)):
-              if i in visited_set:
+            for i in range(len(unique_keys_detail)):
+              if i in visited_d:
                 continue
-              canonical_name = unique_names_list[i]
-              similar_idx = np.where(similarity_matrix[i] >= threshold)[0]
-              for idx in similar_idx:
-                visited_set.add(idx)
-                name_to_canonical[unique_names_list[idx]] = canonical_name
+              canonical_key = unique_keys_detail[i]
+              similar_idx_d = np.where(similarity_matrix_d[i] >= threshold_d)[0]
+              for idx in similar_idx_d:
+                visited_d.add(idx)
+                key_to_canonical[unique_keys_detail[idx]] = canonical_key
           else:
-            for name_item in unique_names_list:
-              name_to_canonical[name_item] = name_item
+            for k_item in unique_keys_detail:
+              key_to_canonical[k_item] = k_item
 
           df_temp_detail["Sản phẩm chuẩn hóa"] = df_temp_detail[
-              "_clean_prod_name"
-          ].map(name_to_canonical)
+              "_clean_key"
+          ].map(key_to_canonical)
 
           group_keys_final = [
               phan_loai_col,
@@ -718,11 +731,8 @@ if not total_rec_df.empty:
               "_full_name": lambda x: ", ".join(x.dropna().unique()),
           }
 
-          if (
-              name_prod_col_check
-              and name_prod_col_check in df_temp_detail.columns
-          ):
-            agg_rules_detail[name_prod_col_check] = lambda x: (
+          if name_prod_col and name_prod_col in df_temp_detail.columns:
+            agg_rules_detail[name_prod_col] = lambda x: (
                 " / ".join(x.dropna().unique())
             )
           if id_col_check and id_col_check in df_temp_detail.columns:
@@ -755,6 +765,10 @@ if not total_rec_df.empty:
           if "_clean_prod_name" in df_phanloai_detail.columns:
             df_phanloai_detail = df_phanloai_detail.drop(
                 columns=["_clean_prod_name"]
+            )
+          if "_clean_key" in df_phanloai_detail.columns:
+            df_phanloai_detail = df_phanloai_detail.drop(
+                columns=["_clean_key"]
             )
           if "Sản phẩm chuẩn hóa" in df_phanloai_detail.columns:
             df_phanloai_detail = df_phanloai_detail.drop(
