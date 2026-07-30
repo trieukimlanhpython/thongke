@@ -21,7 +21,7 @@ import streamlit as st
 st.set_page_config(page_title="📋 Ứng dụng QLCV", layout="wide")
 st.title("📋 Ứng dụng Quản lý Công việc")
 st.write(
-    "Đây là ứng dụng nhằm tổng hợp thông tin công việc từ giảng dạy, nghiên cứu khoa học và công tác khác)"
+    "Đây là ứng dụng nhằm tổng hợp thông tin công việc từ giảng dạy, nghiên cứu khoa học và công tác khác. Hãy bắt đầu với thao tác: tra cứu công việc nâng cao!"
 )
 
 import time  # Nhớ đảm bảo đã import time ở đầu file (nếu chưa có)
