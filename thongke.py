@@ -579,12 +579,7 @@ if not total_rec_df.empty:
                 df_phanloai_detail = df_phanloai_detail.drop(columns=[col_drop])
 
         st.dataframe(df_phanloai_detail, use_container_width=True)
-        else:
-            st.info(
-              "ℹ️ Không tìm thấy cột 'Phân loại cấp 1 (NCKH)' để thực hiện thống kê"
-              " chi tiết do đang thống kê nhóm GD hoặc Other."
-            )
-
+       
         # --- 3. VẼ ĐỒ THỊ ---
         df_plot_data = df_after[
             df_after["Năm học hiển thị"] != "**Tổng cộng**"
