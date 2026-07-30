@@ -25,6 +25,8 @@ st.write(
     " df2_category-description; GD_giảng dạy; NCKH_nghiên cứu; Other_khác)"
 )
 
+import time  # Nhớ đảm bảo đã import time ở đầu file (nếu chưa có)
+
 # ==========================================================
 # 🔄 NÚT CẬP NHẬT / LÀM MỚI DỮ LIỆU (REFRESH CACHE)
 # ==========================================================
@@ -40,8 +42,16 @@ with col_refresh2:
       if k in st.session_state:
         del st.session_state[k]
 
-    st.success("✅ Đã làm mới dữ liệu thành công!")
-    st.rerun()  # Tải lại trang ngay lập tức
+    # Tạo một container trống để hiển thị thông báo tạm thời
+    status_placeholder = st.empty()
+    status_placeholder.success("✅ Đã làm mới dữ liệu thành công!")
+
+    # Dừng 2 giây để người dùng kịp nhìn thấy thông báo
+    time.sleep(2)
+
+    # Xóa thông báo đi rồi mới tải lại trang
+    status_placeholder.empty()
+    st.rerun()
 # ==========================================================
 # 🛠️ HÀM BỔ TRỢ: CHUYỂN ĐỢT KÊ KHAI SANG NĂM HỌC
 # ==========================================================
