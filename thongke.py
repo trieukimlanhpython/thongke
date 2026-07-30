@@ -604,7 +604,7 @@ if not total_rec_df.empty:
 
           st.markdown(
               "##### 🔍 2.3 Bảng chi tiết Phân loại cấp 1 kèm Tên sản phẩm &"
-              " Danh sách thành viên (Đã gom nhóm thông minh bằng Sklearn)"
+              " Danh sách thành viên"
           )
 
           df_temp_detail = total_rec_df.copy()
