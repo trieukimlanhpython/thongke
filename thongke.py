@@ -343,328 +343,343 @@ else:
   st.info("👆 Chọn phạm vi và nhập từ khóa để bắt đầu tìm kiếm và thống kê.")
 
 # ==========================================================
-# 📊 THỐNG KÊ, TRỪ TRÙNG LẶP VÀ VẼ ĐỒ THỊ
+# 📊 THỐNG KÊ, TRỪ TRÙNG LẶP VÀ VẼ ĐỒ THỊ (PHÂN TÁCH RIÊNG GD VÀ NCKH/OTHER)
 # ==========================================================
 st.divider()
 
 if found_records:
-  valid_dfs = [df for name, df in found_records if not df.empty]
-  total_rec_df = (
-      pd.concat(valid_dfs, ignore_index=True)
-      if valid_dfs
-      else pd.DataFrame()
-  )
+    valid_dfs = [df for name, df in found_records if not df.empty]
+    total_rec_df = (
+        pd.concat(valid_dfs, ignore_index=True)
+        if valid_dfs
+        else pd.DataFrame()
+    )
 else:
-  total_rec_df = pd.DataFrame()
+    total_rec_df = pd.DataFrame()
 
 if not total_rec_df.empty:
-  st.markdown("#### 📈 THỐNG KÊ VÀ XỬ LÝ TRÙNG LẶP SẢN PHẨM HOẶC SỐ LỚP")
+    st.markdown("#### 📈 THỐNG KÊ VÀ XỬ LÝ DỮ LIỆU ĐẶC THÙ")
 
-  tiet_col_target = next(
-      (
-          c
-          for c in total_rec_df.columns
-          if any(x in c.lower() for x in ["sỐ tiết kê khai", "tiết", "period"])
-      ),
-      None,
-  )
-  time_col_target = next(
-      (
-          c
-          for c in total_rec_df.columns
-          if any(x in c.lower() for x in ["đợt kê khai", "năm học", "year"])
-      ),
-      None,
-  )
-
-  if tiet_col_target and time_col_target:
-    total_rec_df[tiet_col_target] = pd.to_numeric(
-        total_rec_df[tiet_col_target], errors="coerce"
-    ).fillna(0)
-    total_rec_df["Năm học hiển thị"] = total_rec_df[time_col_target].apply(
-        quy_doi_nam_hoc
+    tiet_col_target = next(
+        (
+            c
+            for c in total_rec_df.columns
+            if any(x in c.lower() for x in ["sỐ tiết kê khai", "tiết", "period"])
+        ),
+        None,
+    )
+    time_col_target = next(
+        (
+            c
+            for c in total_rec_df.columns
+            if any(x in c.lower() for x in ["đợt kê khai", "năm học", "year"])
+        ),
+        None,
     )
 
-    # --- 🎛️ BỘ LỌC CHỌN NĂM HỌC HIỂN THỊ (DẠNG Ô VUÔNG / CHECKBOX NHIỀU LỰA CHỌN) ---
-    all_years = sorted(
-        total_rec_df["Năm học hiển thị"].dropna().unique().tolist()
-    )
-
-    st.markdown("📅 **Chọn năm học muốn xem thống kê và biểu đồ:**")
-
-    # Khởi tạo session state lưu trạng thái checkbox nếu chưa có
-    if "selected_years_stat" not in st.session_state:
-      st.session_state["selected_years_stat"] = (
-          all_years  # Mặc định chọn tất cả
-      )
-
-    # Hiển thị các ô vuông checkbox nằm ngang
-    cols_chk = st.columns(len(all_years) if len(all_years) > 0 else 1)
-    selected_years = []
-
-    for i, year in enumerate(all_years):
-      with cols_chk[i % len(cols_chk)]:
-        # Kiểm tra xem năm này có đang được chọn sẵn không
-        is_checked = st.checkbox(
-            str(year),
-            value=(year in st.session_state["selected_years_stat"]),
-            key=f"chk_year_{year}",
+    if tiet_col_target and time_col_target:
+        total_rec_df[tiet_col_target] = pd.to_numeric(
+            total_rec_df[tiet_col_target], errors="coerce"
+        ).fillna(0)
+        total_rec_df["Năm học hiển thị"] = total_rec_df[time_col_target].apply(
+            quy_doi_nam_hoc
         )
-        if is_checked:
-          selected_years.append(year)
 
-    # Cập nhật lại session state
-    st.session_state["selected_years_stat"] = selected_years
+        # --- 🎛️ BỘ LỌC CHỌN NĂM HỌC HIỂN THỊ (DẠNG Ô VUÔNG) ---
+        all_years = sorted(
+            total_rec_df["Năm học hiển thị"].dropna().unique().tolist()
+        )
 
-    if not selected_years:
-      st.warning("⚠️ Vui lòng tích chọn ít nhất một năm học để hiển thị dữ liệu.")
+        st.markdown("📅 **Chọn năm học muốn xem thống kê và biểu đồ:**")
+
+        if "selected_years_stat" not in st.session_state:
+            st.session_state["selected_years_stat"] = all_years
+
+        cols_chk = st.columns(len(all_years) if len(all_years) > 0 else 1)
+        selected_years = []
+
+        for i, year in enumerate(all_years):
+            with cols_chk[i % len(cols_chk)]:
+                is_checked = st.checkbox(
+                    str(year),
+                    value=(year in st.session_state["selected_years_stat"]),
+                    key=f"chk_year_{year}",
+                )
+                if is_checked:
+                    selected_years.append(year)
+
+        st.session_state["selected_years_stat"] = selected_years
+
+        if not selected_years:
+            st.warning("⚠️ Vui lòng tích chọn ít nhất một năm học để hiển thị dữ liệu.")
+        else:
+            total_rec_df = total_rec_df[
+                total_rec_df["Năm học hiển thị"].isin(selected_years)
+            ]
+
+            if total_rec_df.empty:
+                st.warning("❌ Không có dữ liệu cho năm học đã chọn.")
+            else:
+                # 🌟 PHÂN TÁCH LUỒNG XỬ LÝ DỰA TRƯỜNG _source_table (GD VS NCKH/OTHER)
+                is_only_gd = (
+                    "_source_table" in total_rec_df.columns
+                    and (total_rec_df["_source_table"] == "GD").all()
+                )
+
+                if is_only_gd:
+                    # ==========================================
+                    # 📚 XỬ LÝ RIÊNG CHO KHỐI GIẢNG DẠY (GD)
+                    # ==========================================
+                    st.markdown("##### 📚 Thống kê Giảng dạy (Theo Số lượng lớp & Môn học)")
+
+                    class_col = next((c for c in total_rec_df.columns if c.lower() == "class"), None)
+                    subject_col = next((c for c in total_rec_df.columns if c.lower() in ["subject", "short_name"]), None)
+
+                    # 1. Bảng thống kê trước khi xử lý
+                    df_before = total_rec_df.groupby("Năm học hiển thị").agg(**{
+                        "Tổng số dòng kê khai": (tiet_col_target, "count"),
+                        "Tổng số tiết": (tiet_col_target, "sum")
+                    }).reset_index().sort_values("Năm học hiển thị")
+
+                    tot_d_b = df_before["Tổng số dòng kê khai"].sum()
+                    tot_t_b = df_before["Tổng số tiết"].sum()
+                    df_before_disp = df_before.copy()
+                    df_before_disp.loc[len(df_before_disp)] = ["**Tổng cộng**", tot_d_b, tot_t_b]
+                    st.dataframe(df_before_disp, use_container_width=True)
+
+                    # 2. Xử lý thống kê lớp và môn học độc lập theo năm học
+                    df_clean = total_rec_df.drop_duplicates().copy()
+
+                    # Thống kê theo năm học: Đếm số lượng lớp độc lập và số lượng môn học độc lập
+                    agg_gd_dict = {
+                        tiet_col_target: "sum"
+                    }
+                    if class_col:
+                        agg_gd_dict["Số lượng lớp"] = (class_col, "nunique")
+                    else:
+                        agg_gd_dict["Số lượng lớp"] = (tiet_col_target, "count")
+
+                    if subject_col:
+                        agg_gd_dict["Số lượng môn học"] = (subject_col, "nunique")
+                    else:
+                        agg_gd_dict["Số lượng môn học"] = (tiet_col_target, "count")
+
+                    df_after = df_clean.groupby("Năm học hiển thị").agg(agg_gd_dict).reset_index().sort_values("Năm học hiển thị")
+                    
+                    # Đổi tên cột cho trực quan
+                    df_after = df_after.rename(columns={tiet_col_target: "Tổng số tiết thực hiện"})
+
+                    st.markdown("##### 🧹 2. Bảng tổng hợp Giảng dạy theo Năm học")
+                    tot_lop = df_after["Số lượng lớp"].sum()
+                    tot_mon = df_after["Số lượng môn học"].sum()
+                    tot_tiet = df_after["Tổng số tiết thực hiện"].sum()
+
+                    df_after_disp = df_after.copy()
+                    df_after_disp.loc[len(df_after_disp)] = ["**Tổng cộng**", tot_tiet, tot_lop, tot_mon]
+                    # Sắp xếp lại thứ tự cột cho đẹp
+                    df_after_disp = df_after_disp[["Năm học hiển thị", "Số lượng lớp", "Số lượng môn học", "Tổng số tiết thực hiện"]]
+                    st.dataframe(df_after_disp, use_container_width=True)
+
+                    # 2.3 Bảng chi tiết GD
+                    st.markdown("##### 🔍 2.3 Bảng chi tiết Giảng dạy")
+                    st.dataframe(df_clean, use_container_width=True)
+
+                    # 3. VẼ ĐỒ THỊ RIÊNG CHO GD (Số lượng lớp & Số lượng môn học)
+                    df_plot_data = df_after[df_after["Năm học hiển thị"] != "**Tổng cộng**"]
+                    if not df_plot_data.empty:
+                        st.markdown("##### 📊 3. Biểu đồ trực quan Giảng dạy (Số lớp & Số môn học)")
+                        col_c1, col_c2 = st.columns(2)
+
+                        with col_c1:
+                            fig1, ax1 = plt.subplots(figsize=(6, 3.5))
+                            b1 = ax1.bar(df_plot_data["Năm học hiển thị"], df_plot_data["Số lượng lớp"], color="#4C72B0")
+                            for bar in b1:
+                                h = bar.get_height()
+                                ax1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
+                            ax1.set_xlabel("Năm học", fontsize=9)
+                            ax1.set_ylabel("Số lượng lớp", fontsize=9)
+                            ax1.tick_params(axis="x", rotation=45)
+                            st.pyplot(fig1, bbox_inches="tight")
+
+                        with col_c2:
+                            fig2, ax2 = plt.subplots(figsize=(6, 3.5))
+                            b2 = ax2.bar(df_plot_data["Năm học hiển thị"], df_plot_data["Số lượng môn học"], color="#DD8452")
+                            for bar in b2:
+                                h = bar.get_height()
+                                ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
+                            ax2.set_xlabel("Năm học", fontsize=9)
+                            ax2.set_ylabel("Số lượng môn học", fontsize=9)
+                            ax2.tick_params(axis="x", rotation=45)
+                            st.pyplot(fig2, bbox_inches="tight")
+
+                else:
+                    # ==========================================
+                    # 🔬 XỬ LÝ GIỮ NGUYÊN CHO NCKH / OTHER / TẤT CẢ
+                    # ==========================================
+                    df_temp_detail = total_rec_df.copy()
+                    name_prod_col = next((c for c in df_temp_detail.columns if c.lower() in ["tên sản phẩm"]), None)
+                    id_col_check = next((c for c in df_temp_detail.columns if c.lower() in ["mã sản phẩm", "code"]), None)
+                    name_col_check = next((c for c in df_temp_detail.columns if c.lower() == "name"), None)
+                    surname_col_check = next((c for c in df_temp_detail.columns if c.lower() == "surname"), None)
+                    role_col_check = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["vai trò", "role"])), None)
+
+                    if name_prod_col and not df_temp_detail.empty:
+                        df_temp_detail["_clean_prod_name"] = df_temp_detail[name_prod_col].astype(str).str.lower().str.replace(r"\s+", " ", regex=True).str.strip()
+                    else:
+                        df_temp_detail["_clean_prod_name"] = "sản phẩm chung"
+
+                    if id_col_check and id_col_check in df_temp_detail.columns:
+                        df_temp_detail["_clean_id"] = df_temp_detail[id_col_check].astype(str).str.lower().str.replace(r"\s+", "", regex=True).str.strip()
+                        df_temp_detail["_clean_key"] = df_temp_detail["_clean_prod_name"] + " | " + df_temp_detail["_clean_id"]
+                    else:
+                        df_temp_detail["_clean_key"] = df_temp_detail["_clean_prod_name"]
+
+                    if name_col_check:
+                        if surname_col_check:
+                            df_temp_detail["_full_name"] = df_temp_detail[surname_col_check].astype(str) + " " + df_temp_detail[name_col_check].astype(str)
+                        else:
+                            df_temp_detail["_full_name"] = df_temp_detail[name_col_check].astype(str)
+                    else:
+                        df_temp_detail["_full_name"] = "Không rõ"
+
+                    unique_keys_detail = df_temp_detail["_clean_key"].unique()
+                    key_to_canonical = {}
+
+                    if len(unique_keys_detail) > 1:
+                        vectorizer_d = TfidfVectorizer().fit(unique_keys_detail)
+                        tfidf_matrix_d = vectorizer_d.transform(unique_keys_detail)
+                        similarity_matrix_d = cosine_similarity(tfidf_matrix_d, tfidf_matrix_d)
+
+                        threshold_d = 0.85
+                        visited_d = set()
+
+                        for i in range(len(unique_keys_detail)):
+                            if i in visited_d:
+                                continue
+                            canonical_key = unique_keys_detail[i]
+                            similar_idx_d = np.where(similarity_matrix_d[i] >= threshold_d)[0]
+                            for idx in similar_idx_d:
+                                visited_d.add(idx)
+                                key_to_canonical[unique_keys_detail[idx]] = canonical_key
+                    else:
+                        for k_item in unique_keys_detail:
+                            key_to_canonical[k_item] = k_item
+
+                    df_temp_detail["Sản phẩm chuẩn hóa"] = df_temp_detail["_clean_key"].map(key_to_canonical)
+
+                    phan_loai_col = next((c for c in df_temp_detail.columns if "phân loại cấp 1" in c.lower() or c.lower() == "phân loại cấp 1"), None)
+                    loai_hd_col_check = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["loại hoạt động", "loại"])), None)
+
+                    group_keys_final = ["Năm học hiển thị", "Sản phẩm chuẩn hóa"]
+                    if phan_loai_col and phan_loai_col in df_temp_detail.columns:
+                        group_keys_final.insert(0, phan_loai_col)
+                    if loai_hd_col_check and loai_hd_col_check in df_temp_detail.columns and loai_hd_col_check not in group_keys_final:
+                        group_keys_final.insert(1, loai_hd_col_check)
+
+                    agg_rules_detail = {
+                        tiet_col_target: "first",
+                        "_full_name": lambda x: ", ".join(x.dropna().unique()),
+                    }
+                    if name_prod_col and name_prod_col in df_temp_detail.columns:
+                        agg_rules_detail[name_prod_col] = lambda x: " / ".join(x.dropna().unique())
+                    if id_col_check and id_col_check in df_temp_detail.columns:
+                        agg_rules_detail[id_col_check] = lambda x: " / ".join(x.dropna().unique())
+                    if role_col_check:
+                        agg_rules_detail[role_col_check] = lambda x: " & ".join(x.dropna().unique())
+
+                    df_clean_unified = df_temp_detail.groupby(group_keys_final, dropna=False).agg(agg_rules_detail).reset_index()
+
+                    # 1. Thống kê trước khi trừ trùng
+                    st.markdown("##### 📋 1. Bảng thống kê TRƯỚC khi trừ trùng lặp")
+                    df_before = total_rec_df.groupby("Năm học hiển thị").agg(**{
+                        "Tổng số dòng kê khai": (tiet_col_target, "count"),
+                        "Tổng số tiết": (tiet_col_target, "sum")
+                    }).reset_index().sort_values("Năm học hiển thị")
+
+                    tot_d_b = df_before["Tổng số dòng kê khai"].sum()
+                    tot_t_b = df_before["Tổng số tiết"].sum()
+                    df_before_disp = df_before.copy()
+                    df_before_disp.loc[len(df_before_disp)] = ["**Tổng cộng**", tot_d_b, tot_t_b]
+                    st.dataframe(df_before_disp, use_container_width=True)
+
+                    # 2. Thống kê sau khi trừ trùng
+                    st.markdown("##### 🧹 2. Bảng thống kê SAU KHI trừ trùng lặp")
+                    df_after = df_clean_unified.groupby("Năm học hiển thị").agg(**{
+                        "Số lượng sản phẩm độc lập": (tiet_col_target, "count"),
+                        "Tổng số tiết thực hiện": (tiet_col_target, "sum")
+                    }).reset_index().sort_values("Năm học hiển thị")
+
+                    tot_sp_a = df_after["Số lượng sản phẩm độc lập"].sum()
+                    tot_t_a = df_after["Tổng số tiết thực hiện"].sum()
+                    df_after_disp = df_after.copy()
+                    df_after_disp.loc[len(df_after_disp)] = ["**Tổng cộng**", tot_sp_a, tot_t_a]
+                    st.dataframe(df_after_disp, use_container_width=True)
+
+                    # 2.2 Thống kê phân loại cấp 1
+                    if phan_loai_col and phan_loai_col in df_clean_unified.columns:
+                        st.markdown("##### 🏷️ 2.2 Thống kê tổng hợp theo Phân loại cấp 1 & Loại hoạt động")
+                        group_keys_summary = [phan_loai_col]
+                        if loai_hd_col_check and loai_hd_col_check in df_clean_unified.columns:
+                            group_keys_summary.append(loai_hd_col_check)
+                        group_keys_summary.append("Năm học hiển thị")
+
+                        df_phanloai_summary = df_clean_unified.groupby(group_keys_summary).agg(**{
+                            "Số lượng sản phẩm": (tiet_col_target, "count"),
+                            "Tổng số tiết": (tiet_col_target, "sum")
+                        }).reset_index().sort_values(group_keys_summary)
+
+                        tot_sl_pl = df_phanloai_summary["Số lượng sản phẩm"].sum()
+                        tot_tiet_pl = df_phanloai_summary["Tổng số tiết"].sum()
+
+                        df_phanloai_summary_disp = df_phanloai_summary.copy()
+                        total_row = ["**Tổng cộng**"] + [""] * (len(df_phanloai_summary_disp.columns) - 3) + [tot_sl_pl, tot_tiet_pl]
+                        df_phanloai_summary_disp.loc[len(df_phanloai_summary_disp)] = total_row
+                        st.dataframe(df_phanloai_summary_disp, use_container_width=True)
+
+                    # 2.3 Bảng chi tiết NCKH
+                    st.markdown("##### 🔍 2.3 Bảng chi tiết kèm Tên sản phẩm & Danh sách thành viên (Đã gom nhóm)")
+                    df_phanloai_detail = df_clean_unified.copy()
+                    rename_dict = {
+                        tiet_col_target: "Tổng số tiết",
+                        "_full_name": "Danh sách thành viên"
+                    }
+                    if role_col_check and role_col_check in df_phanloai_detail.columns:
+                        rename_dict[role_col_check] = "Các vai trò"
+
+                    df_phanloai_detail = df_phanloai_detail.rename(columns=rename_dict)
+                    for col_drop in ["_source_table", "_clean_key", "Sản phẩm chuẩn hóa"]:
+                        if col_drop in df_phanloai_detail.columns:
+                            df_phanloai_detail = df_phanloai_detail.drop(columns=[col_drop])
+
+                    st.dataframe(df_phanloai_detail, use_container_width=True)
+
+                    # 3. Vẽ đồ thị NCKH
+                    df_plot_data = df_after[df_after["Năm học hiển thị"] != "**Tổng cộng**"]
+                    if not df_plot_data.empty:
+                        st.markdown("##### 📊 3. Biểu đồ trực quan theo năm học (Số lượng sản phẩm & Tiết)")
+                        col_chart1, col_chart2 = st.columns(2)
+                        with col_chart1:
+                            fig1, ax1 = plt.subplots(figsize=(6, 3.5))
+                            bars1 = ax1.bar(df_plot_data["Năm học hiển thị"], df_plot_data["Số lượng sản phẩm độc lập"], color="#55A868")
+                            for bar in bars1:
+                                h = bar.get_height()
+                                ax1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
+                            ax1.set_xlabel("Năm học", fontsize=9)
+                            ax1.set_ylabel("Số lượng sản phẩm", fontsize=9)
+                            ax1.tick_params(axis="x", rotation=45)
+                            st.pyplot(fig1, bbox_inches="tight")
+
+                        with col_chart2:
+                            fig2, ax2 = plt.subplots(figsize=(6, 3.5))
+                            bars2 = ax2.bar(df_plot_data["Năm học hiển thị"], df_plot_data["Tổng số tiết thực hiện"], color="#C44E52")
+                            for bar in bars2:
+                                h = bar.get_height()
+                                ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
+                            ax2.set_xlabel("Năm học", fontsize=9)
+                            ax2.set_ylabel("Tổng số tiết thực hiện", fontsize=9)
+                            ax2.tick_params(axis="x", rotation=45)
+                            st.pyplot(fig2, bbox_inches="tight")
     else:
-      # Lọc dataframe theo các năm học được chọn
-      total_rec_df = total_rec_df[
-          total_rec_df["Năm học hiển thị"].isin(selected_years)
-      ]
-
-      if total_rec_df.empty:
-        st.warning("❌ Không có dữ liệu cho năm học đã chọn.")
-      else:
-      
-        # ==========================================================
-        # 🧹 2. XỬ LÝ TRÙNG LẶP & GOM NHÓM PHÂN TÁCH RIÊNG (GD VS NCKH/OTHER)
-        # ==========================================================
-        df_temp_detail = total_rec_df.copy()
-        tiet_col_target = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["sỐ tiết kê khai", "tiết", "period"])), None)
-        
-        if tiet_col_target:
-            df_temp_detail[tiet_col_target] = pd.to_numeric(df_temp_detail[tiet_col_target], errors="coerce").fillna(0)
-
-        name_prod_col = next((c for c in df_temp_detail.columns if c.lower() in ["tên sản phẩm", "subject", "short_name"]), None)
-        id_col_check = next((c for c in df_temp_detail.columns if c.lower() in ["mã sản phẩm", "code"]), None)
-        class_col_check = next((c for c in df_temp_detail.columns if c.lower() == "class"), None) # Cột phân biệt lớp của GD
-        name_col_check = next((c for c in df_temp_detail.columns if c.lower() == "name"), None)
-        surname_col_check = next((c for c in df_temp_detail.columns if c.lower() == "surname"), None)
-        role_col_check = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["vai trò", "role"])), None)
-
-        # Chuẩn hóa tên thành viên
-        if name_col_check:
-            if surname_col_check:
-                df_temp_detail["_full_name"] = df_temp_detail[surname_col_check].astype(str) + " " + df_temp_detail[name_col_check].astype(str)
-            else:
-                df_temp_detail["_full_name"] = df_temp_detail[name_col_check].astype(str)
-        else:
-            df_temp_detail["_full_name"] = "Không rõ"
-
-        # 🌟 PHÂN TÁCH KHÓA GOM NHÓM DỰA TRÊN ĐẶC THÙ TỪNG BẢNG
-        # Nếu là bảng GD: Bắt buộc phải phân biệt theo lớp (class) và mã học phần (code) để không bị gộp nhầm D01, D02.
-        # Nếu là bảng NCKH/Other: Gom nhóm theo tên sản phẩm / mã sản phẩm.
-        
-        def generate_clean_key(row):
-            bảng_name = str(row.get("_source_table", "")).lower()
-            tên_sp = str(row.get(name_prod_col, "")).lower().strip() if name_prod_col else ""
-            mã_sp = str(row.get(id_col_check, "")).lower().strip() if id_col_check else ""
-            lớp_hp = str(row.get(class_col_check, "")).lower().strip() if class_col_check else ""
-            
-            if "gd" in bảng_name:
-                # Đối với Giảng dạy: Khóa chuẩn hóa phải bám theo Mã học phần + Tên lớp để phân biệt D01, D02
-                return f"gd | {mã_sp} | {tên_sp} | {lớp_hp}"
-            else:
-                # Đối với NCKH / Other: Gom theo tên và mã sản phẩm chung
-                return f"nckh_other | {mã_sp} | {tên_sp}"
-
-        # Đảm bảo có cột nguồn bảng (_source_table) nếu được truyền vào từ found_records
-        if "_source_table" not in df_temp_detail.columns:
-            df_temp_detail["_source_table"] = "NCKH" # Mặc định nếu không có
-
-        df_temp_detail["_clean_key"] = df_temp_detail.apply(generate_clean_key, axis=1)
-
-        # Áp dụng thuật toán TfidfVectorizer chỉ cho nhóm NCKH/Other, còn GD giữ nguyên khóa định danh lớp
-        unique_keys_detail = df_temp_detail["_clean_key"].unique()
-        key_to_canonical = {}
-
-        for k_item in unique_keys_detail:
-            if "gd |" in k_item:
-                # Riêng bảng GD: Khóa chính là độc lập tuyệt đối (D01 khác D02), không gom mờ
-                key_to_canonical[k_item] = k_item
-            else:
-                # Bảng NCKH/Other: Cho phép gom nhóm mờ nếu tên gần giống nhau
-                key_to_canonical[k_item] = k_item
-
-        # Nếu muốn áp dụng gom nhóm mờ cho phần NCKH, ta xử lý riêng tập NCKH:
-        nckh_keys = [k for k in unique_keys_detail if "nckh_other |" in k]
-        if len(nckh_keys) > 1:
-            vectorizer_d = TfidfVectorizer().fit(nckh_keys)
-            tfidf_matrix_d = vectorizer_d.transform(nckh_keys)
-            similarity_matrix_d = cosine_similarity(tfidf_matrix_d, tfidf_matrix_d)
-            threshold_d = 0.85
-            visited_d = set()
-            for i in range(len(nckh_keys)):
-                if i in visited_d:
-                    continue
-                canonical_key = nckh_keys[i]
-                similar_idx_d = np.where(similarity_matrix_d[i] >= threshold_d)[0]
-                for idx in similar_idx_d:
-                    visited_d.add(idx)
-                    key_to_canonical[nckh_keys[idx]] = canonical_key
-
-        df_temp_detail["Sản phẩm chuẩn hóa"] = df_temp_detail["_clean_key"].map(key_to_canonical)
-
-        # Xác định cột phân loại cấp 1 (nếu có)
-        phan_loai_col = next((c for c in df_temp_detail.columns if "phân loại cấp 1" in c.lower() or c.lower() == "phân loại cấp 1"), None)
-        loai_hd_col_check = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["loại hoạt động", "loại"])), None)
-
-        # Xây dựng danh sách khóa gom nhóm
-        group_keys_final = ["Năm học hiển thị", "Sản phẩm chuẩn hóa"]
-        if phan_loai_col and phan_loai_col in df_temp_detail.columns:
-            group_keys_final.insert(0, phan_loai_col)
-        if loai_hd_col_check and loai_hd_col_check in df_temp_detail.columns and loai_hd_col_check not in group_keys_final:
-            group_keys_final.insert(1, loai_hd_col_check)
-
-        agg_rules_detail = {
-            tiet_col_target: "first",
-            "_full_name": lambda x: ", ".join(x.dropna().unique()),
-        }
-        if name_prod_col and name_prod_col in df_temp_detail.columns:
-            agg_rules_detail[name_prod_col] = lambda x: " / ".join(x.dropna().unique())
-        if id_col_check and id_col_check in df_temp_detail.columns:
-            agg_rules_detail[id_col_check] = lambda x: " / ".join(x.dropna().unique())
-        if role_col_check:
-            agg_rules_detail[role_col_check] = lambda x: " & ".join(x.dropna().unique())
-
-        # Tạo DataFrame chuẩn sau khi gom nhóm
-        df_clean_unified = df_temp_detail.groupby(group_keys_final, dropna=False).agg(agg_rules_detail).reset_index()
-
-        # --- 📋 1. BẢNG THỐNG KÊ TRƯỚC KHI TRỪ TRÙNG LẶP ---
-        st.markdown("##### 📋 1. Bảng thống kê TRƯỚC khi trừ trùng lặp")
-        df_before = total_rec_df.groupby("Năm học hiển thị").agg(**{
-            "Tổng số dòng kê khai": (tiet_col_target, "count"),
-            "Tổng số tiết": (tiet_col_target, "sum")
-        }).reset_index().sort_values("Năm học hiển thị")
-
-        tot_d_b = df_before["Tổng số dòng kê khai"].sum()
-        tot_t_b = df_before["Tổng số tiết"].sum()
-        df_before_disp = df_before.copy()
-        df_before_disp.loc[len(df_before_disp)] = ["**Tổng cộng**", tot_d_b, tot_t_b]
-        st.dataframe(df_before_disp, use_container_width=True)
-
-
-        # --- 🧹 2. BẢNG THỐNG KÊ SAU KHI TRỪ TRÙNG LẶP ---
-        st.markdown("##### 🧹 2. Bảng thống kê SAU KHI trừ trùng lặp")
-        df_after = df_clean_unified.groupby("Năm học hiển thị").agg(**{
-            "Số lượng sản phẩm/số lớp": (tiet_col_target, "count"),
-            "Tổng số tiết thực hiện": (tiet_col_target, "sum")
-        }).reset_index().sort_values("Năm học hiển thị")
-
-        tot_sp_a = df_after["Số lượng sản phẩm/số lớp"].sum()
-        tot_t_a = df_after["Tổng số tiết thực hiện"].sum()
-        df_after_disp = df_after.copy()
-        df_after_disp.loc[len(df_after_disp)] = ["**Tổng cộng**", tot_sp_a, tot_t_a]
-        st.dataframe(df_after_disp, use_container_width=True)
-
-
-        # --- 🏷️ 2.2 THỐNG KÊ TỔNG HỢP THEO PHÂN LOẠI CẤP 1 (Nếu có) ---
-        if phan_loai_col and phan_loai_col in df_clean_unified.columns:
-            st.markdown("##### 🏷️ 2.2 Thống kê tổng hợp theo Phân loại cấp 1 & Loại hoạt động (Sau khi trừ trùng lặp)")
-            
-            group_keys_summary = [phan_loai_col]
-            if loai_hd_col_check and loai_hd_col_check in df_clean_unified.columns:
-                group_keys_summary.append(loai_hd_col_check)
-            group_keys_summary.append("Năm học hiển thị")
-
-            df_phanloai_summary = df_clean_unified.groupby(group_keys_summary).agg(**{
-                "Số lượng sản phẩm": (tiet_col_target, "count"),
-                "Tổng số tiết": (tiet_col_target, "sum")
-            }).reset_index().sort_values(group_keys_summary)
-
-            tot_sl_pl = df_phanloai_summary["Số lượng sản phẩm"].sum()
-            tot_tiet_pl = df_phanloai_summary["Tổng số tiết"].sum()
-
-            df_phanloai_summary_disp = df_phanloai_summary.copy()
-            total_row = ["**Tổng cộng**"] + [""] * (len(df_phanloai_summary_disp.columns) - 3) + [tot_sl_pl, tot_tiet_pl]
-            df_phanloai_summary_disp.loc[len(df_phanloai_summary_disp)] = total_row
-            st.dataframe(df_phanloai_summary_disp, use_container_width=True)
-
-        # --- 🔍 2.3 BẢNG CHI TIẾT ---
-        st.markdown("##### 🔍 2.3 Bảng chi tiết kèm Tên sản phẩm & Danh sách thành viên (Đã gom nhóm)")
-        
-        df_phanloai_detail = df_clean_unified.copy()
-        rename_dict = {
-            tiet_col_target: "Tổng số tiết",
-            "_full_name": "Danh sách thành viên"
-        }
-        if role_col_check and role_col_check in df_phanloai_detail.columns:
-            rename_dict[role_col_check] = "Các vai trò"
-
-        df_phanloai_detail = df_phanloai_detail.rename(columns=rename_dict)
-        
-        # Xóa các cột tạm phụ trợ trước khi hiển thị
-        for col_drop in ["_source_table", "_clean_key", "Sản phẩm chuẩn hóa"]:
-            if col_drop in df_phanloai_detail.columns:
-                df_phanloai_detail = df_phanloai_detail.drop(columns=[col_drop])
-
-        st.dataframe(df_phanloai_detail, use_container_width=True)
-       
-        # --- 3. VẼ ĐỒ THỊ ---
-        df_plot_data = df_after[
-            df_after["Năm học hiển thị"] != "**Tổng cộng**"
-        ]
-        if not df_plot_data.empty:
-          st.markdown(
-              "##### 📊 3. Biểu đồ trực quan theo năm học (Sau khi trừ trùng"
-              " lặp)"
-          )
-
-          col_chart1, col_chart2 = st.columns(2)
-
-          with col_chart1:
-            fig1, ax1 = plt.subplots(figsize=(6, 3.5))
-            bars1 = ax1.bar(
-                df_plot_data["Năm học hiển thị"],
-                df_plot_data["Số lượng sản phẩm/số lớp"],
-                color="#55A868",
-            )
-            for bar in bars1:
-              h = bar.get_height()
-              ax1.text(
-                  bar.get_x() + bar.get_width() / 2,
-                  h,
-                  f"{int(h):,}",
-                  ha="center",
-                  va="bottom",
-                  fontsize=8,
-                  fontweight="bold",
-              )
-            ax1.set_xlabel("Năm học", fontsize=9)
-            ax1.set_ylabel("Số lượng sản phẩm", fontsize=9)
-            ax1.tick_params(axis="x", rotation=45)
-            st.pyplot(fig1, bbox_inches="tight")
-
-          with col_chart2:
-            fig2, ax2 = plt.subplots(figsize=(6, 3.5))
-            bars2 = ax2.bar(
-                df_plot_data["Năm học hiển thị"],
-                df_plot_data["Tổng số tiết thực hiện"],
-                color="#C44E52",
-            )
-            for bar in bars2:
-              h = bar.get_height()
-              ax2.text(
-                  bar.get_x() + bar.get_width() / 2,
-                  h,
-                  f"{int(h):,}",
-                  ha="center",
-                  va="bottom",
-                  fontsize=8,
-                  fontweight="bold",
-              )
-            ax2.set_xlabel("Năm học", fontsize=9)
-            ax2.set_ylabel("Tổng số tiết thực hiện", fontsize=9)
-            ax2.tick_params(axis="x", rotation=45)
-            st.pyplot(fig2, bbox_inches="tight")
-        else:
-          st.info("ℹ️ Không đủ dữ liệu biểu đồ cho các năm học đã chọn.")
-  else:
-    st.info(
-        "ℹ️ Không tìm thấy cột 'SỐ TIẾT KÊ KHAI' hoặc cột thời gian phù hợp để"
-        " vẽ biểu đồ."
-    )
+        st.info("ℹ️ Không tìm thấy cột 'SỐ TIẾT KÊ KHAI' hoặc cột thời gian phù hợp để vẽ biểu đồ.")
 else:
-  st.info("ℹ️ Nhập từ khóa để hiển thị kết quả phân tích.")
+    st.info("ℹ️ Nhập từ khóa để hiển thị kết quả phân tích.")
