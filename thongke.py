@@ -428,7 +428,7 @@ if not total_rec_df.empty:
 
                 if is_only_gd:
                     # ==========================================
-                    # 📚 XỬ LÝ RIÊNG CHO KHỐI GIẢNG DẠY (GD) - DÙNG CỘT CHUẨN XÁC
+                    # 📚 XỬ LÝ RIÊNG CHO KHỐI GIẢNG DẠY (GD) - CHUẨN HÓA TÊN CỘT AN TOÀN
                     # ==========================================
                     st.markdown("##### 📚 Thống kê Giảng dạy (Theo Số lượng lớp & Môn học)")
 
@@ -444,13 +444,18 @@ if not total_rec_df.empty:
                     df_before_disp.loc[len(df_before_disp)] = ["**Tổng cộng**", tot_d_b, tot_t_b]
                     st.dataframe(df_before_disp, use_container_width=True)
 
-                    # 2. Xử lý thống kê dựa đúng các cột: class (lớp) và subject (môn học)
+                    # 2. Xử lý thống kê: Chuẩn hóa toàn bộ tên cột về chữ thường để tránh lỗi lệch hoa/thường
                     df_clean = total_rec_df.drop_duplicates().copy()
+                    df_clean.columns = [str(c).strip().lower() for c in df_clean.columns]
+
+                    # Định nghĩa từ khóa cột đích (hỗ trợ cả tiếng Anh lẫn tiếng Việt nếu có)
+                    c_class = "class" if "class" in df_clean.columns else list(df_clean.columns)[0]
+                    c_subject = "subject" if "subject" in df_clean.columns else ("short_name" if "short_name" in df_clean.columns else c_class)
 
                     agg_gd_dict = {
                         tiet_col_target: "sum",
-                        "Số lượng lớp": ("class", "nunique"),
-                        "Số lượng môn học": ("subject", "nunique")
+                        "Số lượng lớp": (c_class, "nunique"),
+                        "Số lượng môn học": (c_subject, "nunique")
                     }
 
                     df_after = df_clean.groupby("Năm học hiển thị").agg(agg_gd_dict).reset_index().sort_values("Năm học hiển thị")
