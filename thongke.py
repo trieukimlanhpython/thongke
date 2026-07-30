@@ -807,31 +807,64 @@ with tab1:
 
                         st.dataframe(df_nckh_detail, use_container_width=True)
 
-                        df_plot_data = df_after[df_after["Năm học hiển thị"] != "**Tổng cộng**"]
-                        if not df_plot_data.empty:
-                            st.markdown("##### 📊 3. Biểu đồ trực quan theo năm học (Số lượng sản phẩm & Tiết)")
-                            col_chart1, col_chart2 = st.columns(2)
-                            with col_chart1:
-                                fig1, ax1 = plt.subplots(figsize=(6, 3.5))
-                                bars1 = ax1.bar(df_plot_data["Năm học hiển thị"], df_plot_data["Số lượng sản phẩm độc lập"], color="#55A868")
-                                for bar in bars1:
-                                    h = bar.get_height()
-                                    ax1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
-                                ax1.set_xlabel("Năm học", fontsize=9)
-                                ax1.set_ylabel("Số lượng sản phẩm", fontsize=9)
-                                ax1.tick_params(axis="x", rotation=45)
-                                st.pyplot(fig1, bbox_inches="tight")
-
-                            with col_chart2:
-                                fig2, ax2 = plt.subplots(figsize=(6, 3.5))
-                                bars2 = ax2.bar(df_plot_data["Năm học hiển thị"], df_plot_data["Tổng số tiết thực hiện"], color="#C44E52")
-                                for bar in bars2:
-                                    h = bar.get_height()
-                                    ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
-                                ax2.set_xlabel("Năm học", fontsize=9)
-                                ax2.set_ylabel("Tổng số tiết thực hiện", fontsize=9)
-                                ax2.tick_params(axis="x", rotation=45)
-                                st.pyplot(fig2, bbox_inches="tight")
+                        # ==========================================
+                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG CHO NCKH (CHỈ VẼ THEO 5 TIÊU CHÍ CHỈ ĐỊNH)
+                        # ==========================================
+                        first_col_nckh = df_nckh_detail.columns[0]
+                        df_plot_nckh = df_nckh_detail[df_nckh_detail[first_col_nckh] != "**Tổng cộng**"].copy()
+    
+                        if not df_plot_nckh.empty:
+                            st.markdown("##### 📊 3. Biểu đồ trực quan theo các tiêu chí đã chọn")
+    
+                            # Các cột chỉ số định lượng của NCKH
+                            metrics_nckh = ["Số lượng", "Tổng số tiết"]
+                            
+                            # Danh sách các tiêu chí được phép vẽ đồ thị
+                            allowed_criteria = ["năm học", "cấp độ", "loại hđ", "loại hoạt động", "vai trò", "phân loại cấp 1", "pl cấp 1"]
+    
+                            # Lọc ra các cột tiêu chí đang hiển thị trong bảng 2.3 thuộc danh sách cho phép
+                            active_nckh_cols = []
+                            for c in df_nckh_detail.columns:
+                                c_lower = str(c).strip().lower()
+                                if c not in metrics_nckh and c != "**Tổng cộng**":
+                                    if any(kw in c_lower for kw in allowed_criteria):
+                                        active_nckh_cols.append(c)
+    
+                            # Duyệt và vẽ cặp biểu đồ (Số lượng & Tổng số tiết) cho từng tiêu chí hợp lệ
+                            for crit_col in active_nckh_cols:
+                                st.markdown(f"###### 📌 Phân tích theo tiêu chí: **{crit_col}**")
+                                col_chart1, col_chart2 = st.columns(2)
+    
+                                # Nhóm dữ liệu theo tiêu chí đang xét
+                                df_grouped_nckh = df_plot_nckh.groupby(crit_col)[metrics_nckh].sum().reset_index()
+    
+                                # Biểu đồ 1: Số lượng sản phẩm
+                                with col_chart1:
+                                    fig1, ax1 = plt.subplots(figsize=(6, 3.5))
+                                    bars1 = ax1.bar(df_grouped_nckh[crit_col].astype(str), df_grouped_nckh["Số lượng"], color="#55A868")
+                                    for bar in bars1:
+                                        h = bar.get_height()
+                                        ax1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
+                                    
+                                    ax1.set_xlabel(crit_col, fontsize=9)
+                                    ax1.set_ylabel("Số lượng sản phẩm", fontsize=9)
+                                    ax1.set_title(f"Số lượng theo {crit_col}", fontsize=10, fontweight="bold")
+                                    ax1.tick_params(axis="x", rotation=45)
+                                    st.pyplot(fig1, bbox_inches="tight")
+    
+                                # Biểu đồ 2: Tổng số tiết thực hiện
+                                with col_chart2:
+                                    fig2, ax2 = plt.subplots(figsize=(6, 3.5))
+                                    bars2 = ax2.bar(df_grouped_nckh[crit_col].astype(str), df_grouped_nckh["Tổng số tiết"], color="#C44E52")
+                                    for bar in bars2:
+                                        h = bar.get_height()
+                                        ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
+                                    
+                                    ax2.set_xlabel(crit_col, fontsize=9)
+                                    ax2.set_ylabel("Tổng số tiết thực hiện", fontsize=9)
+                                    ax2.set_title(f"Tổng số tiết theo {crit_col}", fontsize=10, fontweight="bold")
+                                    ax2.tick_params(axis="x", rotation=45)
+                                    st.pyplot(fig2, bbox_inches="tight")
         else:
             st.info("ℹ️ Không tìm thấy cột 'SỐ TIẾT KÊ KHAI' hoặc cột thời gian phù hợp để vẽ biểu đồ.")
     else:
