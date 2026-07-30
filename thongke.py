@@ -28,7 +28,7 @@ st.write(
 # ==========================================================
 # 🔄 NÚT CẬP NHẬT / LÀM MỚI DỮ LIỆU (REFRESH CACHE)
 # ==========================================================
-col_refresh1, col_refresh2 = st.columns([4, 1])
+col_refresh1, col_refresh2 = st.columns([4, 2])
 with col_refresh2:
   if st.button("🔄 Cập nhật dữ liệu", use_container_width=True):
     # Xóa toàn bộ cache đã lưu bằng @st.cache_data
@@ -41,7 +41,7 @@ with col_refresh2:
         del st.session_state[k]
 
     st.success("✅ Đã làm mới dữ liệu thành công!")
-    #st.rerun()  # Tải lại trang ngay lập tức
+    st.rerun()  # Tải lại trang ngay lập tức
 # ==========================================================
 # 🛠️ HÀM BỔ TRỢ: CHUYỂN ĐỢT KÊ KHAI SANG NĂM HỌC
 # ==========================================================
