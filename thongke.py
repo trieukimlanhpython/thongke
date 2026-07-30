@@ -319,6 +319,10 @@ if keyword_input:
           )
 
         match_df = match_df.drop_duplicates()
+        
+        # 🌟 Gắn nhãn tên bảng vào DataFrame trước khi đưa vào found_records
+        match_df["_source_table"] = name 
+        
         found_records.append((name, match_df))
 
     # --- HIỂN THỊ KẾT QUẢ TÌM KIẾM ---
@@ -425,7 +429,7 @@ if not total_rec_df.empty:
       else:
       
         # ==========================================================
-        # 🧹 2. XỬ LÝ TRÙNG LẶP & GOM NHÓM ĐỒNG BỘ CHO TOÀN HỆ THỐNG
+        # 🧹 2. XỬ LÝ TRÙNG LẶP & GOM NHÓM PHÂN TÁCH RIÊNG (GD VS NCKH/OTHER)
         # ==========================================================
         df_temp_detail = total_rec_df.copy()
         tiet_col_target = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["sỐ tiết kê khai", "tiết", "period"])), None)
@@ -435,21 +439,10 @@ if not total_rec_df.empty:
 
         name_prod_col = next((c for c in df_temp_detail.columns if c.lower() in ["tên sản phẩm", "subject", "short_name"]), None)
         id_col_check = next((c for c in df_temp_detail.columns if c.lower() in ["mã sản phẩm", "code"]), None)
+        class_col_check = next((c for c in df_temp_detail.columns if c.lower() == "class"), None) # Cột phân biệt lớp của GD
         name_col_check = next((c for c in df_temp_detail.columns if c.lower() == "name"), None)
         surname_col_check = next((c for c in df_temp_detail.columns if c.lower() == "surname"), None)
         role_col_check = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["vai trò", "role"])), None)
-
-        # Chuẩn hóa tên sản phẩm và mã để gom nhóm chính xác
-        if name_prod_col and not df_temp_detail.empty:
-            df_temp_detail["_clean_prod_name"] = df_temp_detail[name_prod_col].astype(str).str.lower().str.replace(r"\s+", " ", regex=True).str.strip()
-        else:
-            df_temp_detail["_clean_prod_name"] = "sản phẩm chung"
-
-        if id_col_check and id_col_check in df_temp_detail.columns:
-            df_temp_detail["_clean_id"] = df_temp_detail[id_col_check].astype(str).str.lower().str.replace(r"\s+", "", regex=True).str.strip()
-            df_temp_detail["_clean_key"] = df_temp_detail["_clean_prod_name"] + " | " + df_temp_detail["_clean_id"]
-        else:
-            df_temp_detail["_clean_key"] = df_temp_detail["_clean_prod_name"]
 
         # Chuẩn hóa tên thành viên
         if name_col_check:
@@ -460,28 +453,57 @@ if not total_rec_df.empty:
         else:
             df_temp_detail["_full_name"] = "Không rõ"
 
+        # 🌟 PHÂN TÁCH KHÓA GOM NHÓM DỰA TRÊN ĐẶC THÙ TỪNG BẢNG
+        # Nếu là bảng GD: Bắt buộc phải phân biệt theo lớp (class) và mã học phần (code) để không bị gộp nhầm D01, D02.
+        # Nếu là bảng NCKH/Other: Gom nhóm theo tên sản phẩm / mã sản phẩm.
+        
+        def generate_clean_key(row):
+            bảng_name = str(row.get("_source_table", "")).lower()
+            tên_sp = str(row.get(name_prod_col, "")).lower().strip() if name_prod_col else ""
+            mã_sp = str(row.get(id_col_check, "")).lower().strip() if id_col_check else ""
+            lớp_hp = str(row.get(class_col_check, "")).lower().strip() if class_col_check else ""
+            
+            if "gd" in bảng_name:
+                # Đối với Giảng dạy: Khóa chuẩn hóa phải bám theo Mã học phần + Tên lớp để phân biệt D01, D02
+                return f"gd | {mã_sp} | {tên_sp} | {lớp_hp}"
+            else:
+                # Đối với NCKH / Other: Gom theo tên và mã sản phẩm chung
+                return f"nckh_other | {mã_sp} | {tên_sp}"
+
+        # Đảm bảo có cột nguồn bảng (_source_table) nếu được truyền vào từ found_records
+        if "_source_table" not in df_temp_detail.columns:
+            df_temp_detail["_source_table"] = "NCKH" # Mặc định nếu không có
+
+        df_temp_detail["_clean_key"] = df_temp_detail.apply(generate_clean_key, axis=1)
+
+        # Áp dụng thuật toán TfidfVectorizer chỉ cho nhóm NCKH/Other, còn GD giữ nguyên khóa định danh lớp
         unique_keys_detail = df_temp_detail["_clean_key"].unique()
         key_to_canonical = {}
 
-        if len(unique_keys_detail) > 1:
-            vectorizer_d = TfidfVectorizer().fit(unique_keys_detail)
-            tfidf_matrix_d = vectorizer_d.transform(unique_keys_detail)
-            similarity_matrix_d = cosine_similarity(tfidf_matrix_d, tfidf_matrix_d)
+        for k_item in unique_keys_detail:
+            if "gd |" in k_item:
+                # Riêng bảng GD: Khóa chính là độc lập tuyệt đối (D01 khác D02), không gom mờ
+                key_to_canonical[k_item] = k_item
+            else:
+                # Bảng NCKH/Other: Cho phép gom nhóm mờ nếu tên gần giống nhau
+                key_to_canonical[k_item] = k_item
 
+        # Nếu muốn áp dụng gom nhóm mờ cho phần NCKH, ta xử lý riêng tập NCKH:
+        nckh_keys = [k for k in unique_keys_detail if "nckh_other |" in k]
+        if len(nckh_keys) > 1:
+            vectorizer_d = TfidfVectorizer().fit(nckh_keys)
+            tfidf_matrix_d = vectorizer_d.transform(nckh_keys)
+            similarity_matrix_d = cosine_similarity(tfidf_matrix_d, tfidf_matrix_d)
             threshold_d = 0.85
             visited_d = set()
-
-            for i in range(len(unique_keys_detail)):
+            for i in range(len(nckh_keys)):
                 if i in visited_d:
                     continue
-                canonical_key = unique_keys_detail[i]
+                canonical_key = nckh_keys[i]
                 similar_idx_d = np.where(similarity_matrix_d[i] >= threshold_d)[0]
                 for idx in similar_idx_d:
                     visited_d.add(idx)
-                    key_to_canonical[unique_keys_detail[idx]] = canonical_key
-        else:
-            for k_item in unique_keys_detail:
-                key_to_canonical[k_item] = k_item
+                    key_to_canonical[nckh_keys[idx]] = canonical_key
 
         df_temp_detail["Sản phẩm chuẩn hóa"] = df_temp_detail["_clean_key"].map(key_to_canonical)
 
@@ -489,7 +511,7 @@ if not total_rec_df.empty:
         phan_loai_col = next((c for c in df_temp_detail.columns if "phân loại cấp 1" in c.lower() or c.lower() == "phân loại cấp 1"), None)
         loai_hd_col_check = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["loại hoạt động", "loại"])), None)
 
-        # 🌟 XÂY DỰNG DANH SÁCH KHÓA GOM NHÓM ĐỘC LẬP (TRÁNH TRÙNG LẶP)
+        # Xây dựng danh sách khóa gom nhóm
         group_keys_final = ["Năm học hiển thị", "Sản phẩm chuẩn hóa"]
         if phan_loai_col and phan_loai_col in df_temp_detail.columns:
             group_keys_final.insert(0, phan_loai_col)
@@ -507,7 +529,7 @@ if not total_rec_df.empty:
         if role_col_check:
             agg_rules_detail[role_col_check] = lambda x: " & ".join(x.dropna().unique())
 
-        # Tạo DataFrame chuẩn sau khi gom nhóm loại bỏ trùng lặp thành viên
+        # Tạo DataFrame chuẩn sau khi gom nhóm
         df_clean_unified = df_temp_detail.groupby(group_keys_final, dropna=False).agg(agg_rules_detail).reset_index()
 
         # --- 📋 1. BẢNG THỐNG KÊ TRƯỚC KHI TRỪ TRÙNG LẶP ---
@@ -574,7 +596,7 @@ if not total_rec_df.empty:
         df_phanloai_detail = df_phanloai_detail.rename(columns=rename_dict)
         
         # Xóa các cột tạm phụ trợ trước khi hiển thị
-        for col_drop in ["_clean_prod_name", "_clean_id", "_clean_key", "Sản phẩm chuẩn hóa"]:
+        for col_drop in ["_source_table", "_clean_key", "Sản phẩm chuẩn hóa"]:
             if col_drop in df_phanloai_detail.columns:
                 df_phanloai_detail = df_phanloai_detail.drop(columns=[col_drop])
 
