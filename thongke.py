@@ -808,32 +808,26 @@ if not total_rec_df.empty:
                     # 3. Cột Số ISBN / Số ISSN
                     col_isbn = next((cols_lower_all[c] for c in cols_lower_all if any(x in c for x in ["isbn", "issn"])), None)
 
-                    with st.expander("⚙️ **Cài đặt tiêu chí gom nhóm chi tiết (Bấm để mở/đóng)**", expanded=False):
-                        st.markdown("Chọn các tiêu chí muốn gom nhóm chi tiết bên dưới (chia 4 cột):")
-                        
+                    with st.expander("⚙️ **Chọn tiêu chí gom nhóm (Bấm để mở/đóng)**", expanded=False):
                         # Chia thành 4 cột cho gọn gàng trong expander
-                        col_c1, col_c2, col_c3, col_c4 = st.columns(4)
+                        col_c1, col_c2, col_c3, col_c4, col_c5 = st.columns(5)
                         
                         with col_c1:
                             opt_y = st.checkbox("Năm học", value=True, key="chk_nckh_year")
-                            opt_pl2 = st.checkbox("PL Cấp 2", value=False, key="chk_nckh_pl2")
+                            opt_ma = st.checkbox("Mã sản phẩm", value=False, key="chk_nckh_ma")
+                            opt_issn = st.checkbox("Số ISBN / Số ISSN", value=False, key="chk_nckh_issn")
                         with col_c2:
                             opt_loai = st.checkbox("Loại HĐ", value=True, key="chk_nckh_loai")
-                            opt_pl3 = st.checkbox("PL Cấp 3", value=False, key="chk_nckh_pl3")
+                            opt_tap = st.checkbox("Tên Tạp chí / Hội thảo, Sách", value=False, key="chk_nckh_tap")
                         with col_c3:
                             opt_cap = st.checkbox("Cấp độ", value=True, key="chk_nckh_cap")
                             opt_role = st.checkbox("Vai trò", value=False, key="chk_nckh_role")
                         with col_c4:
                             opt_pl1 = st.checkbox("PL Cấp 1", value=True, key="chk_nckh_pl1")
                             opt_prod = st.checkbox("Tên sản phẩm", value=False, key="chk_nckh_prod")
-                        # Chia thành 3 cột cho các tiêu chí bổ sung mới
-                        col_ex1, col_ex2, col_ex3 = st.columns(3)
-                        with col_ex1:
-                            opt_ma = st.checkbox("Mã sản phẩm", value=False, key="chk_nckh_ma")
-                        with col_ex2:
-                            opt_tap = st.checkbox("Tên Tạp chí / Hội thảo, Sách", value=False, key="chk_nckh_tap")
-                        with col_ex3:
-                            opt_issn = st.checkbox("Số ISBN / Số ISSN", value=False, key="chk_nckh_issn")
+                        with col_c5:
+                            opt_pl2 = st.checkbox("PL Cấp 2", value=False, key="chk_nckh_pl2")
+                            opt_pl3 = st.checkbox("PL Cấp 3", value=False, key="chk_nckh_pl3")
 
                     # Xây dựng khóa gom nhóm động dựa trên lựa chọn riêng biệt
                     group_detail_dynamic = []
