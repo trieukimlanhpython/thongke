@@ -44,7 +44,7 @@ with col_refresh2:
 
     # Tạo một container trống để hiển thị thông báo tạm thời
     status_placeholder = st.empty()
-    status_placeholder.success("✅ Đã làm mới dữ liệu!")
+    status_placeholder.success("✅ Updated!")
 
     # Dừng 2 giây để người dùng kịp nhìn thấy thông báo
     time.sleep(2)
