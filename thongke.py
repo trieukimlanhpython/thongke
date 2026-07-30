@@ -41,7 +41,7 @@ with col_refresh2:
         del st.session_state[k]
 
     st.success("✅ Đã làm mới dữ liệu thành công!")
-    st.rerun()  # Tải lại trang ngay lập tức
+    #st.rerun()  # Tải lại trang ngay lập tức
 # ==========================================================
 # 🛠️ HÀM BỔ TRỢ: CHUYỂN ĐỢT KÊ KHAI SANG NĂM HỌC
 # ==========================================================
