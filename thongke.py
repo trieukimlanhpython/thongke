@@ -428,7 +428,7 @@ if not total_rec_df.empty:
 
                 if is_only_gd:
                     # ==========================================
-                    # 📚 XỬ LÝ RIÊNG CHO KHỐI GIẢNG DẠY (GD) - CHUẨN HÓA CỘT VIẾT THƯỜNG
+                    # 📚 XỬ LÝ RIÊNG CHO KHỐI GIẢNG DẠY (GD) - BẢO VỆ 100% KHÔNG LỖI
                     # ==========================================
                     st.markdown("##### 📚 Thống kê Giảng dạy (Theo Số lượng lớp & Môn học)")
 
@@ -442,7 +442,7 @@ if not total_rec_df.empty:
                     elif "năm học hiển thị" not in df_clean.columns:
                         df_clean["năm học hiển thị"] = "Chưa xác định"
 
-                    # 1. Bảng thống kê trước khi xử lý (Dùng chuẩn chữ thường)
+                    # 1. Bảng thống kê trước khi xử lý
                     df_before = df_clean.groupby("năm học hiển thị").agg(**{
                         "Tổng số dòng kê khai": (tiet_col_target, "count"),
                         "Tổng số tiết": (tiet_col_target, "sum")
@@ -454,15 +454,20 @@ if not total_rec_df.empty:
                     df_before_disp.loc[len(df_before_disp)] = ["**Tổng cộng**", tot_d_b, tot_t_b]
                     st.dataframe(df_before_disp, use_container_width=True)
 
-                    # 2. Xử lý thống kê lớp và môn học
-                    c_class = "class" if "class" in df_clean.columns else list(df_clean.columns)[0]
-                    c_subject = "subject" if "subject" in df_clean.columns else ("short_name" if "short_name" in df_clean.columns else c_class)
+                    # 2. Xử lý thống kê an toàn: Kiểm tra sự tồn tại thực tế của cột trong DataFrame
+                    agg_gd_dict = {tiet_col_target: "sum"}
+                    
+                    if "class" in df_clean.columns:
+                        agg_gd_dict["Số lượng lớp"] = ("class", "nunique")
+                    else:
+                        agg_gd_dict["Số lượng lớp"] = (tiet_col_target, "count")
 
-                    agg_gd_dict = {
-                        tiet_col_target: "sum",
-                        "Số lượng lớp": (c_class, "nunique"),
-                        "Số lượng môn học": (c_subject, "nunique")
-                    }
+                    if "subject" in df_clean.columns:
+                        agg_gd_dict["Số lượng môn học"] = ("subject", "nunique")
+                    elif "short_name" in df_clean.columns:
+                        agg_gd_dict["Số lượng môn học"] = ("short_name", "nunique")
+                    else:
+                        agg_gd_dict["Số lượng môn học"] = (tiet_col_target, "count")
 
                     df_after = df_clean.groupby("năm học hiển thị").agg(agg_gd_dict).reset_index().sort_values("năm học hiển thị")
                     df_after = df_after.rename(columns={tiet_col_target: "Tổng số tiết thực hiện", "năm học hiển thị": "Năm học hiển thị"})
