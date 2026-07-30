@@ -62,14 +62,26 @@ def quy_doi_nam_hoc(dot_str):
 # ==========================================================
 # 🧩 HÀM ĐỌC GOOGLE SHEET (CÓ CACHE ĐỂ ỔN ĐỊNH DỮ LIỆU)
 # ==========================================================
-@st.cache_data(ttl=600)  # Lưu cache 10 phút để tránh gọi liên tục gây lỗi mạng
+# ==========================================================
+# 🧩 HÀM ĐỌC GOOGLE SHEET (ĐÃ CẢI TIẾN & BẮT LỖI CHI TIẾT)
+# ==========================================================
+@st.cache_data(ttl=600)
 def read_gsheet(link):
   try:
     df = pd.read_csv(link)
-    df.columns = [c.strip() for c in df.columns]
+    if df.empty:
+      st.warning(f"⚠️ File CSV tải về từ link đang trống (0 dòng): {link}")
+      return None
+    # Làm sạch tên cột (loại bỏ khoảng trắng thừa)
+    df.columns = [str(c).strip() for c in df.columns]
+
+    # Ép toàn bộ các cột kiểu object/text về dạng chuỗi (string) để tránh lỗi .str.contains()
+    for col in df.select_dtypes(include=["object"]).columns:
+      df[col] = df[col].fillna("").astype(str)
+
     return df
   except Exception as e:
-    st.error(f"❌ Lỗi đọc Google Sheet: {e}")
+    st.error(f"❌ Lỗi đọc Google Sheet từ link `{link}`: {e}")
     return None
 
 
