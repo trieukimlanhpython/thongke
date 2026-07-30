@@ -611,6 +611,10 @@ if not total_rec_df.empty:
                     # 🔬 XỬ LÝ CHO NCKH / OTHER (GIỮ NGUYÊN CẤU TRÚC GỐC, FIX CHUẨN TÊN CỘT CẤP ĐỘ)
                     # ==========================================
                     df_temp_detail = total_rec_df.copy()
+                    
+                    # 🌟 Chuẩn hóa tên tất cả các cột để tránh lỗi khoảng trắng ẩn (ví dụ "Cấp độ ")
+                    df_temp_detail.columns = [str(c).strip() for c in df_temp_detail.columns]
+
                     name_prod_col = next((c for c in df_temp_detail.columns if c.lower() in ["tên sản phẩm"]), None)
                     id_col_check = next((c for c in df_temp_detail.columns if c.lower() in ["mã sản phẩm", "code"]), None)
                     name_col_check = next((c for c in df_temp_detail.columns if c.lower() == "name"), None)
@@ -661,12 +665,12 @@ if not total_rec_df.empty:
 
                     df_temp_detail["Sản phẩm chuẩn hóa"] = df_temp_detail["_clean_key"].map(key_to_canonical)
 
-                    # Dò tìm các cột đặc thù của NCKH (bắt chuẩn xác chính xác tên 'Cấp độ')
+                    # Dò tìm các cột đặc thù của NCKH
                     phan_loai_col = next((c for c in df_temp_detail.columns if "phân loại cấp 1" in c.lower()), None)
                     loai_hd_col = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["loại hoạt động", "loại"])), None)
                     
-                    # 🌟 Bắt chính xác tên cột 'Cấp độ' đúng như link NCKH của bạn
-                    cap_do_col = next((c for c in df_temp_detail.columns if c.strip() == "Cấp độ" or c.lower() == "cấp độ"), None)
+                    # 🌟 Nhận diện chính xác cột 'Cấp độ' (hỗ trợ cả trường hợp viết hoa/thường)
+                    cap_do_col = next((c for c in df_temp_detail.columns if c.lower() == "cấp độ" or "cấp độ" in c.lower()), None)
                     
                     phan_loai_2 = next((c for c in df_temp_detail.columns if "phân loại cấp 2" in c.lower()), None)
                     phan_loai_3 = next((c for c in df_temp_detail.columns if "phân loại cấp 3" in c.lower()), None)
@@ -677,10 +681,13 @@ if not total_rec_df.empty:
                     if loai_hd_col and loai_hd_col not in group_keys_final:
                         group_keys_final.insert(1, loai_hd_col)
 
+                    # 🌟 Bổ sung quy tắc giữ lại cột Cấp độ sang bảng chuẩn hóa
                     agg_rules_detail = {
                         tiet_col_target: "first",
                         "_full_name": lambda x: ", ".join(x.dropna().unique()),
                     }
+                    if cap_do_col and cap_do_col in df_temp_detail.columns:
+                        agg_rules_detail[cap_do_col] = "first"
                     if name_prod_col and name_prod_col in df_temp_detail.columns:
                         agg_rules_detail[name_prod_col] = lambda x: " / ".join(x.dropna().unique())
                     if id_col_check and id_col_check in df_temp_detail.columns:
@@ -754,7 +761,7 @@ if not total_rec_df.empty:
                     with c_opt2:
                         opt_loai = st.checkbox("Loại HĐ", value=True, key="chk_nckh_loai")
                     with c_opt3:
-                        opt_cap = st.checkbox("Cấp độ", value=True, key="chk_nckh_cap")  # Đã tích hợp checkbox Cấp độ
+                        opt_cap = st.checkbox("Cấp độ", value=True, key="chk_nckh_cap")  # Checkbox Cấp độ
                     with c_opt4:
                         opt_pl1 = st.checkbox("PL Cấp 1", value=True, key="chk_nckh_pl1")
                     with c_opt5:
