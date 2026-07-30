@@ -440,7 +440,7 @@ with tab1:
                         tot_tiet = df_after["Tổng số tiết thực hiện"].sum()
 
                         df_after_disp = df_after.copy()
-                        df_after_disp.loc[len(df_after_disp)] = ["**Tổng cộng**", tot_tiet, tot_lop, ]
+                        df_after_disp.loc[len(df_after_disp)] = ["**Tổng cộng**", tot_tiet, tot_lop, ""]
                         df_after_disp = df_after_disp[["Năm học hiển thị", "Số lượng lớp", "Số lượng môn học", "Tổng số tiết thực hiện"]]
                         st.dataframe(df_after_disp, use_container_width=True)
 
