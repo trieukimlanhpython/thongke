@@ -124,6 +124,23 @@ if "detail_dfs" not in st.session_state or not st.session_state["detail_dfs"]:
       detail_dfs[key] = df
   st.session_state["detail_dfs"] = detail_dfs
 
+# ==========================================================
+# 📚 TẢI DỮ LIỆU CHI TIẾT VÀ ĐỒNG BỘ SESSION STATE
+# ==========================================================
+st.markdown("#### 📘 Các nhóm công việc chi tiết")
+
+# Khởi tạo detail_dfs trong session_state nếu chưa có
+if "detail_dfs" not in st.session_state or not st.session_state["detail_dfs"]:
+  detail_dfs = {}
+  for key in ["GD", "NCKH", "Other"]:
+    df = read_gsheet(links[key])
+    if df is not None:
+      detail_dfs[key] = df
+  st.session_state["detail_dfs"] = detail_dfs
+
+# Luôn lấy detail_dfs từ session_state để tránh lỗi NameError
+detail_dfs = st.session_state["detail_dfs"]
+
 with st.expander(
     "🔍 Click để xem danh sách các nhóm công việc chi tiết", expanded=False
 ):
@@ -142,6 +159,8 @@ with st.expander(
     if chosen_key_view in detail_dfs:
       st.success(f"✅ Đang hiển thị dữ liệu nhóm: {selected_group_view}")
       st.dataframe(detail_dfs[chosen_key_view], height=250, use_container_width=True)
+    else:
+      st.warning(f"⚠️ Nhóm {selected_group_view} hiện chưa có dữ liệu.")
   else:
     st.error("❌ Không thể tải dữ liệu chi tiết từ Google Sheets.")
 
