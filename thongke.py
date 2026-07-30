@@ -424,7 +424,6 @@ if not total_rec_df.empty:
                     set_quick_selection("all")
                     st.rerun()
     
-            st.markdown("---")
             st.markdown("📌 **Hoặc chọn tùy chỉnh các năm cụ thể:**")
     
             # 2. Hiển thị các ô vuông chọn năm học thủ công (chia cố định 2 cột)
@@ -737,19 +736,20 @@ if not total_rec_df.empty:
                         agg_rules_detail[role_col_check] = lambda x: " & ".join(x.dropna().unique())
 
                     df_clean_unified = df_temp_detail.groupby(group_keys_final, dropna=False).agg(agg_rules_detail).reset_index()
-
+                    
                     # 1. Thống kê trước khi trừ trùng
                     st.markdown("##### 📋 1. Bảng thống kê TRƯỚC khi trừ trùng lặp")
-                    df_before = total_rec_df.groupby("Năm học hiển thị").agg(**{
-                        "Tổng số dòng kê khai": (tiet_col_target, "count"),
-                        "Tổng số tiết": (tiet_col_target, "sum")
-                    }).reset_index().sort_values("Năm học hiển thị")
-
-                    tot_d_b = df_before["Tổng số dòng kê khai"].sum()
-                    tot_t_b = df_before["Tổng số tiết"].sum()
-                    df_before_disp = df_before.copy()
-                    df_before_disp.loc[len(df_before_disp)] = ["**Tổng cộng**", tot_d_b, tot_t_b]
-                    st.dataframe(df_before_disp, use_container_width=True)
+                    with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
+                        df_before = total_rec_df.groupby("Năm học hiển thị").agg(**{
+                            "Tổng số dòng kê khai": (tiet_col_target, "count"),
+                            "Tổng số tiết": (tiet_col_target, "sum")
+                        }).reset_index().sort_values("Năm học hiển thị")
+    
+                        tot_d_b = df_before["Tổng số dòng kê khai"].sum()
+                        tot_t_b = df_before["Tổng số tiết"].sum()
+                        df_before_disp = df_before.copy()
+                        df_before_disp.loc[len(df_before_disp)] = ["**Tổng cộng**", tot_d_b, tot_t_b]
+                        st.dataframe(df_before_disp, use_container_width=True)
 
                     # 2. Thống kê sau khi trừ trùng
                     st.markdown("##### 🧹 2. Bảng thống kê SAU KHI trừ trùng lặp")
@@ -768,7 +768,7 @@ if not total_rec_df.empty:
                     # 🏷️ 2.2 THỐNG KÊ TỔNG HỢP (CÓ HIỂN THỊ CẤP ĐỘ)
                     # ==========================================
                     if phan_loai_col:
-                        st.markdown("##### 🏷️ 2.2 Thống kê tổng hợp theo Phân loại cấp 1, Loại hoạt động & Cấp độ")
+                        #st.markdown("##### 🏷️ 2.2 Thống kê tổng hợp theo Phân loại cấp 1, Loại hoạt động & Cấp độ")
                         
                         group_keys_summary = [phan_loai_col]
                         if loai_hd_col and loai_hd_col in df_clean_unified.columns:
@@ -788,7 +788,7 @@ if not total_rec_df.empty:
                         df_phanloai_summary_disp = df_phanloai_summary.copy()
                         total_row = ["**Tổng cộng**"] + [""] * (len(df_phanloai_summary_disp.columns) - 3) + [tot_sl_pl, tot_tiet_pl]
                         df_phanloai_summary_disp.loc[len(df_phanloai_summary_disp)] = total_row
-                        st.dataframe(df_phanloai_summary_disp, use_container_width=True)
+                        #st.dataframe(df_phanloai_summary_disp, use_container_width=True)
 
                     # ==========================================
                     # 🔍 2.3 BẢNG CHI TIẾT CÓ TÙY CHỈNH TIÊU CHÍ ĐỘNG (BỔ SUNG CHECKBOX CẤP ĐỘ)
