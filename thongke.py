@@ -428,25 +428,25 @@ if not total_rec_df.empty:
 
                 if is_only_gd:
                     # ==========================================
-                    # 📚 XỬ LÝ RIÊNG CHO KHỐI GIẢNG DẠY (GD) - AN TOÀN 100%
+                    # 📚 XỬ LÝ RIÊNG CHO KHỐI GIẢNG DẠY (GD) - CHUẨN HÓA CỘT VIẾT THƯỜNG
                     # ==========================================
                     st.markdown("##### 📚 Thống kê Giảng dạy (Theo Số lượng lớp & Môn học)")
 
                     df_clean = total_rec_df.drop_duplicates().copy()
                     df_clean.columns = [str(c).strip().lower() for c in df_clean.columns]
 
-                    # 🌟 Đảm bảo cột "năm học hiển thị" luôn tồn tại trước khi groupby
+                    # 🌟 Đảm bảo cột "năm học hiển thị" luôn tồn tại dạng chữ thường
                     time_col_actual = next((c for c in df_clean.columns if any(x in c for x in ["năm học", "year", "đợt"])), None)
                     if "năm học hiển thị" not in df_clean.columns and time_col_actual:
-                        df_clean["Năm học hiển thị"] = df_clean[time_col_actual].apply(quy_doi_nam_hoc)
+                        df_clean["năm học hiển thị"] = df_clean[time_col_actual].apply(quy_doi_nam_hoc)
                     elif "năm học hiển thị" not in df_clean.columns:
-                        df_clean["Năm học hiển thị"] = "Chưa xác định"
+                        df_clean["năm học hiển thị"] = "Chưa xác định"
 
-                    # 1. Bảng thống kê trước khi xử lý
-                    df_before = df_clean.groupby("Năm học hiển thị").agg(**{
+                    # 1. Bảng thống kê trước khi xử lý (Dùng chuẩn chữ thường)
+                    df_before = df_clean.groupby("năm học hiển thị").agg(**{
                         "Tổng số dòng kê khai": (tiet_col_target, "count"),
                         "Tổng số tiết": (tiet_col_target, "sum")
-                    }).reset_index().sort_values("Năm học hiển thị")
+                    }).reset_index().sort_values("năm học hiển thị")
 
                     tot_d_b = df_before["Tổng số dòng kê khai"].sum()
                     tot_t_b = df_before["Tổng số tiết"].sum()
@@ -464,8 +464,8 @@ if not total_rec_df.empty:
                         "Số lượng môn học": (c_subject, "nunique")
                     }
 
-                    df_after = df_clean.groupby("Năm học hiển thị").agg(agg_gd_dict).reset_index().sort_values("Năm học hiển thị")
-                    df_after = df_after.rename(columns={tiet_col_target: "Tổng số tiết thực hiện"})
+                    df_after = df_clean.groupby("năm học hiển thị").agg(agg_gd_dict).reset_index().sort_values("năm học hiển thị")
+                    df_after = df_after.rename(columns={tiet_col_target: "Tổng số tiết thực hiện", "năm học hiển thị": "Năm học hiển thị"})
 
                     st.markdown("##### 🧹 2. Bảng tổng hợp Giảng dạy theo Năm học")
                     tot_lop = df_after["Số lượng lớp"].sum()
