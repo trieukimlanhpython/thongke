@@ -428,12 +428,9 @@ if not total_rec_df.empty:
 
                 if is_only_gd:
                     # ==========================================
-                    # 📚 XỬ LÝ RIÊNG CHO KHỐI GIẢNG DẠY (GD)
+                    # 📚 XỬ LÝ RIÊNG CHO KHỐI GIẢNG DẠY (GD) - DÙNG CỘT CHUẨN XÁC
                     # ==========================================
                     st.markdown("##### 📚 Thống kê Giảng dạy (Theo Số lượng lớp & Môn học)")
-
-                    class_col = next((c for c in total_rec_df.columns if c.lower() == "class"), None)
-                    subject_col = next((c for c in total_rec_df.columns if c.lower() in ["subject", "short_name"]), None)
 
                     # 1. Bảng thống kê trước khi xử lý
                     df_before = total_rec_df.groupby("Năm học hiển thị").agg(**{
@@ -447,26 +444,16 @@ if not total_rec_df.empty:
                     df_before_disp.loc[len(df_before_disp)] = ["**Tổng cộng**", tot_d_b, tot_t_b]
                     st.dataframe(df_before_disp, use_container_width=True)
 
-                    # 2. Xử lý thống kê lớp và môn học độc lập theo năm học
+                    # 2. Xử lý thống kê dựa đúng các cột: class (lớp) và subject (môn học)
                     df_clean = total_rec_df.drop_duplicates().copy()
 
-                    # Thống kê theo năm học: Đếm số lượng lớp độc lập và số lượng môn học độc lập
                     agg_gd_dict = {
-                        tiet_col_target: "sum"
+                        tiet_col_target: "sum",
+                        "Số lượng lớp": ("class", "nunique"),
+                        "Số lượng môn học": ("subject", "nunique")
                     }
-                    if class_col:
-                        agg_gd_dict["Số lượng lớp"] = (class_col, "nunique")
-                    else:
-                        agg_gd_dict["Số lượng lớp"] = (tiet_col_target, "count")
-
-                    if subject_col:
-                        agg_gd_dict["Số lượng môn học"] = (subject_col, "nunique")
-                    else:
-                        agg_gd_dict["Số lượng môn học"] = (tiet_col_target, "count")
 
                     df_after = df_clean.groupby("Năm học hiển thị").agg(agg_gd_dict).reset_index().sort_values("Năm học hiển thị")
-                    
-                    # Đổi tên cột cho trực quan
                     df_after = df_after.rename(columns={tiet_col_target: "Tổng số tiết thực hiện"})
 
                     st.markdown("##### 🧹 2. Bảng tổng hợp Giảng dạy theo Năm học")
@@ -476,7 +463,6 @@ if not total_rec_df.empty:
 
                     df_after_disp = df_after.copy()
                     df_after_disp.loc[len(df_after_disp)] = ["**Tổng cộng**", tot_tiet, tot_lop, tot_mon]
-                    # Sắp xếp lại thứ tự cột cho đẹp
                     df_after_disp = df_after_disp[["Năm học hiển thị", "Số lượng lớp", "Số lượng môn học", "Tổng số tiết thực hiện"]]
                     st.dataframe(df_after_disp, use_container_width=True)
 
@@ -484,7 +470,7 @@ if not total_rec_df.empty:
                     st.markdown("##### 🔍 2.3 Bảng chi tiết Giảng dạy")
                     st.dataframe(df_clean, use_container_width=True)
 
-                    # 3. VẼ ĐỒ THỊ RIÊNG CHO GD (Số lượng lớp & Số lượng môn học)
+                    # 3. VẼ ĐỒ THỊ RIÊNG CHO GD (Số lớp & Số môn học)
                     df_plot_data = df_after[df_after["Năm học hiển thị"] != "**Tổng cộng**"]
                     if not df_plot_data.empty:
                         st.markdown("##### 📊 3. Biểu đồ trực quan Giảng dạy (Số lớp & Số môn học)")
