@@ -132,31 +132,31 @@ links = {
 # 🧮 LƯU TRỮ VÀ KHỞI TẠO DỮ LIỆU VÀO SESSION STATE AN TOÀN
 # ==========================================================
 st.markdown("#### 📂 Dữ liệu mô tả (df1 & df2)")
-
-col1, col2 = st.columns(2)
-
-with col1:
-  if "df1" not in st.session_state or st.session_state["df1"] is None:
-    st.session_state["df1"] = read_gsheet(links["df1"])
-  if st.session_state["df1"] is not None:
-    st.success("✅ Đã tải df1 (Year - Term - Code)!")
-    st.dataframe(st.session_state["df1"], height=180, use_container_width=True)
-
-with col2:
-  if "df2" not in st.session_state or st.session_state["df2"] is None:
-    st.session_state["df2"] = read_gsheet(links["df2"])
-  if st.session_state["df2"] is not None:
-    st.success("✅ Đã tải df2 (Category - Description)!")
-    st.dataframe(st.session_state["df2"], height=180, use_container_width=True)
-
-# Tải dữ liệu chi tiết vào session_state nếu chưa có
-if "detail_dfs" not in st.session_state or not st.session_state["detail_dfs"]:
-  detail_dfs = {}
-  for key in ["GD", "NCKH", "Other"]:
-    df = read_gsheet(links[key])
-    if df is not None:
-      detail_dfs[key] = df
-  st.session_state["detail_dfs"] = detail_dfs
+with st.expander("⚙️ **(Bấm để mở/đóng)**", expanded=False):
+    col1, col2 = st.columns(2)
+    
+    with col1:
+      if "df1" not in st.session_state or st.session_state["df1"] is None:
+        st.session_state["df1"] = read_gsheet(links["df1"])
+      if st.session_state["df1"] is not None:
+        st.success("✅ Đã tải df1 (Year - Term - Code)!")
+        st.dataframe(st.session_state["df1"], height=180, use_container_width=True)
+    
+    with col2:
+      if "df2" not in st.session_state or st.session_state["df2"] is None:
+        st.session_state["df2"] = read_gsheet(links["df2"])
+      if st.session_state["df2"] is not None:
+        st.success("✅ Đã tải df2 (Category - Description)!")
+        st.dataframe(st.session_state["df2"], height=180, use_container_width=True)
+    
+    # Tải dữ liệu chi tiết vào session_state nếu chưa có
+    if "detail_dfs" not in st.session_state or not st.session_state["detail_dfs"]:
+      detail_dfs = {}
+      for key in ["GD", "NCKH", "Other"]:
+        df = read_gsheet(links[key])
+        if df is not None:
+          detail_dfs[key] = df
+      st.session_state["detail_dfs"] = detail_dfs
 
 # ==========================================================
 # 📚 TẢI DỮ LIỆU CHI TIẾT VÀ ĐỒNG BỘ SESSION STATE
@@ -176,12 +176,12 @@ if "detail_dfs" not in st.session_state or not st.session_state["detail_dfs"]:
 detail_dfs = st.session_state["detail_dfs"]
 
 with st.expander(
-    "🔍 Click để xem danh sách các nhóm công việc chi tiết", expanded=False
+    "🔍 **(Bấm để mở/đóng)**", expanded=False
 ):
   if detail_dfs:
     selected_group_view = st.radio(
         "Chọn nhóm công việc muốn xem:",
-        options=["GD (Giảng dạy)", "NCKH (Nghiên cứu)", "Other (Khác)"],
+        options=["GD (Giảng dạy)", "NCKH (Nghiên cứu)", "Other (Công tác khác)"],
         horizontal=True,
     )
     key_mapping_view = {
