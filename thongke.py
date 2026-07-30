@@ -428,12 +428,22 @@ if not total_rec_df.empty:
 
                 if is_only_gd:
                     # ==========================================
-                    # 📚 XỬ LÝ RIÊNG CHO KHỐI GIẢNG DẠY (GD) - CHUẨN HÓA TÊN CỘT AN TOÀN
+                    # 📚 XỬ LÝ RIÊNG CHO KHỐI GIẢNG DẠY (GD) - AN TOÀN 100%
                     # ==========================================
                     st.markdown("##### 📚 Thống kê Giảng dạy (Theo Số lượng lớp & Môn học)")
 
+                    df_clean = total_rec_df.drop_duplicates().copy()
+                    df_clean.columns = [str(c).strip().lower() for c in df_clean.columns]
+
+                    # 🌟 Đảm bảo cột "năm học hiển thị" luôn tồn tại trước khi groupby
+                    time_col_actual = next((c for c in df_clean.columns if any(x in c for x in ["năm học", "year", "đợt"])), None)
+                    if "năm học hiển thị" not in df_clean.columns and time_col_actual:
+                        df_clean["Năm học hiển thị"] = df_clean[time_col_actual].apply(quy_doi_nam_hoc)
+                    elif "năm học hiển thị" not in df_clean.columns:
+                        df_clean["Năm học hiển thị"] = "Chưa xác định"
+
                     # 1. Bảng thống kê trước khi xử lý
-                    df_before = total_rec_df.groupby("Năm học hiển thị").agg(**{
+                    df_before = df_clean.groupby("Năm học hiển thị").agg(**{
                         "Tổng số dòng kê khai": (tiet_col_target, "count"),
                         "Tổng số tiết": (tiet_col_target, "sum")
                     }).reset_index().sort_values("Năm học hiển thị")
@@ -444,11 +454,7 @@ if not total_rec_df.empty:
                     df_before_disp.loc[len(df_before_disp)] = ["**Tổng cộng**", tot_d_b, tot_t_b]
                     st.dataframe(df_before_disp, use_container_width=True)
 
-                    # 2. Xử lý thống kê: Chuẩn hóa toàn bộ tên cột về chữ thường để tránh lỗi lệch hoa/thường
-                    df_clean = total_rec_df.drop_duplicates().copy()
-                    df_clean.columns = [str(c).strip().lower() for c in df_clean.columns]
-
-                    # Định nghĩa từ khóa cột đích (hỗ trợ cả tiếng Anh lẫn tiếng Việt nếu có)
+                    # 2. Xử lý thống kê lớp và môn học
                     c_class = "class" if "class" in df_clean.columns else list(df_clean.columns)[0]
                     c_subject = "subject" if "subject" in df_clean.columns else ("short_name" if "short_name" in df_clean.columns else c_class)
 
