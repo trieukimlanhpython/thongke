@@ -428,26 +428,29 @@ if not total_rec_df.empty:
 
                 if is_only_gd:
                     # ==========================================
-                    # 📚 XỬ LÝ RIÊNG CHO KHỐI GIẢNG DẠY (GD) - FIXED PANDAS SYNTAX
+                    # 📚 XỬ LÝ RIÊNG CHO KHỐI GIẢNG DẠY (GD) - GOM NHÓM MÔN HỌC & PROGRAM
                     # ==========================================
-                    st.markdown("##### 📚 Thống kê Giảng dạy (Theo Số lượng lớp & Môn học)")
+                    st.markdown("##### 📚 Thống kê Giảng dạy (Chi tiết theo Môn học & Chương trình)")
 
                     df_clean = total_rec_df.drop_duplicates().copy()
-                    # Chuẩn hóa tên cột thành chữ thường để không bị lỗi viết hoa viết thường
                     df_clean.columns = [str(c).strip().lower() for c in df_clean.columns]
 
-                    # 🌟 Đảm bảo cột "năm học hiển thị" luôn tồn tại
+                    # Đảm bảo cột "năm học hiển thị" luôn tồn tại
                     time_col_actual = next((c for c in df_clean.columns if any(x in c for x in ["năm học", "year", "đợt", "term"])), None)
                     if "năm học hiển thị" not in df_clean.columns and time_col_actual:
                         df_clean["năm học hiển thị"] = df_clean[time_col_actual].apply(quy_doi_nam_hoc)
                     elif "năm học hiển thị" not in df_clean.columns:
                         df_clean["năm học hiển thị"] = "Chưa xác định"
 
-                    # Tìm lại đúng tên cột chứa chữ 'tiết' hoặc 'period'
                     tiet_col = next((c for c in df_clean.columns if any(x in c for x in ["tiết", "period"])), list(df_clean.columns)[-1])
                     df_clean[tiet_col] = pd.to_numeric(df_clean[tiet_col], errors="coerce").fillna(0)
 
-                    # 1. Bảng thống kê trước khi xử lý
+                    # Xác định tên các cột thực tế trong DataFrame GD
+                    c_class = "class" if "class" in df_clean.columns else df_clean.columns[0]
+                    c_subject = "subject" if "subject" in df_clean.columns else ("short_name" if "short_name" in df_clean.columns else df_clean.columns[0])
+                    c_program = "program" if "program" in df_clean.columns else None
+
+                    # 1. Bảng thống kê tổng quan trước khi xử lý
                     df_before = df_clean.groupby("năm học hiển thị").agg(**{
                         "Tổng số dòng kê khai": (tiet_col, "count"),
                         "Tổng số tiết": (tiet_col, "sum")
@@ -459,18 +462,12 @@ if not total_rec_df.empty:
                     df_before_disp.loc[len(df_before_disp)] = ["**Tổng cộng**", tot_d_b, tot_t_b]
                     st.dataframe(df_before_disp, use_container_width=True)
 
-                    # 2. Xử lý thống kê (ĐÃ THÊM ** ĐỂ FIX LỖI PANDAS)
-                    c_class = "class" if "class" in df_clean.columns else df_clean.columns[0]
-                    c_subject = "subject" if "subject" in df_clean.columns else ("short_name" if "short_name" in df_clean.columns else df_clean.columns[0])
-
-                    # 🌟 Chú ý dấu ** ở đây
+                    # 2. Bảng tổng hợp theo năm học (cho Đồ thị tổng số lượng lớp & tổng số tiết theo năm)
                     df_after = df_clean.groupby("năm học hiển thị").agg(**{
                         "Tổng số tiết thực hiện": (tiet_col, "sum"),
                         "Số lượng lớp": (c_class, "nunique"),
                         "Số lượng môn học": (c_subject, "nunique")
                     }).reset_index().sort_values("năm học hiển thị")
-
-                    # Định dạng lại tên cột năm học hiển thị cho đẹp
                     df_after = df_after.rename(columns={"năm học hiển thị": "Năm học hiển thị"})
 
                     st.markdown("##### 🧹 2. Bảng tổng hợp Giảng dạy theo Năm học")
@@ -483,16 +480,51 @@ if not total_rec_df.empty:
                     df_after_disp = df_after_disp[["Năm học hiển thị", "Số lượng lớp", "Số lượng môn học", "Tổng số tiết thực hiện"]]
                     st.dataframe(df_after_disp, use_container_width=True)
 
-                    # 2.3 Bảng chi tiết GD
-                    st.markdown("##### 🔍 2.3 Bảng chi tiết Giảng dạy")
-                    st.dataframe(df_clean, use_container_width=True)
+                    # 🌟 2.3 BẢNG CHI TIẾT GOM NHÓM THEO NĂM HỌC, MÔN HỌC VÀ PROGRAM
+                    st.markdown("##### 🔍 2.3 Bảng chi tiết Giảng dạy (Gom nhóm theo Môn học & Chương trình)")
+                    
+                    group_detail_keys = ["năm học hiển thị", c_subject]
+                    if c_program and c_program in df_clean.columns:
+                        group_detail_keys.append(c_program)
 
-                    # 3. VẼ ĐỒ THỊ RIÊNG CHO GD (Số lớp & Số môn học)
+                    agg_detail_dict = {
+                        tiet_col: "sum",
+                        c_class: "nunique"  # Đếm số lượng lớp cho từng môn học / program
+                    }
+                    # Nếu có cột giảng viên (surname / name), gộp chung lại
+                    name_col = "name" if "name" in df_clean.columns else None
+                    surname_col = "surname" if "surname" in df_clean.columns else None
+                    if name_col:
+                        if surname_col:
+                            df_clean["_full_name"] = df_clean[surname_col].astype(str) + " " + df_clean[name_col].astype(str)
+                        else:
+                            df_clean["_full_name"] = df_clean[name_col].astype(str)
+                        agg_detail_dict["_full_name"] = lambda x: ", ".join(x.dropna().unique())
+
+                    df_gd_detail = df_clean.groupby(group_detail_keys).agg(agg_detail_dict).reset_index()
+
+                    # Đổi tên cột cho trực quan
+                    rename_detail_dict = {
+                        "năm học hiển thị": "Năm học",
+                        c_subject: "Tên môn học",
+                        tiet_col: "Tổng số tiết",
+                        c_class: "Số lượng lớp"
+                    }
+                    if c_program:
+                        rename_detail_dict[c_program] = "Chương trình"
+                    if name_col:
+                        rename_detail_dict["_full_name"] = "Giảng viên"
+
+                    df_gd_detail = df_gd_detail.rename(columns=rename_detail_dict)
+                    st.dataframe(df_gd_detail, use_container_width=True)
+
+                    # 3. VẼ ĐỒ THỊ RIÊNG CHO GD
                     df_plot_data = df_after[df_after["Năm học hiển thị"] != "**Tổng cộng**"]
                     if not df_plot_data.empty:
-                        st.markdown("##### 📊 3. Biểu đồ trực quan Giảng dạy (Số lớp & Số môn học)")
+                        st.markdown("##### 📊 3. Biểu đồ trực quan Giảng dạy")
                         col_c1, col_c2 = st.columns(2)
 
+                        # Đồ thị 1: Tổng số lượng lớp theo năm học
                         with col_c1:
                             fig1, ax1 = plt.subplots(figsize=(6, 3.5))
                             b1 = ax1.bar(df_plot_data["Năm học hiển thị"], df_plot_data["Số lượng lớp"], color="#4C72B0")
@@ -500,19 +532,23 @@ if not total_rec_df.empty:
                                 h = bar.get_height()
                                 ax1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
                             ax1.set_xlabel("Năm học", fontsize=9)
-                            ax1.set_ylabel("Số lượng lớp", fontsize=9)
+                            ax1.set_ylabel("Tổng số lượng lớp", fontsize=9)
+                            ax1.set_title("Tổng số lớp theo năm học", fontsize=10, fontweight="bold")
                             ax1.tick_params(axis="x", rotation=45)
                             st.pyplot(fig1, bbox_inches="tight")
 
+                        # Đồ thị 2: Số lượng lớp theo tên môn học cụ thể (Pivot table theo năm học & môn học)
                         with col_c2:
                             fig2, ax2 = plt.subplots(figsize=(6, 3.5))
-                            b2 = ax2.bar(df_plot_data["Năm học hiển thị"], df_plot_data["Số lượng môn học"], color="#DD8452")
-                            for bar in b2:
-                                h = bar.get_height()
-                                ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
+                            # Tạo bảng pivot để vẽ biểu đồ cột chồng hoặc nhóm theo môn học
+                            df_pivot = df_gd_detail.pivot_table(index="Năm học", columns="Tên môn học", values="Số lượng lớp", fill_value=0)
+                            
+                            df_pivot.plot(kind="bar", stacked=True, ax=ax2, figsize=(6, 3.5), colormap="tab20")
                             ax2.set_xlabel("Năm học", fontsize=9)
-                            ax2.set_ylabel("Số lượng môn học", fontsize=9)
+                            ax2.set_ylabel("Số lượng lớp", fontsize=9)
+                            ax2.set_title("Số lớp theo Môn học cụ thể", fontsize=10, fontweight="bold")
                             ax2.tick_params(axis="x", rotation=45)
+                            ax2.legend(title="Môn học", bbox_to_anchor=(1.05, 1), loc="upper left", fontsize=7)
                             st.pyplot(fig2, bbox_inches="tight")
 
                 else:
