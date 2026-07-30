@@ -790,21 +790,26 @@ if not total_rec_df.empty:
                         df_phanloai_summary_disp.loc[len(df_phanloai_summary_disp)] = total_row
                         with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
                             st.dataframe(df_phanloai_summary_disp, use_container_width=True)
+                   
                     # ==========================================
-                    # 🔍 3 BẢNG CHI TIẾT CÓ TÙY CHỈNH TIÊU CHÍ ĐỘNG (EXPANDER & 4 CỘT)
+                    # 🔍 2.3 BẢNG CHI TIẾT CÓ TÙY CHỈNH TIÊU CHÍ ĐỘNG (TÁCH BIỆT CÁC TIÊU CHÍ RIÊNG RẼ)
                     # ==========================================
-                    st.markdown("##### 🔍 3 Bảng chi tiết kèm Tên sản phẩm & Danh sách thành viên (Tùy chỉnh tiêu chí)")
+                    st.markdown("##### 🔍 2.3 Bảng chi tiết kèm Tên sản phẩm & Danh sách thành viên (Tùy chỉnh tiêu chí)")
 
-                    # Dò tìm chuẩn xác tên các cột mới nếu có trong DataFrame
+                    # Dò tìm chuẩn xác từng cột riêng biệt trong DataFrame
                     cols_lower_all = {str(c).strip().lower(): c for c in df_clean_unified.columns}
                     
-                    # Tìm cột Mã sản phẩm / Tên tạp chí / Sách
-                    col_ma_sp = next((cols_lower_all[c] for c in cols_lower_all if any(x in c for x in ["mã sản phẩm", "tên tạp chí", "hội thảo", "sách", "code"])), None)
-                    # Tìm cột Số ISBN / Số ISSN
-                    col_isbn = next((cols_lower_all[c] for c in cols_lower_all if any(x in c for x in ["isbn", "issn", "số isbn", "số issn"])), None)
+                    # 1. Cột Mã sản phẩm (ví dụ: mã số, code)
+                    col_ma_sp = next((cols_lower_all[c] for c in cols_lower_all if any(x in c for x in ["mã sản phẩm", "ma san pham", "code"])), None)
+                    
+                    # 2. Cột Tên Tạp chí / Hội thảo, Sách
+                    col_tap_chi = next((cols_lower_all[c] for c in cols_lower_all if any(x in c for x in ["tạp chí", "tap chi", "hội thảo", "hoi thao", "sách", "sach"])), None)
+                    
+                    # 3. Cột Số ISBN / Số ISSN
+                    col_isbn = next((cols_lower_all[c] for c in cols_lower_all if any(x in c for x in ["isbn", "issn"])), None)
 
                     with st.expander("⚙️ **Cài đặt tiêu chí gom nhóm chi tiết (Bấm để mở/đóng)**", expanded=False):
-                        st.markdown("Chọn các tiêu chí muốn gom nhóm chi tiết bên dưới:")
+                        st.markdown("Chọn các tiêu chí muốn gom nhóm chi tiết bên dưới (chia 4 cột):")
                         
                         # Chia thành 4 cột cho gọn gàng trong expander
                         col_c1, col_c2, col_c3, col_c4 = st.columns(4)
@@ -821,14 +826,20 @@ if not total_rec_df.empty:
                         with col_c4:
                             opt_pl1 = st.checkbox("PL Cấp 1", value=True, key="chk_nckh_pl1")
                             opt_prod = st.checkbox("Tên sản phẩm", value=False, key="chk_nckh_prod")
-                        # Thêm hàng checkbox phụ cho các tiêu chí mở rộng mới
-                        col_ex1, col_ex2 = st.columns(2)
+
+                        st.markdown("---")
+                        st.markdown("📌 **Các tiêu chí bổ sung riêng biệt:**")
+                        
+                        # Chia thành 3 cột cho các tiêu chí bổ sung mới
+                        col_ex1, col_ex2, col_ex3 = st.columns(3)
                         with col_ex1:
-                            opt_ma = st.checkbox("Mã sản phẩm / Tên Tạp chí / Sách", value=False, key="chk_nckh_ma")
+                            opt_ma = st.checkbox("Mã sản phẩm", value=False, key="chk_nckh_ma")
                         with col_ex2:
+                            opt_tap = st.checkbox("Tên Tạp chí / Hội thảo, Sách", value=False, key="chk_nckh_tap")
+                        with col_ex3:
                             opt_issn = st.checkbox("Số ISBN / Số ISSN", value=False, key="chk_nckh_issn")
 
-                    # Xây dựng khóa gom nhóm động dựa trên lựa chọn
+                    # Xây dựng khóa gom nhóm động dựa trên lựa chọn riêng biệt
                     group_detail_dynamic = []
                     if opt_y:
                         group_detail_dynamic.append("Năm học hiển thị")
@@ -846,8 +857,12 @@ if not total_rec_df.empty:
                         group_detail_dynamic.append(role_col_check)
                     if opt_prod and name_prod_col and name_prod_col in df_clean_unified.columns:
                         group_detail_dynamic.append(name_prod_col)
+                    
+                    # 🌟 Thêm các tiêu chí riêng biệt mới vào danh sách gom nhóm
                     if opt_ma and col_ma_sp and col_ma_sp in df_clean_unified.columns:
                         group_detail_dynamic.append(col_ma_sp)
+                    if opt_tap and col_tap_chi and col_tap_chi in df_clean_unified.columns:
+                        group_detail_dynamic.append(col_tap_chi)
                     if opt_issn and col_isbn and col_isbn in df_clean_unified.columns:
                         group_detail_dynamic.append(col_isbn)
 
