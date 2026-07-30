@@ -385,21 +385,46 @@ if not total_rec_df.empty:
             quy_doi_nam_hoc
         )
 
-        # --- 🎛️ BỘ LỌC CHỌN NĂM HỌC HIỂN THỊ (DẠNG Ô VUÔNG) ---
+        # ==========================================
+        # 🎛️ BỘ LỌC NĂM HỌC NÂNG CẤP (CHỌN NHANH & Ô VUÔNG 2 HÀNG)
+        # ==========================================
         all_years = sorted(
-            total_rec_df["Năm học hiển thị"].dropna().unique().tolist()
+            total_rec_df["Năm học hiển thị"].dropna().unique().tolist(),
+            reverse=True  # Sắp xếp năm mới nhất lên đầu (ví dụ: 25-26, 24-25,...)
         )
-
+    
         st.markdown("📅 **Chọn năm học muốn xem thống kê và biểu đồ:**")
-
+    
         if "selected_years_stat" not in st.session_state:
             st.session_state["selected_years_stat"] = all_years
-
-        cols_chk = st.columns(len(all_years) if len(all_years) > 0 else 1)
+    
+        # 1. Các nút chọn nhanh (1 năm gần nhất, 3 năm, 5 năm, Max)
+        col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
+        with col_btn1:
+            if st.button("1 năm gần nhất", use_container_width=True):
+                st.session_state["selected_years_stat"] = all_years[:1]
+                st.rerun()
+        with col_btn2:
+            if st.button("3 năm gần nhất", use_container_width=True):
+                st.session_state["selected_years_stat"] = all_years[:3]
+                st.rerun()
+        with col_btn3:
+            if st.button("5 năm gần nhất", use_container_width=True):
+                st.session_state["selected_years_stat"] = all_years[:5]
+                st.rerun()
+        with col_btn4:
+            if st.button("Tất cả (Max)", use_container_width=True):
+                st.session_state["selected_years_stat"] = all_years
+                st.rerun()
+    
+        # 2. Hiển thị các ô vuông chọn năm học thủ công (chia cố định 2 cột để không bị dàn trải ngang)
         selected_years = []
-
+        num_cols = 2  # Chia thành 2 cột ô vuông
+        grid_cols = st.columns(num_cols)
+    
         for i, year in enumerate(all_years):
-            with cols_chk[i % len(cols_chk)]:
+            col_idx = i % num_cols
+            with grid_cols[col_idx]:
                 is_checked = st.checkbox(
                     str(year),
                     value=(year in st.session_state["selected_years_stat"]),
@@ -407,7 +432,7 @@ if not total_rec_df.empty:
                 )
                 if is_checked:
                     selected_years.append(year)
-
+    
         st.session_state["selected_years_stat"] = selected_years
 
         if not selected_years:
