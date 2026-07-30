@@ -612,16 +612,34 @@ if not total_rec_df.empty:
               df_temp_detail[tiet_col_target], errors="coerce"
           ).fillna(0)
 
+          # --- 🧹 LÀM SẠCH CỰC KỲ TRIỆT ĐỂ ĐỂ GOM NHÓM CHÍNH XÁC ---
           if name_prod_col_check and not df_temp_detail.empty:
             df_temp_detail["_clean_prod_name"] = (
                 df_temp_detail[name_prod_col_check]
                 .astype(str)
                 .str.lower()
+                # Xóa sạch khoảng trắng kép, khoảng trắng đầu đuôi
                 .str.replace(r"\s+", " ", regex=True)
                 .str.strip()
             )
           else:
             df_temp_detail["_clean_prod_name"] = "sản phẩm chung"
+
+          # Kết hợp thêm Mã sản phẩm (nếu có) vào chuỗi chuẩn hóa để ràng buộc chắc chắn
+          if id_col_check and id_col_check in df_temp_detail.columns:
+            df_temp_detail["_clean_id"] = (
+                df_temp_detail[id_col_check]
+                .astype(str)
+                .str.lower()
+                .str.replace(r"\s+", "", regex=True)
+                .str.strip()
+            )
+            # Gộp tên sản phẩm và mã sản phẩm lại làm khóa chuẩn hóa chung
+            df_temp_detail["_clean_prod_name"] = (
+                df_temp_detail["_clean_prod_name"]
+                + " | "
+                + df_temp_detail["_clean_id"]
+            )
 
           if name_col_check:
             if surname_col_check:
