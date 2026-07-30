@@ -542,6 +542,26 @@ if not total_rec_df.empty:
                         rename_detail_dict[c_program] = "Chương trình"
 
                     df_gd_detail = df_gd_detail.rename(columns=rename_detail_dict)
+
+                    # 🌟 THÊM DÒNG TỔNG CỘNG VÀO CUỐI BẢNG 2.3
+                    if not df_gd_detail.empty:
+                        total_tiet_val = df_gd_detail["Tổng số tiết"].sum()
+                        total_lop_val = df_gd_detail["Số lượng lớp"].sum()
+                        
+                        # Tạo một dòng tổng cộng với các giá trị định dạng
+                        total_row = {}
+                        for col_name in df_gd_detail.columns:
+                            if col_name == df_gd_detail.columns[0]:
+                                total_row[col_name] = "**Tổng cộng**"
+                            elif col_name == "Tổng số tiết":
+                                total_row[col_name] = total_tiet_val
+                            elif col_name == "Số lượng lớp":
+                                total_row[col_name] = total_lop_val
+                            else:
+                                total_row[col_name] = ""
+                        
+                        df_gd_detail.loc[len(df_gd_detail)] = total_row
+
                     st.dataframe(df_gd_detail, use_container_width=True)
 
                     # ==========================================
