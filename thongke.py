@@ -885,8 +885,9 @@ with tab1:
                                 # Nếu có dùng ký hiệu rút gọn, hiển thị bảng chú thích ngay bên dưới biểu đồ
                                 if needs_mapping:
                                     st.markdown(f"**📝 Chú thích ký hiệu trục hoành cho ({display_name}):**")
-                                    note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
-                                    st.dataframe(note_df, use_container_width=True, hide_index=True)
+                                    with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
+                                        note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
+                                        st.dataframe(note_df, use_container_width=True, hide_index=True)
                               
         else:
             st.info("ℹ️ Không tìm thấy cột 'SỐ TIẾT KÊ KHAI' hoặc cột thời gian phù hợp để vẽ biểu đồ.")
