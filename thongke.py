@@ -826,10 +826,6 @@ if not total_rec_df.empty:
                         with col_c4:
                             opt_pl1 = st.checkbox("PL Cấp 1", value=True, key="chk_nckh_pl1")
                             opt_prod = st.checkbox("Tên sản phẩm", value=False, key="chk_nckh_prod")
-
-                        st.markdown("---")
-                        st.markdown("📌 **Các tiêu chí bổ sung riêng biệt:**")
-                        
                         # Chia thành 3 cột cho các tiêu chí bổ sung mới
                         col_ex1, col_ex2, col_ex3 = st.columns(3)
                         with col_ex1:
