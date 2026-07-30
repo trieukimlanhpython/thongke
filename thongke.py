@@ -21,8 +21,7 @@ import streamlit as st
 st.set_page_config(page_title="📋 Ứng dụng QLCV", layout="wide")
 st.title("📋 Ứng dụng Quản lý Công việc")
 st.write(
-    "Tổng hợp dữ liệu công việc từ nhiều bảng (df1_year-term-code;"
-    " df2_category-description; GD_giảng dạy; NCKH_nghiên cứu; Other_khác)"
+    "Đây là ứng dụng nhằm tổng hợp thông tin công việc từ giảng dạy, nghiên cứu khoa học và công tác khác)"
 )
 
 import time  # Nhớ đảm bảo đã import time ở đầu file (nếu chưa có)
@@ -161,7 +160,7 @@ with st.expander("⚙️ **(Bấm để mở/đóng)**", expanded=False):
 # ==========================================================
 # 📚 TẢI DỮ LIỆU CHI TIẾT VÀ ĐỒNG BỘ SESSION STATE
 # ==========================================================
-st.markdown("#### 📘 Các nhóm công việc chi tiết")
+st.markdown("#### 📘 Dữ liệu các nhóm công việc GD, NCKH, Other")
 
 # Khởi tạo detail_dfs trong session_state nếu chưa có
 if "detail_dfs" not in st.session_state or not st.session_state["detail_dfs"]:
@@ -181,7 +180,7 @@ with st.expander(
   if detail_dfs:
     selected_group_view = st.radio(
         "Chọn nhóm công việc muốn xem:",
-        options=["GD (Giảng dạy)", "NCKH (Nghiên cứu)", "Other (Công tác khác)"],
+        options=["GD (Giảng dạy)", "NCKH (Nghiên cứu)", "Other (Khác)"],
         horizontal=True,
     )
     key_mapping_view = {
