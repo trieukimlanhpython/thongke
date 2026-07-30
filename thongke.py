@@ -30,7 +30,7 @@ import time  # Nhớ đảm bảo đã import time ở đầu file (nếu chưa 
 # ==========================================================
 # 🔄 NÚT CẬP NHẬT / LÀM MỚI DỮ LIỆU (REFRESH CACHE)
 # ==========================================================
-col_refresh1, col_refresh2 = st.columns([4, 2])
+col_refresh1, col_refresh2 = st.columns([4, 1])
 with col_refresh2:
   if st.button("🔄 Cập nhật dữ liệu", use_container_width=True):
     # Xóa toàn bộ cache đã lưu bằng @st.cache_data
@@ -44,7 +44,7 @@ with col_refresh2:
 
     # Tạo một container trống để hiển thị thông báo tạm thời
     status_placeholder = st.empty()
-    status_placeholder.success("✅ Đã làm mới dữ liệu thành công!")
+    status_placeholder.success("✅ Đã làm mới dữ liệu!")
 
     # Dừng 2 giây để người dùng kịp nhìn thấy thông báo
     time.sleep(2)
