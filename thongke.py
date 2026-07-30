@@ -91,7 +91,7 @@ links = {
         "https://docs.google.com/spreadsheets/d/1F_w2yXvD66m0DeSmUrn-mFYcHwr2VKL6JYS6-bdATtQ/edit?gid=1431418978#gid=1431418978"
     ),
     "NCKH": (
-        "https://docs.google.com/spreadsheets/d/10Vb_sP5IEMGkSwCQiUxvN4hrL66RXXtrLLl6e2sG8mg/edit?gid=0#gid=0"
+        "https://docs.google.com/spreadsheets/d/1F_w2yXvD66m0DeSmUrn-mFYcHwr2VKL6JYS6-bdATtQ/edit?gid=1814822744#gid=1814822744"
     ),
     "Other": (
         "https://docs.google.com/spreadsheets/d/1F_w2yXvD66m0DeSmUrn-mFYcHwr2VKL6JYS6-bdATtQ/edit?gid=1443108898#gid=1443108898"
