@@ -645,7 +645,7 @@ if not total_rec_df.empty:
             tfidf_matrix = vectorizer.transform(unique_names_list)
             similarity_matrix = cosine_similarity(tfidf_matrix, tfidf_matrix)
 
-            threshold = 0.80
+            threshold = 0.90
             visited_set = set()
 
             for i in range(len(unique_names_list)):
