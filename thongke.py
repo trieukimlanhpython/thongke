@@ -386,54 +386,56 @@ if not total_rec_df.empty:
         )
 
         # ==========================================
-        # 🎛️ BỘ LỌC NĂM HỌC NÂNG CẤP (CHỌN NHANH & Ô VUÔNG 2 HÀNG)
+        # 🎛️ BỘ LỌC NĂM HỌC TRONG EXPANDER (CHỌN NHANH & Ô VUÔNG 2 HÀNG)
         # ==========================================
         all_years = sorted(
             total_rec_df["Năm học hiển thị"].dropna().unique().tolist(),
             reverse=True  # Sắp xếp năm mới nhất lên đầu (ví dụ: 25-26, 24-25,...)
         )
     
-        st.markdown("📅 **Chọn năm học muốn xem thống kê và biểu đồ:**")
-    
-        if "selected_years_stat" not in st.session_state:
-            st.session_state["selected_years_stat"] = all_years
-    
-        # 1. Các nút chọn nhanh (1 năm gần nhất, 3 năm, 5 năm, Max)
-        col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
-        with col_btn1:
-            if st.button("1 năm gần nhất", use_container_width=True):
-                st.session_state["selected_years_stat"] = all_years[:1]
-                st.rerun()
-        with col_btn2:
-            if st.button("3 năm gần nhất", use_container_width=True):
-                st.session_state["selected_years_stat"] = all_years[:3]
-                st.rerun()
-        with col_btn3:
-            if st.button("5 năm gần nhất", use_container_width=True):
-                st.session_state["selected_years_stat"] = all_years[:5]
-                st.rerun()
-        with col_btn4:
-            if st.button("Tất cả (Max)", use_container_width=True):
+        with st.expander("📅 **Bộ lọc Năm học (Bấm để mở/đóng)**", expanded=True):
+            if "selected_years_stat" not in st.session_state:
                 st.session_state["selected_years_stat"] = all_years
-                st.rerun()
     
-        # 2. Hiển thị các ô vuông chọn năm học thủ công (chia cố định 2 cột để không bị dàn trải ngang)
-        selected_years = []
-        num_cols = 2  # Chia thành 2 cột ô vuông
-        grid_cols = st.columns(num_cols)
+            # 1. Các nút chọn nhanh (1 năm gần nhất, 3 năm, 5 năm, Max)
+            col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
+            with col_btn1:
+                if st.button("1 năm gần nhất", use_container_width=True):
+                    st.session_state["selected_years_stat"] = all_years[:1]
+                    st.rerun()
+            with col_btn2:
+                if st.button("3 năm gần nhất", use_container_width=True):
+                    st.session_state["selected_years_stat"] = all_years[:3]
+                    st.rerun()
+            with col_btn3:
+                if st.button("5 năm gần nhất", use_container_width=True):
+                    st.session_state["selected_years_stat"] = all_years[:5]
+                    st.rerun()
+            with col_btn4:
+                if st.button("Tất cả (Max)", use_container_width=True):
+                    st.session_state["selected_years_stat"] = all_years
+                    st.rerun()
     
-        for i, year in enumerate(all_years):
-            col_idx = i % num_cols
-            with grid_cols[col_idx]:
-                is_checked = st.checkbox(
-                    str(year),
-                    value=(year in st.session_state["selected_years_stat"]),
-                    key=f"chk_year_{year}",
-                )
-                if is_checked:
-                    selected_years.append(year)
+            st.markdown("---")
+            st.markdown("📌 **Hoặc chọn tùy chỉnh các năm cụ thể:**")
     
-        st.session_state["selected_years_stat"] = selected_years
+            # 2. Hiển thị các ô vuông chọn năm học thủ công (chia cố định 2 cột)
+            selected_years = []
+            num_cols = 2
+            grid_cols = st.columns(num_cols)
+    
+            for i, year in enumerate(all_years):
+                col_idx = i % num_cols
+                with grid_cols[col_idx]:
+                    is_checked = st.checkbox(
+                        str(year),
+                        value=(year in st.session_state["selected_years_stat"]),
+                        key=f"chk_year_{year}",
+                    )
+                    if is_checked:
+                        selected_years.append(year)
+    
+            st.session_state["selected_years_stat"] = selected_years
 
         if not selected_years:
             st.warning("⚠️ Vui lòng tích chọn ít nhất một năm học để hiển thị dữ liệu.")
