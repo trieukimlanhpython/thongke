@@ -177,14 +177,18 @@ with st.expander(
     st.error("❌ Không thể tải dữ liệu chi tiết từ Google Sheets.")
 
 # ==========================================================
-# 🔍 TAB RADIO LỌC PHẠM VI TÌM KIẾM NÂNG CAO
+# 🔍 TAB RADIO LỌC PHẠM VI TÌM KIẾM NÂNG CAO (ĐÃ TỐI ƯU CHO CLOUD)
 # ==========================================================
 st.header("🔍 Tra cứu công việc nâng cao")
 
-# Thanh radio lựa chọn phạm vi tìm kiếm theo yêu cầu cấu trúc mới
 search_scope = st.radio(
     "📂 Chọn phạm vi / hạng mục cần tìm kiếm:",
-    options=["🌐 Tất cả các bảng", "📚 GD (Giảng dạy)", "🔬 NCKH (Nghiên cứu)", "📌 Other (Khác)"],
+    options=[
+        "🌐 Tất cả các bảng",
+        "📚 GD (Giảng dạy)",
+        "🔬 NCKH (Nghiên cứu)",
+        "📌 Other (Khác)",
+    ],
     horizontal=True,
 )
 
@@ -249,8 +253,15 @@ if keyword_input:
       target_search_dict = detail_dfs
 
     for name, df in target_search_dict.items():
-      df.columns = [c.strip() for c in df.columns]
+      if df is None or df.empty:
+        continue
+
       df_temp = df.copy()
+      df_temp.columns = [str(c).strip() for c in df_temp.columns]
+
+      # 🌟 ÉP KIỂM TOÀN BỘ CỘT VỀ CHUỖI AN TOÀN TRÊN CLOUD
+      for col in df_temp.columns:
+        df_temp[col] = df_temp[col].fillna("").astype(str)
 
       priority_target_cols = [
           c
@@ -269,7 +280,13 @@ if keyword_input:
       ]
 
       all_text_cols = [
-          c for c in df_temp.columns if df_temp[c].dtype == "object" or c == "id"
+          c
+          for c in df_temp.columns
+          if c == "id"
+          or any(
+              x in c.lower() for x in ["id", "code", "category", "tên", "mã"]
+          )
+          or df_temp[c].dtype == "object"
       ]
 
       if all_text_cols:
@@ -283,33 +300,27 @@ if keyword_input:
                 else all_text_cols
             )
 
-            mask_kw = (
-                df_temp[cols_to_check]
-                .apply(
-                    lambda col: col.astype(str)
-                    .str.lower()
-                    .str.contains(kw, na=False)
-                )
-                .any(axis=1)
-            )
+            # Thực hiện kiểm tra chuỗi an toàn tương thích mọi phiên bản Pandas trên Cloud
+            mask_kw = pd.Series(False, index=df_temp.index)
+            for c in cols_to_check:
+              mask_kw |= (
+                  df_temp[c].str.lower().str.contains(kw, case=False, na=False)
+              )
 
             if not mask_kw.any() and priority_target_cols:
-              mask_kw = (
-                  df_temp[all_text_cols]
-                  .apply(
-                      lambda col: col.astype(str)
-                      .str.lower()
-                      .str.contains(kw, na=False)
-                  )
-                  .any(axis=1)
-              )
+              for c in all_text_cols:
+                mask_kw |= (
+                    df_temp[c]
+                    .str.lower()
+                    .str.contains(kw, case=False, na=False)
+                )
 
             mask_syn |= mask_kw
           mask &= mask_syn
       else:
         mask = pd.Series(False, index=df_temp.index)
 
-      match_df = df_temp[mask]
+      match_df = df_temp[mask].copy()
 
       if not match_df.empty:
         if "code" in match_df.columns and "code" in df1.columns:
@@ -334,15 +345,14 @@ if keyword_input:
 
       for name, rec_df in found_records:
         st.markdown(
-            f"#### 📘 Nhóm kết quả tìm thấy từ bảng dữ liệu gốc: **{name}** — {len(rec_df)}"
-            " dòng"
+            f"#### 📘 Nhóm kết quả tìm thấy từ bảng dữ liệu gốc: **{name}** —"
+            f" {len(rec_df)} dòng"
         )
         st.dataframe(rec_df, use_container_width=True)
     else:
       st.warning("❌ Không tìm thấy dữ liệu phù hợp trong phạm vi đã chọn.")
 else:
   st.info("👆 Chọn phạm vi và nhập từ khóa để bắt đầu tìm kiếm và thống kê.")
-
 
 # ==========================================================
 # 📊 THỐNG KÊ, TRỪ TRÙNG LẶP VÀ VẼ ĐỒ THỊ
