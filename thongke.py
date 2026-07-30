@@ -750,7 +750,7 @@ if not total_rec_df.empty:
                     # 3. Vẽ đồ thị NCKH
                     df_plot_data = df_after[df_after["Năm học hiển thị"] != "**Tổng cộng**"]
                     if not df_plot_data.empty:
-                        st.markdown("##### 📊 3. Biểu đồ trực quan theo năm học (Số lượng sản phẩm & Tiết)")
+                        st.markdown("##### 📊 3. Biểu đồ trực quan theo năm học (Số lượng sản phẩm & Số tiết)")
                         col_chart1, col_chart2 = st.columns(2)
                         with col_chart1:
                             fig1, ax1 = plt.subplots(figsize=(6, 3.5))
