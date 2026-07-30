@@ -205,6 +205,9 @@ with st.expander(
 # ==========================================================
 # 🔍 TAB RADIO LỌC PHẠM VI TÌM KIẾM NÂNG CAO (ĐÃ TỐI ƯU CHO CLOUD)
 # ==========================================================
+# ==========================================================
+# 🔍 TAB RADIO LỌC PHẠM VI TÌM KIẾM NÂNG CAO (TỐI ƯU ĐA BẢNG GD, NCKH, OTHER)
+# ==========================================================
 st.header("🔍 Tra cứu công việc nâng cao")
 
 search_scope = st.radio(
@@ -221,7 +224,7 @@ search_scope = st.radio(
 keyword_input = (
     st.text_input(
         "🔎 Nhập từ khóa cần tìm (các điều kiện cách nhau bằng & hoặc ,)\nVí"
-        " dụ: SCK & chủ biên hoặc TLTK, cấp cơ sở"
+        " dụ: Quản lý danh mục đầu tư hoặc Toán cao cấp"
     )
     .strip()
     .lower()
@@ -241,22 +244,18 @@ if keyword_input:
         k.strip() for k in re.split(r"[&,]", keyword_input) if k.strip()
     ]
 
-    # --- MỞ RỘNG TỪ KHÓA THÔNG MINH & TỪ VIẾT TẮT (SYNONYMS) ---
+    # --- MỞ RỘNG TỪ KHÓA THÔNG MINH (SYNONYMS) ---
     expanded_keywords = []
     for kw in raw_keywords:
       synonyms = [kw]
-
       if any(k in kw for k in ["sách tham khảo", "sck", "tltk", "sách"]):
         for s in ["sách tham khảo", "sck", "tltk", "sách"]:
           if s not in synonyms:
             synonyms.append(s)
-
       elif "bài báo" in kw and "khoa học" not in kw:
         synonyms.append("bài báo khoa học")
-
       elif "đề tài" in kw:
         synonyms.append("đề tài")
-
       expanded_keywords.append(synonyms)
 
     st.info(
@@ -289,58 +288,20 @@ if keyword_input:
       for col in df_temp.columns:
         df_temp[col] = df_temp[col].fillna("").astype(str)
 
-      priority_target_cols = [
-          c
-          for c in df_temp.columns
-          if any(
-              x in c.lower()
-              for x in [
-                  "loại hoạt động",
-                  "cấp độ",
-                  "phân loại cấp 1",
-                  "phân loại cấp 2",
-                  "phân loại cấp 3",
-                  "vai trò",
-              ]
-          )
-      ]
-
-      all_text_cols = [
-          c
-          for c in df_temp.columns
-          if c == "id"
-          or any(
-              x in c.lower() for x in ["id", "code", "category", "tên", "mã"]
-          )
-          or df_temp[c].dtype == "object"
-      ]
+      # Lấy toàn bộ các cột có trong bảng để quét tìm kiếm (Không phân biệt tên cột tiếng Anh hay tiếng Việt)
+      all_text_cols = list(df_temp.columns)
 
       if all_text_cols:
         mask = pd.Series(True, index=df_temp.index)
         for syn_list in expanded_keywords:
           mask_syn = pd.Series(False, index=df_temp.index)
           for kw in syn_list:
-            cols_to_check = (
-                priority_target_cols
-                if priority_target_cols
-                else all_text_cols
-            )
-
-            # Thực hiện kiểm tra chuỗi an toàn tương thích mọi phiên bản Pandas trên Cloud
+            # Quét trên tất cả các cột của bảng (class, subject, short_name, program, category,...)
             mask_kw = pd.Series(False, index=df_temp.index)
-            for c in cols_to_check:
+            for c in all_text_cols:
               mask_kw |= (
                   df_temp[c].str.lower().str.contains(kw, case=False, na=False)
               )
-
-            if not mask_kw.any() and priority_target_cols:
-              for c in all_text_cols:
-                mask_kw |= (
-                    df_temp[c]
-                    .str.lower()
-                    .str.contains(kw, case=False, na=False)
-                )
-
             mask_syn |= mask_kw
           mask &= mask_syn
       else:
