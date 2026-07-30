@@ -74,9 +74,8 @@ def read_gsheet(link):
     st.error(f"❌ Lỗi đọc Google Sheet: {e}")
     return None
 
-
 # ==========================================================
-# 🔗 CÁC LINK DỮ LIỆU
+# 🔗 CÁC LINK DỮ LIỆU (Đã chuẩn hóa định dạng export CSV cho Streamlit Cloud)
 # ==========================================================
 # ==========================================================
 # 🔗 CÁC LINK DỮ LIỆU (Đã chuẩn hóa định dạng export CSV cho Streamlit Cloud)
@@ -98,7 +97,6 @@ links = {
         "https://docs.google.com/spreadsheets/d/1F_w2yXvD66m0DeSmUrn-mFYcHwr2VKL6JYS6-bdATtQ/export?format=csv&gid=1443108898"
     ),
 }
-
 # ==========================================================
 # 🧮 TẢI DỮ LIỆU CƠ BẢN
 # ==========================================================
