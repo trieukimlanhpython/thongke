@@ -465,26 +465,6 @@ if not total_rec_df.empty:
       if total_rec_df.empty:
         st.warning("❌ Không có dữ liệu cho năm học đã chọn.")
       else:
-        # --- 1. THỐNG KÊ TRƯỚC KHI TRỪ TRÙNG LẶP ---
-        st.markdown("##### 📋 1. Bảng thống kê TRƯỚC khi trừ trùng lặp")
-        df_before = (
-            total_rec_df.groupby("Năm học hiển thị")
-            .agg(
-                **{
-                    "Tổng số dòng kê khai": (tiet_col_target, "count"),
-                    "Tổng số tiết": (tiet_col_target, "sum"),
-                }
-            )
-            .reset_index()
-            .sort_values("Năm học hiển thị")
-        )
-
-        tot_d_b = df_before["Tổng số dòng kê khai"].sum()
-        tot_t_b = df_before["Tổng số tiết"].sum()
-        df_before_disp = df_before.copy()
-        df_before_disp.loc[len(df_before_disp)] = ["**Tổng cộng**", tot_d_b, tot_t_b]
-        st.dataframe(df_before_disp, use_container_width=True)
-
         # ==========================================================
         # 🧹 2. XỬ LÝ TRÙNG LẶP & GOM NHÓM ĐỒNG BỘ CHO TOÀN HỆ THỐNG
         # ==========================================================
