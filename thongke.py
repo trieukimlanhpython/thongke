@@ -608,7 +608,7 @@ if not total_rec_df.empty:
 
                 else:
                     # ==========================================
-                    # 🔬 XỬ LÝ CHO NCKH / OTHER / TẤT CẢ - CẬP NHẬT CẤP ĐỘ & CỘT SỐ LƯỢNG 2.3
+                    # 🔬 XỬ LÝ CHO NCKH / OTHER - TỰ CHỌN CỘT CẤP ĐỘ TRỰC QUAN
                     # ==========================================
                     df_temp_detail = total_rec_df.copy()
                     name_prod_col = next((c for c in df_temp_detail.columns if c.lower() in ["tên sản phẩm"]), None)
@@ -661,14 +661,20 @@ if not total_rec_df.empty:
 
                     df_temp_detail["Sản phẩm chuẩn hóa"] = df_temp_detail["_clean_key"].map(key_to_canonical)
 
-                    # Dò tìm các cột đặc thù của NCKH (bắt chuẩn xác mọi biến thể tên cột)
+                    # 🌟 GIAO DIỆN CHỌN NHANH CỘT CẤP ĐỘ ĐỂ TRÁNH LỆCH TÊN CỘT
+                    available_cols = list(df_temp_detail.columns)
+                    default_cap_do_idx = 0
+                    for idx, col_name in enumerate(available_cols):
+                        if any(x in str(col_name).lower() for x in ["cấp độ", "cap do", "level", "cap"]):
+                            default_cap_do_idx = idx
+                            break
+
+                    st.markdown("⚙️ **Cấu hình cột Cấp độ cho NCKH:**")
+                    cap_do_col = st.selectbox("Chọn cột đại diện cho Cấp độ:", options=available_cols, index=default_cap_do_idx)
+
                     cols_lower = {str(c).strip().lower(): c for c in df_temp_detail.columns}
                     phan_loai_col = next((cols_lower[c] for c in cols_lower if "phân loại cấp 1" in c), None)
                     loai_hd_col = next((cols_lower[c] for c in cols_lower if any(x in c for x in ["loại hoạt động", "loại"])), None)
-                    
-                    # 🌟 Cải tiến dò tìm cột Cấp độ linh hoạt hơn (hỗ trợ cả cấp độ, cap do, level)
-                    cap_do_col = next((cols_lower[c] for c in cols_lower if any(x in c for x in ["cấp độ", "cap do", "level"])), None)
-                    
                     phan_loai_2 = next((cols_lower[c] for c in cols_lower if "phân loại cấp 2" in c), None)
                     phan_loai_3 = next((cols_lower[c] for c in cols_lower if "phân loại cấp 3" in c), None)
 
@@ -718,7 +724,7 @@ if not total_rec_df.empty:
                     st.dataframe(df_after_disp, use_container_width=True)
 
                     # ==========================================
-                    # 🏷️ 2.2 THỐNG KÊ TỔNG HỢP THEO PHÂN LOẠI CẤP 1, LOẠI HĐ & CẤP ĐỘ
+                    # 🏷️ 2.2 THỐNG KÊ TỔNG HỢP (Bao gồm Cấp độ vừa chọn)
                     # ==========================================
                     if phan_loai_col:
                         st.markdown("##### 🏷️ 2.2 Thống kê tổng hợp theo Phân loại cấp 1, Loại hoạt động & Cấp độ")
@@ -744,7 +750,7 @@ if not total_rec_df.empty:
                         st.dataframe(df_phanloai_summary_disp, use_container_width=True)
 
                     # ==========================================
-                    # 🔍 2.3 BẢNG CHI TIẾT CÓ TÙY CHỈNH TIÊU CHÍ ĐỘNG & CỘT SỐ LƯỢNG
+                    # 🔍 2.3 BẢNG CHI TIẾT CÓ TÙY CHỈNH TIÊU CHÍ ĐỘNG
                     # ==========================================
                     st.markdown("##### 🔍 2.3 Bảng chi tiết kèm Tên sản phẩm & Danh sách thành viên (Tùy chỉnh tiêu chí)")
 
@@ -785,9 +791,8 @@ if not total_rec_df.empty:
                     if not group_detail_dynamic:
                         group_detail_dynamic = ["Năm học hiển thị"]
 
-                    # 🌟 Bổ sung đếm số lượng sản phẩm/hoạt động độc lập
                     agg_dyn_dict = {
-                        tiet_col_target: ["sum", "count"],  # Lấy tổng số tiết và đếm số lượng hoạt động
+                        tiet_col_target: ["sum", "count"],
                         "_full_name": lambda x: ", ".join(x.dropna().unique()),
                     }
                     if name_prod_col and name_prod_col in df_clean_unified.columns:
@@ -799,13 +804,11 @@ if not total_rec_df.empty:
 
                     df_nckh_detail = df_clean_unified.groupby(group_detail_dynamic, dropna=False).agg(agg_dyn_dict).reset_index()
 
-                    # Phẳng hóa các cột MultiIndex do dùng danh sách hàm agg [sum, count]
                     df_nckh_detail.columns = [
                         col[0] if col[1] == "" else f"{col[0]}_{col[1]}" 
                         for col in df_nckh_detail.columns
                     ]
 
-                    # Đổi tên cột trực quan
                     rename_nckh_dict = {
                         f"{tiet_col_target}_sum": "Tổng số tiết",
                         f"{tiet_col_target}_count": "Số lượng",
@@ -820,10 +823,12 @@ if not total_rec_df.empty:
                         if col_drop in df_nckh_detail.columns:
                             df_nckh_detail = df_nckh_detail.drop(columns=[col_drop])
 
-                    # Sắp xếp lại thứ tự cột cho đẹp (đưa cột "Số lượng" và "Tổng số tiết" lên sát nhóm)
-                    cols_order = [c for c in df_nckh_detail.columns if c not in ["Số lượng", "Tổng số tiết", "Danh sách thành viên"]]
-                    cols_order += ["Số lượng", "Tổng số tiết", "Danh sách thành viên"]
-                    cols_order = [c for c in cols_order if c in df_nckh_detail.columns]
+                    # Sắp xếp lại thứ tự cột: đưa Số lượng và Tổng số tiết đứng trước Danh sách thành viên
+                    front_cols = [c for c in group_detail_dynamic if c in df_nckh_detail.columns]
+                    middle_cols = [c for c in ["Số lượng", "Tổng số tiết"] if c in df_nckh_detail.columns]
+                    end_cols = [c for c in df_nckh_detail.columns if c not in front_cols + middle_cols]
+                    
+                    cols_order = front_cols + middle_cols + end_cols
                     df_nckh_detail = df_nckh_detail[cols_order]
 
                     # Thêm dòng tổng cộng vào bảng 2.3 NCKH
