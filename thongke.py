@@ -752,7 +752,7 @@ if not total_rec_df.empty:
                         st.dataframe(df_before_disp, use_container_width=True)
 
                     # 2. Thống kê sau khi trừ trùng
-                    st.markdown("##### 🧹 2. Bảng thống kê SAU KHI trừ trùng lặp")
+                    st.markdown("##### 🧹 2.1 Bảng thống kê SAU KHI trừ trùng lặp")
                     df_after = df_clean_unified.groupby("Năm học hiển thị").agg(**{
                         "Số lượng sản phẩm độc lập": (tiet_col_target, "count"),
                         "Tổng số tiết thực hiện": (tiet_col_target, "sum")
