@@ -791,18 +791,19 @@ if not total_rec_df.empty:
                         #st.dataframe(df_phanloai_summary_disp, use_container_width=True)
 
                     # ==========================================
-                    # 🔍 2.3 BẢNG CHI TIẾT CÓ TÙY CHỈNH TIÊU CHÍ ĐỘNG (BỔ SUNG CHECKBOX CẤP ĐỘ)
+                    # 🔍 3 BẢNG CHI TIẾT CÓ TÙY CHỈNH TIÊU CHÍ ĐỘNG (BỔ SUNG TÊN SẢN PHẨM)
                     # ==========================================
-                    st.markdown("##### 🔍 2.3 Bảng chi tiết kèm Tên sản phẩm & Danh sách thành viên (Tùy chỉnh tiêu chí)")
+                    st.markdown("##### 🔍 3 Bảng chi tiết kèm Tên sản phẩm & Danh sách thành viên (Tùy chỉnh tiêu chí)")
 
                     st.markdown("⚙️ **Chọn các tiêu chí muốn gom nhóm chi tiết:**")
-                    c_opt1, c_opt2, c_opt3, c_opt4, c_opt5, c_opt6, c_opt7 = st.columns(7)
+                    # Tăng số cột lên 8 để chứa vừa vặn các checkbox tùy chọn
+                    c_opt1, c_opt2, c_opt3, c_opt4, c_opt5, c_opt6, c_opt7, c_opt8 = st.columns(8)
                     with c_opt1:
                         opt_y = st.checkbox("Năm học", value=True, key="chk_nckh_year")
                     with c_opt2:
                         opt_loai = st.checkbox("Loại HĐ", value=True, key="chk_nckh_loai")
                     with c_opt3:
-                        opt_cap = st.checkbox("Cấp độ", value=True, key="chk_nckh_cap")  # Checkbox Cấp độ
+                        opt_cap = st.checkbox("Cấp độ", value=True, key="chk_nckh_cap")
                     with c_opt4:
                         opt_pl1 = st.checkbox("PL Cấp 1", value=True, key="chk_nckh_pl1")
                     with c_opt5:
@@ -811,6 +812,8 @@ if not total_rec_df.empty:
                         opt_pl3 = st.checkbox("PL Cấp 3", value=False, key="chk_nckh_pl3")
                     with c_opt7:
                         opt_role = st.checkbox("Vai trò", value=False, key="chk_nckh_role")
+                    with c_opt8:
+                        opt_prod = st.checkbox("Tên SP", value=False, key="chk_nckh_prod")  # 🌟 Thêm tùy chọn Tên sản phẩm
 
                     # Xây dựng khóa gom nhóm động dựa trên lựa chọn
                     group_detail_dynamic = []
@@ -828,6 +831,8 @@ if not total_rec_df.empty:
                         group_detail_dynamic.append(phan_loai_3)
                     if opt_role and role_col_check and role_col_check in df_clean_unified.columns:
                         group_detail_dynamic.append(role_col_check)
+                    if opt_prod and name_prod_col and name_prod_col in df_clean_unified.columns:
+                        group_detail_dynamic.append(name_prod_col)  # 🌟 Đưa tên sản phẩm vào khóa gom nhóm
 
                     if not group_detail_dynamic:
                         group_detail_dynamic = ["Năm học hiển thị"]
