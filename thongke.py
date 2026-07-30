@@ -808,7 +808,7 @@ with tab1:
                         st.dataframe(df_nckh_detail, use_container_width=True)
 
                         # ==========================================
-                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG CHO NCKH (CHỈ VẼ THEO 5 TIÊU CHÍ CHỈ ĐỊNH)
+                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG CHO NCKH (CHỈ VẼ 5 TIÊU CHỈ & GÁN KÝ HỘI TRỤC X)
                         # ==========================================
                         first_col_nckh = df_nckh_detail.columns[0]
                         df_plot_nckh = df_nckh_detail[df_nckh_detail[first_col_nckh] != "**Tổng cộng**"].copy()
@@ -816,55 +816,78 @@ with tab1:
                         if not df_plot_nckh.empty:
                             st.markdown("##### 📊 3. Biểu đồ trực quan theo các tiêu chí đã chọn")
     
-                            # Các cột chỉ số định lượng của NCKH
                             metrics_nckh = ["Số lượng", "Tổng số tiết"]
                             
-                            # Danh sách các tiêu chí được phép vẽ đồ thị
-                            allowed_criteria = ["năm học", "cấp độ", "loại hđ", "loại hoạt động", "vai trò", "phân loại cấp 1", "pl cấp 1"]
+                            # Danh sách ánh xạ chính xác từ checkbox và tên cột tương ứng trong bảng chi tiết
+                            allowed_mapping = []
+                            if opt_y and "Năm học hiển thị" in df_nckh_detail.columns:
+                                allowed_mapping.append(("Năm học hiển thị", "Năm học"))
+                            if opt_cap and cap_do_col and cap_do_col in df_nckh_detail.columns:
+                                allowed_mapping.append((cap_do_col, "Cấp độ"))
+                            if opt_loai and loai_hd_col and loai_hd_col in df_nckh_detail.columns:
+                                allowed_mapping.append((loai_hd_col, "Loại HĐ"))
+                            if opt_role and role_col_check and role_col_check in df_nckh_detail.columns:
+                                allowed_mapping.append((role_col_check, "Vai trò"))
+                            if opt_pl1 and phan_loai_col and phan_loai_col in df_nckh_detail.columns:
+                                allowed_mapping.append((phan_loai_col, "PL Cấp 1"))
     
-                            # Lọc ra các cột tiêu chí đang hiển thị trong bảng 2.3 thuộc danh sách cho phép
-                            active_nckh_cols = []
-                            for c in df_nckh_detail.columns:
-                                c_lower = str(c).strip().lower()
-                                if c not in metrics_nckh and c != "**Tổng cộng**":
-                                    if any(kw in c_lower for kw in allowed_criteria):
-                                        active_nckh_cols.append(c)
+                            # Duyệt và vẽ cặp biểu đồ cho từng tiêu chí được phép
+                            for col_name, display_name in allowed_mapping:
+                                if col_name not in df_plot_nckh.columns:
+                                    continue
     
-                            # Duyệt và vẽ cặp biểu đồ (Số lượng & Tổng số tiết) cho từng tiêu chí hợp lệ
-                            for crit_col in active_nckh_cols:
-                                st.markdown(f"###### 📌 Phân tích theo tiêu chí: **{crit_col}**")
+                                st.markdown(f"###### 📌 Phân tích theo tiêu chí: **{display_name}**")
                                 col_chart1, col_chart2 = st.columns(2)
     
-                                # Nhóm dữ liệu theo tiêu chí đang xét
-                                df_grouped_nckh = df_plot_nckh.groupby(crit_col)[metrics_nckh].sum().reset_index()
+                                # Nhóm dữ liệu theo tiêu chí
+                                df_grouped_nckh = df_plot_nckh.groupby(col_name)[metrics_nckh].sum().reset_index()
+                                
+                                # Xử lý tự động rút gọn tên trên trục hoành nếu tên quá dài
+                                unique_labels = df_grouped_nckh[col_name].astype(str).tolist()
+                                needs_mapping = any(len(lbl) > 15 for lbl in unique_labels)
+    
+                                if needs_mapping:
+                                    # Tạo từ điển ánh xạ từ Tên dài sang Ký hiệu ngắn (K1, K2, K3...)
+                                    label_mapping = {lbl: f"K{i+1}" for i, lbl in enumerate(unique_labels)}
+                                    df_grouped_nckh["_Short_Label"] = df_grouped_nckh[col_name].map(label_mapping)
+                                    x_plot_col = "_Short_Label"
+                                else:
+                                    x_plot_col = col_name
     
                                 # Biểu đồ 1: Số lượng sản phẩm
                                 with col_chart1:
                                     fig1, ax1 = plt.subplots(figsize=(6, 3.5))
-                                    bars1 = ax1.bar(df_grouped_nckh[crit_col].astype(str), df_grouped_nckh["Số lượng"], color="#55A868")
+                                    bars1 = ax1.bar(df_grouped_nckh[x_plot_col].astype(str), df_grouped_nckh["Số lượng"], color="#55A868")
                                     for bar in bars1:
                                         h = bar.get_height()
                                         ax1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
                                     
-                                    ax1.set_xlabel(crit_col, fontsize=9)
+                                    ax1.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=9)
                                     ax1.set_ylabel("Số lượng sản phẩm", fontsize=9)
-                                    ax1.set_title(f"Số lượng theo {crit_col}", fontsize=10, fontweight="bold")
-                                    ax1.tick_params(axis="x", rotation=45)
+                                    ax1.set_title(f"Số lượng theo {display_name}", fontsize=10, fontweight="bold")
+                                    ax1.tick_params(axis="x", rotation=0 if needs_mapping else 45)
                                     st.pyplot(fig1, bbox_inches="tight")
     
                                 # Biểu đồ 2: Tổng số tiết thực hiện
                                 with col_chart2:
                                     fig2, ax2 = plt.subplots(figsize=(6, 3.5))
-                                    bars2 = ax2.bar(df_grouped_nckh[crit_col].astype(str), df_grouped_nckh["Tổng số tiết"], color="#C44E52")
+                                    bars2 = ax2.bar(df_grouped_nckh[x_plot_col].astype(str), df_grouped_nckh["Tổng số tiết"], color="#C44E52")
                                     for bar in bars2:
                                         h = bar.get_height()
                                         ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
                                     
-                                    ax2.set_xlabel(crit_col, fontsize=9)
+                                    ax2.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=9)
                                     ax2.set_ylabel("Tổng số tiết thực hiện", fontsize=9)
-                                    ax2.set_title(f"Tổng số tiết theo {crit_col}", fontsize=10, fontweight="bold")
-                                    ax2.tick_params(axis="x", rotation=45)
+                                    ax2.set_title(f"Tổng số tiết theo {display_name}", fontsize=10, fontweight="bold")
+                                    ax2.tick_params(axis="x", rotation=0 if needs_mapping else 45)
                                     st.pyplot(fig2, bbox_inches="tight")
+    
+                                # Nếu có dùng ký hiệu rút gọn, hiển thị bảng chú thích ngay bên dưới biểu đồ
+                                if needs_mapping:
+                                    st.markdown(f"**📝 Chú thích ký hiệu trục hoành cho ({display_name}):**")
+                                    note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
+                                    st.dataframe(note_df, use_container_width=True, hide_index=True)
+                              
         else:
             st.info("ℹ️ Không tìm thấy cột 'SỐ TIẾT KÊ KHAI' hoặc cột thời gian phù hợp để vẽ biểu đồ.")
     else:
