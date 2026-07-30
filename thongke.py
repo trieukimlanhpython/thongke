@@ -84,10 +84,6 @@ def quy_doi_nam_hoc(dot_str):
 
   return "Khác / Chưa xác định"
 
-
-# ==========================================================
-# 🧩 HÀM ĐỌC GOOGLE SHEET (CÓ CACHE ĐỂ ỔN ĐỊNH DỮ LIỆU)
-# ==========================================================
 # ==========================================================
 # 🧩 HÀM ĐỌC GOOGLE SHEET (ĐÃ CẢI TIẾN & BẮT LỖI CHI TIẾT)
 # ==========================================================
@@ -386,34 +382,46 @@ if not total_rec_df.empty:
         )
 
         # ==========================================
-        # 🎛️ BỘ LỌC NĂM HỌC TRONG EXPANDER (CHỌN NHANH & Ô VUÔNG 2 HÀNG)
+        # 🎛️ BỘ LỌC NĂM HỌC ĐỒNG BỘ TRẠNG THÁI (MẶC ĐỊNH 5 NĂM GẦN NHẤT)
         # ==========================================
         all_years = sorted(
             total_rec_df["Năm học hiển thị"].dropna().unique().tolist(),
-            reverse=True  # Sắp xếp năm mới nhất lên đầu (ví dụ: 25-26, 24-25,...)
+            reverse=True  # Sắp xếp năm mới nhất lên đầu
         )
     
         with st.expander("📅 **Bộ lọc Năm học (Bấm để mở/đóng)**", expanded=True):
+            # 1. Khởi tạo mặc định 5 năm gần nhất nếu chưa có session_state
             if "selected_years_stat" not in st.session_state:
-                st.session_state["selected_years_stat"] = all_years
+                st.session_state["selected_years_stat"] = all_years[:5]
     
-            # 1. Các nút chọn nhanh (1 năm gần nhất, 3 năm, 5 năm, Max)
+            # Hàm callback cập nhật trạng thái session_state của các checkbox thủ công khi bấm nút nhanh
+            def set_quick_selection(n):
+                if n == "all":
+                    st.session_state["selected_years_stat"] = all_years
+                else:
+                    st.session_state["selected_years_stat"] = all_years[:n]
+                
+                # Đồng bộ lại trạng thái value của các checkbox bên dưới
+                for y in all_years:
+                    st.session_state[f"chk_year_{y}"] = (y in st.session_state["selected_years_stat"])
+    
+            # 1. Các nút chọn nhanh
             col_btn1, col_btn2, col_btn3, col_btn4 = st.columns(4)
             with col_btn1:
                 if st.button("1 năm gần nhất", use_container_width=True):
-                    st.session_state["selected_years_stat"] = all_years[:1]
+                    set_quick_selection(1)
                     st.rerun()
             with col_btn2:
                 if st.button("3 năm gần nhất", use_container_width=True):
-                    st.session_state["selected_years_stat"] = all_years[:3]
+                    set_quick_selection(3)
                     st.rerun()
             with col_btn3:
                 if st.button("5 năm gần nhất", use_container_width=True):
-                    st.session_state["selected_years_stat"] = all_years[:5]
+                    set_quick_selection(5)
                     st.rerun()
             with col_btn4:
                 if st.button("Tất cả (Max)", use_container_width=True):
-                    st.session_state["selected_years_stat"] = all_years
+                    set_quick_selection("all")
                     st.rerun()
     
             st.markdown("---")
@@ -426,15 +434,21 @@ if not total_rec_df.empty:
     
             for i, year in enumerate(all_years):
                 col_idx = i % num_cols
+                
+                # Đảm bảo key checkbox có trạng thái khởi tạo trong session_state
+                chk_key = f"chk_year_{year}"
+                if chk_key not in st.session_state:
+                    st.session_state[chk_key] = (year in st.session_state["selected_years_stat"])
+    
                 with grid_cols[col_idx]:
                     is_checked = st.checkbox(
                         str(year),
-                        value=(year in st.session_state["selected_years_stat"]),
-                        key=f"chk_year_{year}",
+                        key=chk_key,
                     )
                     if is_checked:
                         selected_years.append(year)
     
+            # Cập nhật lại danh sách năm được chọn thực tế vào session_state chung
             st.session_state["selected_years_stat"] = selected_years
 
         if not selected_years:
