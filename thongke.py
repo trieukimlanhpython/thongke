@@ -815,8 +815,7 @@ if not total_rec_df.empty:
                         with col_c1:
                             opt_y = st.checkbox("Năm học", value=True, key="chk_nckh_year")
                             opt_ma = st.checkbox("Mã sản phẩm", value=False, key="chk_nckh_ma")
-                            opt_tap = st.checkbox("Tên Tạp chí / Hội thảo, Sách", value=False, key="chk_nckh_tap")
-                    
+                            
                         with col_c2:
                             opt_loai = st.checkbox("Loại HĐ", value=True, key="chk_nckh_loai")
                             opt_issn = st.checkbox("Số ISBN / Số ISSN", value=False, key="chk_nckh_issn")
@@ -829,7 +828,7 @@ if not total_rec_df.empty:
                         with col_c5:
                             opt_pl2 = st.checkbox("PL Cấp 2", value=False, key="chk_nckh_pl2")
                             opt_pl3 = st.checkbox("PL Cấp 3", value=False, key="chk_nckh_pl3")
-
+                        opt_tap = st.checkbox("Tên Tạp chí / Hội thảo, Sách", value=False, key="chk_nckh_tap")
                     # Xây dựng khóa gom nhóm động dựa trên lựa chọn riêng biệt
                     group_detail_dynamic = []
                     if opt_y:
