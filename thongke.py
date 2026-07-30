@@ -25,7 +25,23 @@ st.write(
     " df2_category-description; GD_giảng dạy; NCKH_nghiên cứu; Other_khác)"
 )
 
+# ==========================================================
+# 🔄 NÚT CẬP NHẬT / LÀM MỚI DỮ LIỆU (REFRESH CACHE)
+# ==========================================================
+col_refresh1, col_refresh2 = st.columns([4, 1])
+with col_refresh2:
+  if st.button("🔄 Cập nhật dữ liệu", use_container_width=True):
+    # Xóa toàn bộ cache đã lưu bằng @st.cache_data
+    st.cache_data.clear()
 
+    # Xóa sạch các biến dữ liệu trong session_state để app bắt buộc load mới
+    keys_to_reset = ["df1", "df2", "detail_dfs", "selected_years_stat"]
+    for k in keys_to_reset:
+      if k in st.session_state:
+        del st.session_state[k]
+
+    st.success("✅ Đã làm mới dữ liệu thành công!")
+    st.rerun()  # Tải lại trang ngay lập tức
 # ==========================================================
 # 🛠️ HÀM BỔ TRỢ: CHUYỂN ĐỢT KÊ KHAI SANG NĂM HỌC
 # ==========================================================
