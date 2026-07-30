@@ -608,7 +608,7 @@ if not total_rec_df.empty:
 
                 else:
                     # ==========================================
-                    # 🔬 XỬ LÝ CHO NCKH / OTHER - TỰ CHỌN CỘT CẤP ĐỘ TRỰC QUAN
+                    # 🔬 XỬ LÝ CHO NCKH / OTHER (GIỮ NGUYÊN CẤU TRÚC GỐC, FIX CHUẨN TÊN CỘT CẤP ĐỘ)
                     # ==========================================
                     df_temp_detail = total_rec_df.copy()
                     name_prod_col = next((c for c in df_temp_detail.columns if c.lower() in ["tên sản phẩm"]), None)
@@ -661,22 +661,15 @@ if not total_rec_df.empty:
 
                     df_temp_detail["Sản phẩm chuẩn hóa"] = df_temp_detail["_clean_key"].map(key_to_canonical)
 
-                    # 🌟 GIAO DIỆN CHỌN NHANH CỘT CẤP ĐỘ ĐỂ TRÁNH LỆCH TÊN CỘT
-                    available_cols = list(df_temp_detail.columns)
-                    default_cap_do_idx = 0
-                    for idx, col_name in enumerate(available_cols):
-                        if any(x in str(col_name).lower() for x in ["cấp độ", "cap do", "level", "cap"]):
-                            default_cap_do_idx = idx
-                            break
-
-                    st.markdown("⚙️ **Cấu hình cột Cấp độ cho NCKH:**")
-                    cap_do_col = st.selectbox("Chọn cột đại diện cho Cấp độ:", options=available_cols, index=default_cap_do_idx)
-
-                    cols_lower = {str(c).strip().lower(): c for c in df_temp_detail.columns}
-                    phan_loai_col = next((cols_lower[c] for c in cols_lower if "phân loại cấp 1" in c), None)
-                    loai_hd_col = next((cols_lower[c] for c in cols_lower if any(x in c for x in ["loại hoạt động", "loại"])), None)
-                    phan_loai_2 = next((cols_lower[c] for c in cols_lower if "phân loại cấp 2" in c), None)
-                    phan_loai_3 = next((cols_lower[c] for c in cols_lower if "phân loại cấp 3" in c), None)
+                    # Dò tìm các cột đặc thù của NCKH (bắt chuẩn xác chính xác tên 'Cấp độ')
+                    phan_loai_col = next((c for c in df_temp_detail.columns if "phân loại cấp 1" in c.lower()), None)
+                    loai_hd_col = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["loại hoạt động", "loại"])), None)
+                    
+                    # 🌟 Bắt chính xác tên cột 'Cấp độ' đúng như link NCKH của bạn
+                    cap_do_col = next((c for c in df_temp_detail.columns if c.strip() == "Cấp độ" or c.lower() == "cấp độ"), None)
+                    
+                    phan_loai_2 = next((c for c in df_temp_detail.columns if "phân loại cấp 2" in c.lower()), None)
+                    phan_loai_3 = next((c for c in df_temp_detail.columns if "phân loại cấp 3" in c.lower()), None)
 
                     group_keys_final = ["Năm học hiển thị", "Sản phẩm chuẩn hóa"]
                     if phan_loai_col:
@@ -724,7 +717,7 @@ if not total_rec_df.empty:
                     st.dataframe(df_after_disp, use_container_width=True)
 
                     # ==========================================
-                    # 🏷️ 2.2 THỐNG KÊ TỔNG HỢP (Bao gồm Cấp độ vừa chọn)
+                    # 🏷️ 2.2 THỐNG KÊ TỔNG HỢP (CÓ HIỂN THỊ CẤP ĐỘ)
                     # ==========================================
                     if phan_loai_col:
                         st.markdown("##### 🏷️ 2.2 Thống kê tổng hợp theo Phân loại cấp 1, Loại hoạt động & Cấp độ")
@@ -750,7 +743,7 @@ if not total_rec_df.empty:
                         st.dataframe(df_phanloai_summary_disp, use_container_width=True)
 
                     # ==========================================
-                    # 🔍 2.3 BẢNG CHI TIẾT CÓ TÙY CHỈNH TIÊU CHÍ ĐỘNG
+                    # 🔍 2.3 BẢNG CHI TIẾT CÓ TÙY CHỈNH TIÊU CHÍ ĐỘNG (BỔ SUNG CHECKBOX CẤP ĐỘ)
                     # ==========================================
                     st.markdown("##### 🔍 2.3 Bảng chi tiết kèm Tên sản phẩm & Danh sách thành viên (Tùy chỉnh tiêu chí)")
 
@@ -761,7 +754,7 @@ if not total_rec_df.empty:
                     with c_opt2:
                         opt_loai = st.checkbox("Loại HĐ", value=True, key="chk_nckh_loai")
                     with c_opt3:
-                        opt_cap = st.checkbox("Cấp độ", value=True, key="chk_nckh_cap")
+                        opt_cap = st.checkbox("Cấp độ", value=True, key="chk_nckh_cap")  # Đã tích hợp checkbox Cấp độ
                     with c_opt4:
                         opt_pl1 = st.checkbox("PL Cấp 1", value=True, key="chk_nckh_pl1")
                     with c_opt5:
