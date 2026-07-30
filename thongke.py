@@ -486,301 +486,165 @@ if not total_rec_df.empty:
         st.dataframe(df_before_disp, use_container_width=True)
 
         # ==========================================================
-        # 🧹 2. XỬ LÝ TRÙNG LẶP THÔNG MINH BẰNG SKLEARN (ĐỒNG BỘ TOÀN HỆ THỐNG)
+        # 🧹 2. XỬ LÝ TRÙNG LẶP & GOM NHÓM ĐỒNG BỘ CHO TOÀN HỆ THỐNG
         # ==========================================================
-        df_clean = total_rec_df.copy()
-        name_prod_col = next(
-            (c for c in df_clean.columns if c.lower() in ["tên sản phẩm"]), None
-        )
-        id_col_check = next(
-            (c for c in df_clean.columns if c.lower() in ["mã sản phẩm"]), None
-        )
+        df_temp_detail = total_rec_df.copy()
+        tiet_col_target = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["sỐ tiết kê khai", "tiết", "period"])), None)
+        
+        if tiet_col_target:
+            df_temp_detail[tiet_col_target] = pd.to_numeric(df_temp_detail[tiet_col_target], errors="coerce").fillna(0)
 
-        if name_prod_col and not df_clean.empty:
-          # Làm sạch tên sản phẩm
-          df_clean["_clean_prod_name"] = (
-              df_clean[name_prod_col]
-              .astype(str)
-              .str.lower()
-              .str.replace(r"\s+", " ", regex=True)
-              .str.strip()
-          )
-          # Kết hợp mã sản phẩm để phân biệt rạch ròi các sản phẩm khác mã
-          if id_col_check and id_col_check in df_clean.columns:
-            df_clean["_clean_id"] = (
-                df_clean[id_col_check]
-                .astype(str)
-                .str.lower()
-                .str.replace(r"\s+", "", regex=True)
-                .str.strip()
-            )
-            df_clean["_clean_key"] = (
-                df_clean["_clean_prod_name"] + " | " + df_clean["_clean_id"]
-            )
-          else:
-            df_clean["_clean_key"] = df_clean["_clean_prod_name"]
+        name_prod_col = next((c for c in df_temp_detail.columns if c.lower() in ["tên sản phẩm"]), None)
+        id_col_check = next((c for c in df_temp_detail.columns if c.lower() in ["mã sản phẩm"]), None)
+        name_col_check = next((c for c in df_temp_detail.columns if c.lower() == "name"), None)
+        surname_col_check = next((c for c in df_temp_detail.columns if c.lower() == "surname"), None)
+        role_col_check = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["vai trò", "role"])), None)
 
-          unique_keys = df_clean["_clean_key"].unique()
-
-          if len(unique_keys) > 1:
-            vectorizer = TfidfVectorizer().fit(unique_keys)
-            tfidf_matrix = vectorizer.transform(unique_keys)
-            similarity_matrix = cosine_similarity(tfidf_matrix, tfidf_matrix)
-
-            threshold = 0.85
-            visited = set()
-            to_drop_indices = []
-
-            for i in range(len(unique_keys)):
-              if i in visited:
-                continue
-              similar_indices = np.where(similarity_matrix[i] >= threshold)[0]
-              for idx in similar_indices:
-                if idx != i:
-                  visited.add(idx)
-                  duplicate_rows = df_clean[
-                      df_clean["_clean_key"] == unique_keys[idx]
-                  ].index
-                  to_drop_indices.extend(list(duplicate_rows))
-
-            # Loại bỏ các dòng trùng lặp, giữ lại đại diện duy nhất
-            df_clean = df_clean.drop(index=to_drop_indices)
-
-          # Dọn dẹp cột tạm
-          for col_tmp in ["_clean_prod_name", "_clean_id", "_clean_key"]:
-            if col_tmp in df_clean.columns:
-              df_clean = df_clean.drop(columns=[col_tmp])
+        # Chuẩn hóa tên sản phẩm và mã để gom nhóm chính xác
+        if name_prod_col and not df_temp_detail.empty:
+            df_temp_detail["_clean_prod_name"] = df_temp_detail[name_prod_col].astype(str).str.lower().str.replace(r"\s+", " ", regex=True).str.strip()
         else:
-          df_clean = df_clean.drop_duplicates()
-
-        st.markdown("##### 🧹 2. Bảng thống kê SAU KHI trừ trùng lặp")
-        df_after = (
-            df_clean.groupby("Năm học hiển thị")
-            .agg(
-                **{
-                    "Số lượng sản phẩm/số lớp": (tiet_col_target, "count"),
-                    "Tổng số tiết thực hiện": (tiet_col_target, "sum"),
-                }
-            )
-            .reset_index()
-            .sort_values("Năm học hiển thị")
-        )
-
-        tot_sp_a = df_after["Số lượng sản phẩm/số lớp"].sum()
-        tot_t_a = df_after["Tổng số tiết thực hiện"].sum()
-        df_after_disp = df_after.copy()
-        df_after_disp.loc[len(df_after_disp)] = [
-            "**Tổng cộng**",
-            tot_sp_a,
-            tot_t_a,
-        ]
-        st.dataframe(df_after_disp, use_container_width=True)
-
-        # --- 2.1 THỐNG KÊ THEO PHÂN LOẠI CẤP 1 ---
-        phan_loai_col = next(
-            (
-                c
-                for c in df_clean.columns
-                if "phân loại cấp 1" in c.lower() or c.lower() == "phân loại cấp 1"
-            ),
-            None,
-        )
-        loai_hd_col_check = next(
-            (
-                c
-                for c in df_clean.columns
-                if any(x in c.lower() for x in ["loại hoạt động", "loại"])
-            ),
-            None,
-        )
-        name_col_check = next(
-            (c for c in total_rec_df.columns if c.lower() == "name"), None
-        )
-        surname_col_check = next(
-            (c for c in total_rec_df.columns if c.lower() == "surname"), None
-        )
-        role_col_check = next(
-            (
-                c
-                for c in total_rec_df.columns
-                if any(x in c.lower() for x in ["vai trò", "role"])
-            ),
-            None,
-        )
-
-        if phan_loai_col:
-          st.markdown(
-              "##### 🏷️ 2.2 Thống kê tổng hợp theo Phân loại cấp 1 & Loại hoạt"
-              " động (Sau khi trừ trùng lặp)"
-          )
-
-          group_keys_summary = [phan_loai_col]
-          if loai_hd_col_check and loai_hd_col_check in df_clean.columns:
-            group_keys_summary.append(loai_hd_col_check)
-          group_keys_summary.append("Năm học hiển thị")
-
-          df_phanloai_summary = (
-              df_clean.groupby(group_keys_summary)
-              .agg(
-                  **{
-                      "Số lượng sản phẩm": (tiet_col_target, "count"),
-                      "Tổng số tiết": (tiet_col_target, "sum"),
-                  }
-              )
-              .reset_index()
-              .sort_values(group_keys_summary)
-          )
-
-          tot_sl_pl = df_phanloai_summary["Số lượng sản phẩm"].sum()
-          tot_tiet_pl = df_phanloai_summary["Tổng số tiết"].sum()
-
-          df_phanloai_summary_disp = df_phanloai_summary.copy()
-          total_row = ["**Tổng cộng**"] + [""] * (
-              len(df_phanloai_summary_disp.columns) - 3
-          ) + [tot_sl_pl, tot_tiet_pl]
-          df_phanloai_summary_disp.loc[len(df_phanloai_summary_disp)] = total_row
-
-          st.dataframe(df_phanloai_summary_disp, use_container_width=True)
-
-          st.markdown(
-              "##### 🔍 2.3 Bảng chi tiết Phân loại cấp 1 kèm Tên sản phẩm &"
-              " Danh sách thành viên (Đã gom nhóm)"
-          )
-
-          # Sử dụng toàn bộ bản ghi gốc (total_rec_df) để gom các thành viên chung lại một dòng
-          df_temp_detail = total_rec_df.copy()
-          df_temp_detail[tiet_col_target] = pd.to_numeric(
-              df_temp_detail[tiet_col_target], errors="coerce"
-          ).fillna(0)
-
-          if name_prod_col and not df_temp_detail.empty:
-            df_temp_detail["_clean_prod_name"] = (
-                df_temp_detail[name_prod_col]
-                .astype(str)
-                .str.lower()
-                .str.replace(r"\s+", " ", regex=True)
-                .str.strip()
-            )
-          else:
             df_temp_detail["_clean_prod_name"] = "sản phẩm chung"
 
-          if id_col_check and id_col_check in df_temp_detail.columns:
-            df_temp_detail["_clean_id"] = (
-                df_temp_detail[id_col_check]
-                .astype(str)
-                .str.lower()
-                .str.replace(r"\s+", "", regex=True)
-                .str.strip()
-            )
-            df_temp_detail["_clean_key"] = (
-                df_temp_detail["_clean_prod_name"] + " | " + df_temp_detail["_clean_id"]
-            )
-          else:
+        if id_col_check and id_col_check in df_temp_detail.columns:
+            df_temp_detail["_clean_id"] = df_temp_detail[id_col_check].astype(str).str.lower().str.replace(r"\s+", "", regex=True).str.strip()
+            df_temp_detail["_clean_key"] = df_temp_detail["_clean_prod_name"] + " | " + df_temp_detail["_clean_id"]
+        else:
             df_temp_detail["_clean_key"] = df_temp_detail["_clean_prod_name"]
 
-          if name_col_check:
+        # Chuẩn hóa tên thành viên
+        if name_col_check:
             if surname_col_check:
-              df_temp_detail["_full_name"] = (
-                  df_temp_detail[surname_col_check].astype(str)
-                  + " "
-                  + df_temp_detail[name_col_check].astype(str)
-              )
+                df_temp_detail["_full_name"] = df_temp_detail[surname_col_check].astype(str) + " " + df_temp_detail[name_col_check].astype(str)
             else:
-              df_temp_detail["_full_name"] = df_temp_detail[
-                  name_col_check
-              ].astype(str)
-          else:
+                df_temp_detail["_full_name"] = df_temp_detail[name_col_check].astype(str)
+        else:
             df_temp_detail["_full_name"] = "Không rõ"
 
-          unique_keys_detail = df_temp_detail["_clean_key"].unique()
-          key_to_canonical = {}
+        unique_keys_detail = df_temp_detail["_clean_key"].unique()
+        key_to_canonical = {}
 
-          if len(unique_keys_detail) > 1:
+        if len(unique_keys_detail) > 1:
             vectorizer_d = TfidfVectorizer().fit(unique_keys_detail)
             tfidf_matrix_d = vectorizer_d.transform(unique_keys_detail)
-            similarity_matrix_d = cosine_similarity(
-                tfidf_matrix_d, tfidf_matrix_d
-            )
+            similarity_matrix_d = cosine_similarity(tfidf_matrix_d, tfidf_matrix_d)
 
             threshold_d = 0.85
             visited_d = set()
 
             for i in range(len(unique_keys_detail)):
-              if i in visited_d:
-                continue
-              canonical_key = unique_keys_detail[i]
-              similar_idx_d = np.where(similarity_matrix_d[i] >= threshold_d)[0]
-              for idx in similar_idx_d:
-                visited_d.add(idx)
-                key_to_canonical[unique_keys_detail[idx]] = canonical_key
-          else:
-            for k_item in unique_keys_detail:
-              key_to_canonical[k_item] = k_item
-
-          df_temp_detail["Sản phẩm chuẩn hóa"] = df_temp_detail[
-              "_clean_key"
-          ].map(key_to_canonical)
-
-          group_keys_final = [
-              phan_loai_col,
-              "Năm học hiển thị",
-              "Sản phẩm chuẩn hóa",
-          ]
-          agg_rules_detail = {
-              tiet_col_target: "first",
-              "_full_name": lambda x: ", ".join(x.dropna().unique()),
-          }
-
-          if name_prod_col and name_prod_col in df_temp_detail.columns:
-            agg_rules_detail[name_prod_col] = lambda x: (
-                " / ".join(x.dropna().unique())
-            )
-          if id_col_check and id_col_check in df_temp_detail.columns:
-            agg_rules_detail[id_col_check] = lambda x: (
-                " / ".join(x.dropna().unique())
-            )
-          if role_col_check:
-            agg_rules_detail[role_col_check] = lambda x: (
-                " & ".join(x.dropna().unique())
-            )
-
-          df_phanloai_detail = (
-              df_temp_detail.groupby(group_keys_final)
-              .agg(agg_rules_detail)
-              .reset_index()
-          )
-
-          rename_dict = {
-              tiet_col_target: "Tổng số tiết",
-              "_full_name": "Danh sách thành viên",
-          }
-          if role_col_check:
-            rename_dict[role_col_check] = "Các vai trò"
-
-          df_phanloai_detail = df_phanloai_detail.rename(columns=rename_dict)
-          df_phanloai_detail = df_phanloai_detail.sort_values(
-              [phan_loai_col, "Năm học hiển thị"]
-          )
-
-          if "_clean_prod_name" in df_phanloai_detail.columns:
-            df_phanloai_detail = df_phanloai_detail.drop(
-                columns=["_clean_prod_name"]
-            )
-          if "_clean_key" in df_phanloai_detail.columns:
-            df_phanloai_detail = df_phanloai_detail.drop(
-                columns=["_clean_key"]
-            )
-          if "Sản phẩm chuẩn hóa" in df_phanloai_detail.columns:
-            df_phanloai_detail = df_phanloai_detail.drop(
-                columns=["Sản phẩm chuẩn hóa"]
-            )
-
-          st.dataframe(df_phanloai_detail, use_container_width=True)
+                if i in visited_d:
+                    continue
+                canonical_key = unique_keys_detail[i]
+                similar_idx_d = np.where(similarity_matrix_d[i] >= threshold_d)[0]
+                for idx in similar_idx_d:
+                    visited_d.add(idx)
+                    key_to_canonical[unique_keys_detail[idx]] = canonical_key
         else:
-          st.info(
+            for k_item in unique_keys_detail:
+                key_to_canonical[k_item] = k_item
+
+        df_temp_detail["Sản phẩm chuẩn hóa"] = df_temp_detail["_clean_key"].map(key_to_canonical)
+
+        # Xác định cột phân loại cấp 1
+        phan_loai_col = next((c for c in df_temp_detail.columns if "phân loại cấp 1" in c.lower() or c.lower() == "phân loại cấp 1"), None)
+        loai_hd_col_check = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["loại hoạt động", "loại"])), None)
+
+        # Gom nhóm toàn bộ dữ liệu thành danh sách các sản phẩm độc lập chuẩn chỉnh (BẢNG 2.3 LÀM GỐC)
+        group_keys_final = [phan_loai_col if phan_loai_col else "Năm học hiển thị", "Năm học hiển thị", "Sản phẩm chuẩn hóa"]
+        if loai_hd_col_check and loai_hd_col_check in df_temp_detail.columns:
+            group_keys_final.insert(1, loai_hd_col_check)
+
+        agg_rules_detail = {
+            tiet_col_target: "first",
+            "_full_name": lambda x: ", ".join(x.dropna().unique()),
+        }
+        if name_prod_col and name_prod_col in df_temp_detail.columns:
+            agg_rules_detail[name_prod_col] = lambda x: " / ".join(x.dropna().unique())
+        if id_col_check and id_col_check in df_temp_detail.columns:
+            agg_rules_detail[id_col_check] = lambda x: " / ".join(x.dropna().unique())
+        if role_col_check:
+            agg_rules_detail[role_col_check] = lambda x: " & ".join(x.dropna().unique())
+        if phan_loai_col and phan_loai_col not in group_keys_final:
+            group_keys_final.insert(0, phan_loai_col)
+
+        # Tạo DataFrame chuẩn sau khi gom nhóm loại bỏ trùng lặp thành viên
+        df_clean_unified = df_temp_detail.groupby(group_keys_final, dropna=False).agg(agg_rules_detail).reset_index()
+
+        # --- 📋 1. BẢNG THỐNG KÊ TRƯỚC KHI TRỪ TRÙNG LẶP (Dùng dữ liệu gốc total_rec_df) ---
+        st.markdown("##### 📋 1. Bảng thống kê TRƯỚC khi trừ trùng lặp")
+        df_before = total_rec_df.groupby("Năm học hiển thị").agg(**{
+            "Tổng số dòng kê khai": (tiet_col_target, "count"),
+            "Tổng số tiết": (tiet_col_target, "sum")
+        }).reset_index().sort_values("Năm học hiển thị")
+
+        tot_d_b = df_before["Tổng số dòng kê khai"].sum()
+        tot_t_b = df_before["Tổng số tiết"].sum()
+        df_before_disp = df_before.copy()
+        df_before_disp.loc[len(df_before_disp)] = ["**Tổng cộng**", tot_d_b, tot_t_b]
+        st.dataframe(df_before_disp, use_container_width=True)
+
+
+        # --- 🧹 2. BẢNG THỐNG KÊ SAU KHI TRỪ TRÙNG LẶP (Lấy trực tiếp từ df_clean_unified) ---
+        st.markdown("##### 🧹 2. Bảng thống kê SAU KHI trừ trùng lặp")
+        df_after = df_clean_unified.groupby("Năm học hiển thị").agg(**{
+            "Số lượng sản phẩm/số lớp": (tiet_col_target, "count"),
+            "Tổng số tiết thực hiện": (tiet_col_target, "sum")
+        }).reset_index().sort_values("Năm học hiển thị")
+
+        tot_sp_a = df_after["Số lượng sản phẩm/số lớp"].sum()
+        tot_t_a = df_after["Tổng số tiết thực hiện"].sum()
+        df_after_disp = df_after.copy()
+        df_after_disp.loc[len(df_after_disp)] = ["**Tổng cộng**", tot_sp_a, tot_t_a]
+        st.dataframe(df_after_disp, use_container_width=True)
+
+
+        # --- 🏷️ 2.2 THỐNG KÊ TỔNG HỢP THEO PHÂN LOẠI CẤP 1 ---
+        if phphan_loai_col := phan_loai_col:
+            st.markdown("##### 🏷️ 2.2 Thống kê tổng hợp theo Phân loại cấp 1 & Loại hoạt động (Sau khi trừ trùng lặp)")
+            
+            group_keys_summary = [phan_loai_col]
+            if loai_hd_col_check and loai_hd_col_check in df_clean_unified.columns:
+                group_keys_summary.append(loai_hd_col_check)
+            group_keys_summary.append("Năm học hiển thị")
+
+            df_phanloai_summary = df_clean_unified.groupby(group_keys_summary).agg(**{
+                "Số lượng sản phẩm": (tiet_col_target, "count"),
+                "Tổng số tiết": (tiet_col_target, "sum")
+            }).reset_index().sort_values(group_keys_summary)
+
+            tot_sl_pl = df_phanloai_summary["Số lượng sản phẩm"].sum()
+            tot_tiet_pl = df_phanloai_summary["Tổng số tiết"].sum()
+
+            df_phanloai_summary_disp = df_phanloai_summary.copy()
+            total_row = ["**Tổng cộng**"] + [""] * (len(df_phanloai_summary_disp.columns) - 3) + [tot_sl_pl, tot_tiet_pl]
+            df_phanloai_summary_disp.loc[len(df_phanloai_summary_disp)] = total_row
+            st.dataframe(df_phanloai_summary_disp, use_container_width=True)
+
+            # --- 🔍 2.3 BẢNG CHI TIẾT ---
+            st.markdown("##### 🔍 2.3 Bảng chi tiết Phân loại cấp 1 kèm Tên sản phẩm & Danh sách thành viên (Đã gom nhóm)")
+            
+            df_phanloai_detail = df_clean_unified.copy()
+            rename_dict = {
+                tiet_col_target: "Tổng số tiết",
+                "_full_name": "Danh sách thành viên"
+            }
+            if role_col_check and role_col_check in df_phanloai_detail.columns:
+                rename_dict[role_col_check] = "Các vai trò"
+
+            df_phanloai_detail = df_phanloai_detail.rename(columns=rename_dict)
+            
+            # Xóa các cột tạm phụ trợ trước khi hiển thị
+            for col_drop in ["_clean_prod_name", "_clean_id", "_clean_key", "Sản phẩm chuẩn hóa"]:
+                if col_drop in df_phanloai_detail.columns:
+                    df_phanloai_detail = df_phanloai_detail.drop(columns=[col_drop])
+
+            st.dataframe(df_phanloai_detail, use_container_width=True)
+        else:
+            st.info(
               "ℹ️ Không tìm thấy cột 'Phân loại cấp 1 (NCKH)' để thực hiện thống kê"
               " chi tiết do đang thống kê nhóm GD hoặc Other."
-          )
+            )
 
         # --- 3. VẼ ĐỒ THỊ ---
         df_plot_data = df_after[
