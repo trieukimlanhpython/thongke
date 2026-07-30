@@ -388,7 +388,7 @@ with tab1:
                     )
 
                     if is_only_gd:
-                        st.markdown("##### 📚 Thống kê Giảng dạy Tùy chỉnh & Chi tiết")
+                        st.markdown("##### 📚 Tổng quan thống kê Giảng dạy")
 
                         df_clean = total_rec_df.drop_duplicates().copy()
                         df_clean.columns = [str(c).strip().lower() for c in df_clean.columns]
@@ -507,38 +507,59 @@ with tab1:
 
                         st.dataframe(df_gd_detail, use_container_width=True)
 
-                        df_plot_data = df_after[df_after["Năm học hiển thị"] != "**Tổng cộng**"]
+                        # ==========================================
+                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG THEO TIÊU CHÍ BẢNG 2.3
+                        # ==========================================
+                        df_plot_data = df_gd_detail[df_gd_detail["Năm học"] != "**Tổng cộng**"].copy()
+                        
                         if not df_plot_data.empty:
-                            st.markdown("##### 📊 3. Biểu đồ trực quan Giảng dạy")
+                            st.markdown("##### 📊 3. Biểu đồ trực quan Giảng dạy (Theo tiêu chí tùy chỉnh)")
                             col_c1, col_c2 = st.columns(2)
 
+                            # Xác định các cột đang có sẵn trong bảng 2.3 để vẽ biểu đồ
+                            available_cols = list(df_plot_data.columns)
+
+                            # Đồ thị 1: Biểu đồ cột thể hiện Tổng số tiết theo các tiêu chí đã chọn
                             with col_c1:
                                 fig1, ax1 = plt.subplots(figsize=(6, 3.5))
-                                b1 = ax1.bar(df_plot_data["Năm học hiển thị"], df_plot_data["Số lượng lớp"], color="#4C72B0")
-                                for bar in b1:
+                                
+                                # Nếu có cột Năm học, ta ưu tiên trục X là Năm học hoặc kết hợp
+                                x_axis_col = "Năm học" if "Năm học" in available_cols else available_cols[0]
+                                
+                                # Nhóm và tính tổng số tiết theo trục X
+                                df_chart_tiet = df_plot_data.groupby(x_axis_col)["Tổng số tiết"].sum().reset_index()
+                                
+                                bars1 = ax1.bar(df_chart_tiet[x_axis_col].astype(str), df_chart_tiet["Tổng số tiết"], color="#4C72B0")
+                                for bar in bars1:
                                     h = bar.get_height()
                                     ax1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
-                                ax1.set_xlabel("Năm học", fontsize=9)
-                                ax1.set_ylabel("Tổng số lượng lớp", fontsize=9)
-                                ax1.set_title("Tổng số lớp theo năm học", fontsize=10, fontweight="bold")
+                                
+                                ax1.set_xlabel(x_axis_col, fontsize=9)
+                                ax1.set_ylabel("Tổng số tiết", fontsize=9)
+                                ax1.set_title("Tổng số tiết theo tiêu chí", fontsize=10, fontweight="bold")
                                 ax1.tick_params(axis="x", rotation=45)
                                 st.pyplot(fig1, bbox_inches="tight")
 
+                            # Đồ thị 2: Biểu đồ cột thể hiện Số lượng lớp theo các tiêu chí đã chọn
                             with col_c2:
                                 fig2, ax2 = plt.subplots(figsize=(6, 3.5))
-                                c_display_subject = "short_name" if "short_name" in df_clean.columns else c_subject
-                                df_subj_total = df_clean.groupby(c_display_subject)[c_class].nunique().reset_index()
-                                df_subj_total = df_subj_total.sort_values(by=c_class, ascending=False)
-
-                                b2 = ax2.bar(df_subj_total[c_display_subject].astype(str), df_subj_total[c_class], color="#DD8452")
-                                for bar in b2:
-                                    h = bar.get_height()
-                                    ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
-                                ax2.set_xlabel("Môn học (Short name)", fontsize=9)
-                                ax2.set_ylabel("Tổng số lớp", fontsize=9)
-                                ax2.set_title("Tổng số lớp theo Tên viết tắt môn học", fontsize=10, fontweight="bold")
-                                ax2.tick_params(axis="x", rotation=45)
-                                st.pyplot(fig2, bbox_inches="tight")
+                                
+                                if "Số lượng lớp" in available_cols:
+                                    df_chart_lop = df_plot_data.groupby(x_axis_col)["Số lượng lớp"].sum().reset_index()
+                                    
+                                    bars2 = ax2.bar(df_chart_lop[x_axis_col].astype(str), df_chart_lop["Số lượng lớp"], color="#DD8452")
+                                    for bar in bars2:
+                                        h = bar.get_height()
+                                        ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
+                                    
+                                    ax2.set_xlabel(x_axis_col, fontsize=9)
+                                    ax2.set_ylabel("Số lượng lớp", fontsize=9)
+                                    ax2.set_title("Tổng số lớp theo tiêu chí", fontsize=10, fontweight="bold")
+                                    ax2.tick_params(axis="x", rotation=45)
+                                    st.pyplot(fig2, bbox_inches="tight")
+                                else:
+                                    ax2.text(0.5, 0.5, "Không có dữ liệu Số lượng lớp", ha="center", va="center")
+                                    st.pyplot(fig2, bbox_inches="tight")
 
                     else:
                         df_temp_detail = total_rec_df.copy()
