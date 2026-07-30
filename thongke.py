@@ -565,20 +565,24 @@ if not total_rec_df.empty:
                             ax1.tick_params(axis="x", rotation=45)
                             st.pyplot(fig1, bbox_inches="tight")
 
-                        # Đồ thị 2: Tổng số lượng lớp theo từng tên môn học cụ thể (Gộp tất cả các năm)
+                        # Đồ thị 2: Tổng số lượng lớp theo từng tên môn học ngắn gọn (short_name)
                         with col_c2:
                             fig2, ax2 = plt.subplots(figsize=(6, 3.5))
-                            # Tính tổng số lớp gộp cho mỗi môn học
-                            df_subj_total = df_clean.groupby(c_subject)[c_class].nunique().reset_index()
+                            
+                            # Ưu tiên lấy cột short_name nếu có trong DataFrame, nếu không thì dùng subject
+                            c_display_subject = "short_name" if "short_name" in df_clean.columns else c_subject
+                            
+                            # Tính tổng số lớp gộp cho từng môn theo short_name
+                            df_subj_total = df_clean.groupby(c_display_subject)[c_class].nunique().reset_index()
                             df_subj_total = df_subj_total.sort_values(by=c_class, ascending=False)
 
-                            b2 = ax2.bar(df_subj_total[c_subject], df_subj_total[c_class], color="#DD8452")
+                            b2 = ax2.bar(df_subj_total[c_display_subject].astype(str), df_subj_total[c_class], color="#DD8452")
                             for bar in b2:
                                 h = bar.get_height()
                                 ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
-                            ax2.set_xlabel("Tên môn học", fontsize=9)
+                            ax2.set_xlabel("Môn học (Short name)", fontsize=9)
                             ax2.set_ylabel("Tổng số lớp", fontsize=9)
-                            ax2.set_title("Tổng số lớp theo Môn học", fontsize=10, fontweight="bold")
+                            ax2.set_title("Tổng số lớp theo Tên viết tắt môn học", fontsize=10, fontweight="bold")
                             ax2.tick_params(axis="x", rotation=45)
                             st.pyplot(fig2, bbox_inches="tight")
 
