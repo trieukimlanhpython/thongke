@@ -815,10 +815,11 @@ if not total_rec_df.empty:
                         with col_c1:
                             opt_y = st.checkbox("Năm học", value=True, key="chk_nckh_year")
                             opt_ma = st.checkbox("Mã sản phẩm", value=False, key="chk_nckh_ma")
-                            opt_issn = st.checkbox("Số ISBN / Số ISSN", value=False, key="chk_nckh_issn")
+                            opt_tap = st.checkbox("Tên Tạp chí / Hội thảo, Sách", value=False, key="chk_nckh_tap")
+                    
                         with col_c2:
                             opt_loai = st.checkbox("Loại HĐ", value=True, key="chk_nckh_loai")
-                            opt_tap = st.checkbox("Tên Tạp chí / Hội thảo, Sách", value=False, key="chk_nckh_tap")
+                            opt_issn = st.checkbox("Số ISBN / Số ISSN", value=False, key="chk_nckh_issn")
                         with col_c3:
                             opt_cap = st.checkbox("Cấp độ", value=True, key="chk_nckh_cap")
                             opt_role = st.checkbox("Vai trò", value=False, key="chk_nckh_role")
