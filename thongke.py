@@ -60,14 +60,12 @@ def quy_doi_nam_hoc(dot_str):
 
 
 # ==========================================================
-# 🧩 HÀM ĐỌC GOOGLE SHEET
+# 🧩 HÀM ĐỌC GOOGLE SHEET (CÓ CACHE ĐỂ ỔN ĐỊNH DỮ LIỆU)
 # ==========================================================
+@st.cache_data(ttl=600)  # Lưu cache 10 phút để tránh gọi liên tục gây lỗi mạng
 def read_gsheet(link):
   try:
-    base_id = link.split("/d/")[1].split("/")[0]
-    gid = link.split("gid=")[-1].split("#")[0] if "gid=" in link else "0"
-    url = f"https://docs.google.com/spreadsheets/d/{base_id}/export?format=csv&gid={gid}"
-    df = pd.read_csv(url)
+    df = pd.read_csv(link)
     df.columns = [c.strip() for c in df.columns]
     return df
   except Exception as e:
@@ -75,9 +73,6 @@ def read_gsheet(link):
     return None
 
 
-# ==========================================================
-# 🔗 CÁC LINK DỮ LIỆU
-# ==========================================================
 # ==========================================================
 # 🔗 CÁC LINK DỮ LIỆU ĐÃ CHUẨN HÓA EXPORT CSV
 # ==========================================================
@@ -100,40 +95,34 @@ links = {
 }
 
 # ==========================================================
-# 🧮 TẢI DỮ LIỆU CƠ BẢN
+# 🧮 LƯU TRỮ VÀ KHỞI TẠO DỮ LIỆU VÀO SESSION STATE AN TOÀN
 # ==========================================================
-#st.header("📂 Dữ liệu mô tả (df1 & df2)")
 st.markdown("#### 📂 Dữ liệu mô tả (df1 & df2)")
 
 col1, col2 = st.columns(2)
 
 with col1:
-  df1 = read_gsheet(links["df1"])
-  if df1 is not None:
-    st.session_state["df1"] = df1
+  if "df1" not in st.session_state or st.session_state["df1"] is None:
+    st.session_state["df1"] = read_gsheet(links["df1"])
+  if st.session_state["df1"] is not None:
     st.success("✅ Đã tải df1 (Year - Term - Code)!")
-    st.dataframe(df1, height=180, use_container_width=True)
+    st.dataframe(st.session_state["df1"], height=180, use_container_width=True)
 
 with col2:
-  df2 = read_gsheet(links["df2"])
-  if df2 is not None:
-    st.session_state["df2"] = df2
+  if "df2" not in st.session_state or st.session_state["df2"] is None:
+    st.session_state["df2"] = read_gsheet(links["df2"])
+  if st.session_state["df2"] is not None:
     st.success("✅ Đã tải df2 (Category - Description)!")
-    st.dataframe(df2, height=180, use_container_width=True)
+    st.dataframe(st.session_state["df2"], height=180, use_container_width=True)
 
-# ==========================================================
-# 📚 TẢI DỮ LIỆU CHI TIẾT
-# ==========================================================
-#st.header("📘 Các nhóm công việc chi tiết")
-st.markdown("#### 📘 Các nhóm công việc chi tiết")
-
-detail_dfs = {}
-for key in ["GD", "NCKH", "Other"]:
-  df = read_gsheet(links[key])
-  if df is not None:
-    detail_dfs[key] = df
-
-st.session_state["detail_dfs"] = detail_dfs
+# Tải dữ liệu chi tiết vào session_state nếu chưa có
+if "detail_dfs" not in st.session_state or not st.session_state["detail_dfs"]:
+  detail_dfs = {}
+  for key in ["GD", "NCKH", "Other"]:
+    df = read_gsheet(links[key])
+    if df is not None:
+      detail_dfs[key] = df
+  st.session_state["detail_dfs"] = detail_dfs
 
 with st.expander(
     "🔍 Click để xem danh sách các nhóm công việc chi tiết", expanded=False
