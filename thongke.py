@@ -769,7 +769,7 @@ with tab1:
                         df_temp_detail = total_rec_df.copy()
                         df_temp_detail.columns = [str(c).strip() for c in df_temp_detail.columns]
 
-                        # Nhận diện cột Tên tạp chí / hội thảo động
+                        # Nhận diện các cột thông minh (Không hard-code)
                         tap_chi_col = next(
                             (
                                 c for c in df_temp_detail.columns
@@ -793,6 +793,12 @@ with tab1:
                         name_col_check = next((c for c in df_temp_detail.columns if c.lower() == "name"), None)
                         surname_col_check = next((c for c in df_temp_detail.columns if c.lower() == "surname"), None)
                         role_col_check = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["vai trò", "role"])), None)
+
+                        # Nhận diện bổ sung Phân loại cấp 2, Cấp 3 và ISBN/ISSN ngay từ đầu
+                        phan_loai_col = next((c for c in df_temp_detail.columns if "phân loại cấp 1" in c.lower()), None)
+                        phan_loai_2 = next((c for c in df_temp_detail.columns if "phân loại cấp 2" in c.lower()), None)
+                        phan_loai_3 = next((c for c in df_temp_detail.columns if "phân loại cấp 3" in c.lower()), None)
+                        col_isbn_init = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["isbn", "issn"])), None)
 
                         if name_prod_col and not df_temp_detail.empty:
                             df_temp_detail["_clean_prod_name"] = df_temp_detail[name_prod_col].astype(str).str.lower().str.replace(r"\s+", " ", regex=True).str.strip()
@@ -838,11 +844,8 @@ with tab1:
 
                         df_temp_detail["Sản phẩm chuẩn hóa"] = df_temp_detail["_clean_key"].map(key_to_canonical)
 
-                        phan_loai_col = next((c for c in df_temp_detail.columns if "phân loại cấp 1" in c.lower()), None)
                         loai_hd_col = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["loại hoạt động", "loại"])), None)
                         cap_do_col = next((c for c in df_temp_detail.columns if c.lower() == "cấp độ" or "cấp độ" in c.lower()), None)
-                        phan_loai_2 = next((c for c in df_temp_detail.columns if "phân loại cấp 2" in c.lower()), None)
-                        phan_loai_3 = next((c for c in df_temp_detail.columns if "phân loại cấp 3" in c.lower()), None)
 
                         group_keys_final = ["Năm học hiển thị", "Sản phẩm chuẩn hóa"]
                         if phan_loai_col:
@@ -863,16 +866,15 @@ with tab1:
                         if role_col_check:
                             agg_rules_detail[role_col_check] = lambda x: " & ".join(x.dropna().unique())
 
-                        # Giữ lại cột tạp chí/hội thảo khi gom nhóm
+                        # Giữ lại các cột quan trọng khi gom nhóm tránh bị mất dữ liệu
                         if tap_chi_col and tap_chi_col in df_temp_detail.columns:
-                            agg_rules_detail[tap_chi_col] = (
-                                lambda x: " / ".join(
-                                    pd.Series(x)
-                                    .dropna()
-                                    .astype(str)
-                                    .unique()
-                                )
-                            )
+                            agg_rules_detail[tap_chi_col] = lambda x: " / ".join(pd.Series(x).dropna().astype(str).unique())
+                        if phan_loai_2 and phan_loai_2 in df_temp_detail.columns:
+                            agg_rules_detail[phan_loai_2] = lambda x: " / ".join(pd.Series(x).dropna().astype(str).unique())
+                        if phan_loai_3 and phan_loai_3 in df_temp_detail.columns:
+                            agg_rules_detail[phan_loai_3] = lambda x: " / ".join(pd.Series(x).dropna().astype(str).unique())
+                        if col_isbn_init and col_isbn_init in df_temp_detail.columns:
+                            agg_rules_detail[col_isbn_init] = lambda x: " / ".join(pd.Series(x).dropna().astype(str).unique())
 
                         df_clean_unified = df_temp_detail.groupby(group_keys_final, dropna=False).agg(agg_rules_detail).reset_index()
                         
@@ -901,8 +903,6 @@ with tab1:
                         df_after_disp.loc[len(df_after_disp)] = ["**Tổng cộng**", tot_sp_a, tot_t_a]
                         st.dataframe(df_after_disp, use_container_width=True)
 
-                        # Đã loại bỏ hoàn toàn Bảng 2.2 theo yêu cầu
-
                         st.markdown("##### 🔍 2.3 Bảng chi tiết kèm Tên sản phẩm & Danh sách thành viên (Tùy chỉnh tiêu chí)")
 
                         cols_lower_all = {str(c).strip().lower(): c for c in df_clean_unified.columns}
@@ -925,6 +925,9 @@ with tab1:
                             ),
                             None,
                         )
+                        # Tìm lại các cột phân loại cấp 2, cấp 3, isbn chuẩn xác trong df_clean_unified
+                        col_phan_loai_2 = next((cols_lower_all[c] for c in cols_lower_all if "phân loại cấp 2" in c), None)
+                        col_phan_loai_3 = next((cols_lower_all[c] for c in cols_lower_all if "phân loại cấp 3" in c), None)
                         col_isbn = next((cols_lower_all[c] for c in cols_lower_all if any(x in c for x in ["isbn", "issn"])), None)
 
                         with st.expander("⚙️ **Chọn tiêu chí gom nhóm (Bấm để mở/đóng)**", expanded=False):
@@ -956,10 +959,11 @@ with tab1:
                             group_detail_dynamic.append(cap_do_col)
                         if opt_pl1 and phan_loai_col and phan_loai_col in df_clean_unified.columns:
                             group_detail_dynamic.append(phan_loai_col)
-                        if opt_pl2 and phan_loai_2 and phan_loai_2 in df_clean_unified.columns:
-                            group_detail_dynamic.append(phan_loai_2)
-                        if opt_pl3 and phan_loai_3 and phan_loai_3 in df_clean_unified.columns:
-                            group_detail_dynamic.append(phan_loai_3)
+                        # Đảm bảo thêm Phân loại cấp 2 và Cấp 3 vào danh sách gom nhóm khi checkbox được tick
+                        if opt_pl2 and col_phan_loai_2 and col_phan_loai_2 in df_clean_unified.columns:
+                            group_detail_dynamic.append(col_phan_loai_2)
+                        if opt_pl3 and col_phan_loai_3 and col_phan_loai_3 in df_clean_unified.columns:
+                            group_detail_dynamic.append(col_phan_loai_3)
                         if opt_role and role_col_check and role_col_check in df_clean_unified.columns:
                             group_detail_dynamic.append(role_col_check)
                         if opt_prod and name_prod_col and name_prod_col in df_clean_unified.columns:
@@ -986,14 +990,13 @@ with tab1:
                             agg_dyn_dict[role_col_check] = lambda x: " & ".join(x.dropna().unique())
 
                         if tap_chi_col and tap_chi_col in df_clean_unified.columns:
-                            agg_dyn_dict[tap_chi_col] = (
-                                lambda x: " / ".join(
-                                    pd.Series(x)
-                                    .dropna()
-                                    .astype(str)
-                                    .unique()
-                                )
-                            )
+                            agg_dyn_dict[tap_chi_col] = lambda x: " / ".join(pd.Series(x).dropna().astype(str).unique())
+                        if col_phan_loai_2 and col_phan_loai_2 in df_clean_unified.columns:
+                            agg_dyn_dict[col_phan_loai_2] = lambda x: " / ".join(pd.Series(x).dropna().astype(str).unique())
+                        if col_phan_loai_3 and col_phan_loai_3 in df_clean_unified.columns:
+                            agg_dyn_dict[col_phan_loai_3] = lambda x: " / ".join(pd.Series(x).dropna().astype(str).unique())
+                        if col_isbn and col_isbn in df_clean_unified.columns:
+                            agg_dyn_dict[col_isbn] = lambda x: " / ".join(pd.Series(x).dropna().astype(str).unique())
 
                         df_nckh_detail = df_clean_unified.groupby(group_detail_dynamic, dropna=False).agg(agg_dyn_dict).reset_index()
 
@@ -1042,7 +1045,7 @@ with tab1:
                         st.dataframe(df_nckh_detail, use_container_width=True)
 
                         # ==========================================
-                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG (DỰA TRÊN DỮ LIỆU ĐÃ TRỪ TRÙNG LẶP `df_clean_unified`)
+                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG (DỰA TRÊN DỮ LIỆU ĐÃ TRỪ TRÙNG LẶP)
                         # ==========================================
                         first_col_nckh = df_nckh_detail.columns[0]
                         df_plot_nckh = df_nckh_detail[df_nckh_detail[first_col_nckh] != "**Tổng cộng**"].copy()
