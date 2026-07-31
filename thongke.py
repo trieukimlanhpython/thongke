@@ -529,10 +529,26 @@ with tab1:
                         st.dataframe(df_gd_detail, use_container_width=True)
     
                         # ==========================================
-                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG (TỰ ĐỘNG MỞ RỘNG CHIỀU RỘNG KHI CÓ NHIỀU CỘT)
+                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG (FIX TRIỆT ĐỂ LỖI BIẾN & CO GIÃN ĐỘ RỘNG)
                         # ==========================================
+                        # Chuẩn bị dữ liệu nhóm theo trục X phù hợp
+                        if crit_col == "Tên môn học" and has_short_name and short_name_col_actual:
+                            df_grouped_crit = df_plot_mapped.groupby(plot_base_col)[metrics_cols].sum().reset_index()
+                        else:
+                            df_grouped_crit = df_plot_data.groupby(plot_base_col)[metrics_cols].sum().reset_index()
+
+                        # Kiểm tra nếu tên giá trị trục X quá dài thì tự động quy ước ký hiệu K1, K2...
+                        unique_labels = df_grouped_crit[plot_base_col].astype(str).tolist()
+                        needs_mapping = any(len(lbl) > 15 for lbl in unique_labels)
+
+                        if needs_mapping:
+                            label_mapping = {lbl: f"K{i+1}" for i, lbl in enumerate(unique_labels)}
+                            df_grouped_crit["_Short_Label"] = df_grouped_crit[plot_base_col].map(label_mapping)
+                            x_plot_col = "_Short_Label"
+                        else:
+                            x_plot_col = plot_base_col
+
                         num_bars = len(df_grouped_crit)
-                        # Tự động tính toán chiều rộng hình vẽ: tối thiểu 6 inches, nếu nhiều cột thì mỗi cột cộng thêm 0.35 inches
                         dynamic_width = max(6.0, num_bars * 0.35)
 
                         # Biểu đồ 1: Tổng số tiết
@@ -546,9 +562,6 @@ with tab1:
                             ax1.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=9)
                             ax1.set_ylabel("Tổng số tiết", fontsize=9)
                             ax1.set_title(f"Tổng số tiết theo {crit_col}", fontsize=10, fontweight="bold")
-                            
-                            # Tinh chỉnh hiển thị trục X
-                            ha_align = "right" if num_bars > 10 else "center"
                             ax1.tick_params(axis="x", rotation=45 if num_bars > 10 else 0)
                             st.pyplot(fig1, bbox_inches="tight")
 
@@ -563,18 +576,17 @@ with tab1:
                             ax2.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=9)
                             ax2.set_ylabel("Số lượng lớp", fontsize=9)
                             ax2.set_title(f"Số lượng lớp theo {crit_col}", fontsize=10, fontweight="bold")
-                            
                             ax2.tick_params(axis="x", rotation=45 if num_bars > 10 else 0)
                             st.pyplot(fig2, bbox_inches="tight")
-    
-                            # Hiển thị bảng chú thích ngay bên dưới nếu có dùng ký hiệu viết tắt
-                            if needs_mapping:
-                                st.markdown(f"**📝 Chú thích ký hiệu trục hoành cho ({crit_col}):**")
-                                with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
-                                    note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
-                                    st.dataframe(note_df, use_container_width=True, hide_index=True)
 
-                            st.markdown("---")
+                        # Hiển thị bảng chú thích ngay bên dưới nếu có dùng ký hiệu viết tắt
+                        if needs_mapping:
+                            st.markdown(f"**📝 Chú thích ký hiệu trục hoành cho ({crit_col}):**")
+                            with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
+                                note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
+                                st.dataframe(note_df, use_container_width=True, hide_index=True)
+
+                        st.markdown("---")
 
                     else:
                         df_temp_detail = total_rec_df.copy()
