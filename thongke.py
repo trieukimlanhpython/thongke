@@ -448,13 +448,13 @@ with tab1:
                         col_opt1, col_opt2, col_opt3, col_opt4 = st.columns(4)
                         with col_opt1:
                             opt_year = st.checkbox("Theo Năm học", value=True, key="chk_gd_year")
-                            opt_know = st.checkbox("Theo Knowledge", value=False, key="chk_gd_know")
+                            opt_know = st.checkbox("Theo Khối kiến thức", value=False, key="chk_gd_know")
                         with col_opt2:
-                            opt_prog = st.checkbox("Theo Chương trình (Program)", value=True, key="chk_gd_prog")
-                            opt_sess = st.checkbox("Theo Session", value=False, key="chk_gd_sess")
+                            opt_prog = st.checkbox("Theo Chương trình", value=True, key="chk_gd_prog")
+                            opt_sess = st.checkbox("Theo Ca học", value=False, key="chk_gd_sess")
                         with col_opt3:
-                            opt_subj = st.checkbox("Theo Môn học (Subject)", value=True, key="chk_gd_subj")
-                            opt_loc = st.checkbox("Theo Location", value=False, key="chk_gd_loc")
+                            opt_subj = st.checkbox("Theo Môn học", value=True, key="chk_gd_subj")
+                            opt_loc = st.checkbox("Theo Địa điểm", value=False, key="chk_gd_loc")
                         with col_opt4:
                             opt_lecturer = st.checkbox("Theo Giảng viên", value=True, key="chk_gd_lect")
     
@@ -494,11 +494,11 @@ with tab1:
                         if c_program:
                             rename_detail_dict[c_program] = "Chương trình"
                         if c_knowledge:
-                            rename_detail_dict[c_knowledge] = "Knowledge"
+                            rename_detail_dict[c_knowledge] = "Khối kiến thức"
                         if c_session:
-                            rename_detail_dict[c_session] = "Session"
+                            rename_detail_dict[c_session] = "Ca học"
                         if c_location:
-                            rename_detail_dict[c_location] = "Location"
+                            rename_detail_dict[c_location] = "Địa điểm"
     
                         df_gd_detail = df_gd_detail.rename(columns=rename_detail_dict)
     
@@ -573,7 +573,7 @@ with tab1:
                                     ax1.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=9)
                                     ax1.set_ylabel("Tổng số tiết", fontsize=9)
                                     ax1.set_title(f"Tổng số tiết theo {crit_col}", fontsize=10, fontweight="bold")
-                                    ax1.tick_params(axis="x", rotation=0 if needs_mapping else 45)
+                                    ax1.tick_params(axis="x", rotation=30 if needs_mapping else 45)
                                     st.pyplot(fig1, bbox_inches="tight")
     
                                 # Biểu đồ 2: Số lượng lớp
@@ -587,7 +587,7 @@ with tab1:
                                     ax2.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=9)
                                     ax2.set_ylabel("Số lượng lớp", fontsize=9)
                                     ax2.set_title(f"Số lượng lớp theo {crit_col}", fontsize=10, fontweight="bold")
-                                    ax2.tick_params(axis="x", rotation=0 if needs_mapping else 45)
+                                    ax2.tick_params(axis="x", rotation=30 if needs_mapping else 45)
                                     st.pyplot(fig2, bbox_inches="tight")
     
                                 # Hiển thị bảng chú thích ngay bên dưới nếu có dùng ký hiệu viết tắt
@@ -896,7 +896,7 @@ with tab1:
                                     ax1.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=8)
                                     ax1.set_ylabel("Số lượng sản phẩm", fontsize=9)
                                     ax1.set_title(f"Số lượng theo {display_name}", fontsize=10, fontweight="bold")
-                                    ax1.tick_params(axis="x", rotation=0 if needs_mapping else 45)
+                                    ax1.tick_params(axis="x", rotation=30 if needs_mapping else 45)
                                     st.pyplot(fig1, bbox_inches="tight")
     
                                 # Biểu đồ 2: Tổng số tiết thực hiện
@@ -910,7 +910,7 @@ with tab1:
                                     ax2.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=8)
                                     ax2.set_ylabel("Tổng số tiết thực hiện", fontsize=9)
                                     ax2.set_title(f"Tổng số tiết theo {display_name}", fontsize=10, fontweight="bold")
-                                    ax2.tick_params(axis="x", rotation=0 if needs_mapping else 45)
+                                    ax2.tick_params(axis="x", rotation=30 if needs_mapping else 45)
                                     st.pyplot(fig2, bbox_inches="tight")
     
                                 # Nếu có dùng ký hiệu rút gọn, hiển thị bảng chú thích ngay bên dưới biểu đồ
