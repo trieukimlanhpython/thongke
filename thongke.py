@@ -581,6 +581,10 @@ with tab1:
                             for crit_col in active_criteria_cols:
                                 st.markdown(f"###### 📌 Phân tích theo tiêu chí: **{crit_col}**")
                                 
+                                # Khởi tạo giá trị mặc định cho biến tránh lỗi NameError
+                                needs_mapping = False
+                                label_mapping = {}
+                
                                 # 🌟 Thêm bộ lọc checkbox ngay tại đồ thị cho "Tên môn học" hoặc "Giảng viên"
                                 df_crit_filtered = df_plot_data.copy()
                                 if crit_col in ["Tên môn học", "Giảng viên"]:
@@ -610,9 +614,9 @@ with tab1:
                                 df_grouped_crit = df_crit_filtered.groupby(plot_base_col)[metrics_cols].sum().reset_index()
                 
                                 unique_labels = df_grouped_crit[plot_base_col].astype(str).tolist()
-                                needs_matching = any(len(lbl) > 15 for lbl in unique_labels)
+                                needs_mapping = any(len(lbl) > 15 for lbl in unique_labels)
                 
-                                if needs_matching:
+                                if needs_mapping:
                                     label_mapping = {lbl: f"K{i+1}" for i, lbl in enumerate(unique_labels)}
                                     df_grouped_crit["_Short_Label"] = df_grouped_crit[plot_base_col].map(label_mapping)
                                     x_plot_col = "_Short_Label"
@@ -649,7 +653,7 @@ with tab1:
                                     ax2.tick_params(axis="x", rotation=45 if num_bars > 8 else 0)
                                     st.pyplot(fig2, bbox_inches="tight")
                 
-                                if needs_matching:
+                                if needs_mapping:
                                     st.markdown(f"**📝 Chú thích ký hiệu trục hoành cho ({crit_col}):**")
                                     with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
                                         note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
@@ -663,7 +667,6 @@ with tab1:
                                 for other_col in other_criteria_cols:
                                     st.markdown(f"##### 📌 Phân tích tiêu chí **{other_col}** so sánh theo **Năm học**")
                                     
-                                    # 🌟 Thêm bộ lọc checkbox ngay tại đồ thị so sánh theo năm cho "Tên môn học" hoặc "Giảng viên"
                                     df_other_filtered = df_plot_data.copy()
                                     if other_col in ["Tên môn học", "Giảng viên"]:
                                         unique_vals_other = sorted(df_plot_data[other_col].astype(str).unique())
@@ -679,7 +682,6 @@ with tab1:
                                         st.warning(f"⚠️ Không có dữ liệu phù hợp với bộ lọc cho tiêu chí **{other_col}**.")
                                         continue
                 
-                                    # Chuẩn hóa dữ liệu tên môn học nếu có short_name
                                     if other_col == "Tên môn học" and has_short_name and short_name_col_actual:
                                         df_plot_mapped_yr = df_other_filtered.copy()
                                         mapping_dict = df_clean[[c_subject, short_name_col_actual]].drop_duplicates().set_index(c_subject)[short_name_col_actual].to_dict()
@@ -688,11 +690,9 @@ with tab1:
                                     else:
                                         plot_yr_base = other_col
                                     
-                                    # Pivot dữ liệu để đưa Năm học lên làm cột (legend) cho biểu đồ
                                     df_pivot_tiet = df_other_filtered.pivot_table(index=plot_yr_base, columns="Năm học", values="Tổng số tiết", aggfunc="sum").fillna(0)
                                     df_pivot_lop = df_other_filtered.pivot_table(index=plot_yr_base, columns="Năm học", values="Số lượng lớp", aggfunc="sum").fillna(0)
                                     
-                                    # Kiểm tra nếu tên giá trị trục X quá dài thì tự động quy ước ký hiệu K1, K2...
                                     unique_labels_yr = df_pivot_tiet.index.astype(str).tolist()
                                     needs_mapping_yr = any(len(lbl) > 15 for lbl in unique_labels_yr)
                                     
@@ -707,7 +707,6 @@ with tab1:
                                     
                                     col_y1, col_y2 = st.columns(2)
                                     
-                                    # 1. Biểu đồ Tổng số tiết (Gộp các năm học làm nhóm cột)
                                     with col_y1:
                                         fig_y1, ax_y1 = plt.subplots(figsize=(dyn_w_yr, 4.0))
                                         ax = df_pivot_tiet.plot(kind="bar", ax=ax_y1, width=0.8)
@@ -732,12 +731,11 @@ with tab1:
                                         
                                         st.pyplot(fig_y1, bbox_inches="tight")
                                     
-                                    # 2. Biểu đồ Số lượng lớp (Gộp các năm học làm nhóm cột)
                                     with col_y2:
                                         fig_y2, ax_y2 = plt.subplots(figsize=(dyn_w_yr, 4.0))
                                         ax2 = df_pivot_lop.plot(kind="bar", ax=ax_y2, width=0.8, colormap="tab20")
                                         
-                                        for p in ax_y2.patches:
+                                        for p in ax2.patches:
                                             h = p.get_height()
                                             if h > 0:
                                                 ax_y2.annotate(f"{int(h):,}",
