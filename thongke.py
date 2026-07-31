@@ -175,12 +175,12 @@ with tab1:
         if df1 is None or df1.empty or df2 is None or df2.empty or not detail_dfs:
             st.warning("⚠️ Vui lòng đảm bảo đã tải đủ df1, df2 và các bảng công việc.")
         else:
-            # 1. Tách từ khóa theo dấu phẩy hoặc dấu &
+            # 1. Tách từ khóa chuẩn xác theo dấu phẩy hoặc dấu & (Giữ nguyên cụm từ người dùng gõ)
             raw_keywords = [
                 k.strip() for k in re.split(r"[&,]", keyword_input) if k.strip()
             ]
 
-            # 2. Xử lý mở rộng từ đồng nghĩa thông minh
+            # 2. Xử lý từ đồng nghĩa thông minh cho toàn vẹn cụm từ
             expanded_keywords = []
             for kw in raw_keywords:
                 synonyms = [kw]
@@ -192,13 +192,6 @@ with tab1:
                     synonyms.append("bài báo khoa học")
                 elif "đề tài" in kw:
                     synonyms.append("đề tài")
-                
-                # 🌟 MỚI: Tách nhỏ các từ đơn lẻ nếu người dùng gõ chuỗi dài
-                sub_words = kw.split()
-                if len(sub_words) > 1:
-                    for sw in sub_words:
-                        if len(sw) > 2 and sw not in synonyms:
-                            synonyms.append(sw)
                 
                 expanded_keywords.append(synonyms)
 
@@ -239,6 +232,7 @@ with tab1:
                         for kw in syn_list:
                             mask_kw = pd.Series(False, index=df_temp.index)
                             for c in all_text_cols:
+                                # Kiểm tra xem cột có chứa chính xác cụm từ khóa (không bị tách nhỏ)
                                 mask_kw |= (
                                     df_temp[c].str.lower().str.contains(kw, case=False, na=False)
                                 )
