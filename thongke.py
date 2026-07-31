@@ -572,10 +572,11 @@ with tab1:
                             has_short_name = "short_name" in [c.lower() for c in df_clean.columns]
                             short_name_col_actual = next((c for c in df_clean.columns if c.lower() == "short_name"), None)
     
+                            # Kiểm tra xem người dùng có chọn đồng thời "Năm học" và các tiêu chí phụ khác không
                             has_year_selected = "Năm học" in active_criteria_cols
                             other_criteria_cols = [c for c in active_criteria_cols if c != "Năm học"]
     
-                            # TRƯỜNG HỢP 1: CHỌN MỘT TIÊU CHÍ HOẶC KHÔNG CÓ NĂM HỌC ĐI KÈM
+                            # 🌟 TRƯỜNG HỢP 1: CHỈ CHỌN MỘT TIÊU CHÍ HOẶC KHÔNG CÓ NĂM HỌC ĐI KÈM
                             for crit_col in active_criteria_cols:
                                 st.markdown(f"###### 📌 Phân tích theo tiêu chí: **{crit_col}**")
                                 col_c1, col_c2 = st.columns(2)
@@ -635,118 +636,90 @@ with tab1:
                                     with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
                                         note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
                                         st.dataframe(note_df, use_container_width=True, hide_index=True)
-                           
-                            # 🌟 TRƯỜNG HỢP 2: BIỂU ĐỒ CỘT NHÓM (GROUPED BAR CHART) SO SÁNH GIỮA CÁC NĂM HỌC (CÓ SỐ LIỆU TRÊN CỘT & ĐỘ NÉT CAO)
+    
+                            # 🌟 TRƯỜNG HỢP 2: VẼ BỔ SUNG BIỂU ĐỒ CHI TIẾT THEO TỪNG NĂM HỌC KHI CHỌN ĐỒNG THỜI NHIỀU TIÊU CHÍ (CÓ KÝ HIỆU TRỤC X)
                             if has_year_selected and other_criteria_cols:
                                 st.markdown("---")
-                                st.markdown("#### 🌟 3.1 Biểu đồ so sánh chi tiết theo Từng năm học (Biểu đồ cột nhóm)")
-    
+                                st.markdown("#### 🌟 3.1 Biểu đồ bóc tách chi tiết theo Từng năm học cho các tiêu chí khác")
+        
                                 for other_col in other_criteria_cols:
-                                    st.markdown(f"##### 📌 So sánh tiêu chí **{other_col}** qua các Năm học")
-    
-                                    # 1. Xử lý ánh xạ short_name nếu là Tên môn học
-                                    if other_col == "Tên môn học" and has_short_name and short_name_col_actual:
-                                        df_plot_mapped_grouped = df_plot_data.copy()
-                                        mapping_dict = df_clean[[c_subject, short_name_col_actual]].drop_duplicates().set_index(c_subject)[short_name_col_actual].to_dict()
-                                        df_plot_mapped_grouped["Trục_X_Vẽ"] = df_plot_mapped_grouped[other_col].map(mapping_dict).fillna(df_plot_mapped_grouped[other_col])
-                                        plot_group_base = "Trục_X_Vẽ"
-                                    else:
-                                        plot_group_base = other_col
-    
-                                    # 2. Pivot dữ liệu: Trục X là tiêu chí, Cột là Năm học, Giá trị là Tổng số tiết & Số lượng lớp
-                                    pivot_tiet = df_plot_data.pivot_table(index=plot_group_base, columns="Năm học", values="Tổng số tiết", aggfunc="sum").fillna(0)
-                                    pivot_lop = df_plot_data.pivot_table(index=plot_group_base, columns="Năm học", values="Số lượng lớp", aggfunc="sum").fillna(0)
-    
-                                    # 3. Xử lý ký hiệu rút gọn trục hoành (K1, K2...) nếu tên quá dài
-                                    unique_labels_grp = pivot_tiet.index.astype(str).tolist()
-                                    needs_mapping_grp = any(len(lbl) > 15 for lbl in unique_labels_grp)
-    
-                                    if needs_mapping_grp:
-                                        label_mapping_grp = {lbl: f"K{i+1}" for i, lbl in enumerate(unique_labels_grp)}
-                                        pivot_tiet.index = pivot_tiet.index.map(label_mapping_grp)
-                                        pivot_lop.index = pivot_lop.index.map(label_mapping_grp)
-    
-                                    num_bars_grp = len(pivot_tiet)
-                                    dyn_w_grp = max(8.0, num_bars_grp * max(1.2, len(pivot_tiet.columns) * 0.4))
-                                    rotate_ticks = 45 if num_bars_grp > 6 or len(pivot_tiet.columns) > 3 else 0
-                                    bar_font_size = 6 if num_bars_grp > 15 else (7 if num_bars_grp > 10 else 8)
-    
-                                    # Hàm phụ trợ để gán nhãn số liệu lên các thanh bar nhóm
-                                    def add_bar_labels(ax_obj):
-                                        for p in ax_obj.patches:
-                                            h = p.get_height()
-                                            if h > 0:
-                                                ax_obj.annotate(f"{int(h):,}",
-                                                                (p.get_x() + p.get_width() / 2., h),
-                                                                ha='center', va='bottom',
-                                                                fontsize=bar_font_size, fontweight='bold',
-                                                                rotation=0, xytext=(0, 2),
-                                                                textcoords='offset points')
-    
-                                    # 🌟 ĐIỀU KIỆN BỐ CỤC: Nếu số lượng > 8 thì xếp hàng dọc (1 cột, độ nét cao), ngược lại xếp hàng ngang (2 cột)
-                                    if num_bars_grp > 8:
-                                        # --- BỐ CỤC HÀNG DỌC (1 CỘT CHO MỖI DÒNG - TĂNG DPI CHỐNG NHỜM MỜ) ---
+                                    st.markdown(f"##### 📌 Phân tích tiêu chí **{other_col}** bóc tách theo **Năm học**")
+                                    
+                                    # Lấy danh sách các năm học có sẵn trong dữ liệu
+                                    list_years = sorted(df_plot_data["Năm học"].astype(str).unique())
+        
+                                    for yr in list_years:
+                                        st.markdown(f"###### Năm học: **{yr}**")
+                                        df_yr_sub = df_plot_data[df_plot_data["Năm học"].astype(str) == yr]
+        
+                                        if df_yr_sub.empty:
+                                            continue
+        
+                                        col_y1, col_y2 = st.columns(2)
+        
+                                        if other_col == "Tên môn học" and has_short_name and short_name_col_actual:
+                                            df_yr_mapped = df_yr_sub.copy()
+                                            mapping_dict = df_clean[[c_subject, short_name_col_actual]].drop_duplicates().set_index(c_subject)[short_name_col_actual].to_dict()
+                                            df_yr_mapped["Trục_X_Vẽ"] = df_yr_mapped[other_col].map(mapping_dict).fillna(df_yr_mapped[other_col])
+                                            plot_yr_base = "Trục_X_Vẽ"
+                                        else:
+                                            plot_yr_base = other_col
+        
+                                        df_yr_grouped = df_yr_sub.groupby(plot_yr_base)[metrics_cols].sum().reset_index()
                                         
-                                        # Biểu đồ nhóm 1: Tổng số tiết theo năm học
-                                        fig_g1, ax_g1 = plt.subplots(figsize=(dyn_w_grp, 4.5))
-                                        pivot_tiet.plot(kind="bar", ax=ax_g1, width=0.8)
-                                        add_bar_labels(ax_g1)
-                                        ax_g1.set_xlabel("Ký hiệu" if needs_mapping_grp else other_col, fontsize=9)
-                                        ax_g1.set_ylabel("Tổng số tiết", fontsize=9)
-                                        ax_g1.set_title(f"So sánh Tổng số tiết - {other_col} theo Năm học", fontsize=10, fontweight="bold")
-                                        ax_g1.tick_params(axis="x", rotation=rotate_ticks)
-                                        ax_g1.legend(title="Năm học", fontsize=8, title_fontsize=8)
-                                        ax_g1.grid(axis="y", linestyle="--", alpha=0.5)
-                                        st.pyplot(fig_g1, bbox_inches="tight")
-    
-                                        st.markdown("")
-    
-                                        # Biểu đồ nhóm 2: Số lượng lớp theo năm học
-                                        fig_g2, ax_g2 = plt.subplots(figsize=(dyn_w_grp, 4.5))
-                                        pivot_lop.plot(kind="bar", ax=ax_g2, width=0.8, colormap="Oranges")
-                                        add_bar_labels(ax_g2)
-                                        ax_g2.set_xlabel("Ký hiệu" if needs_mapping_grp else other_col, fontsize=9)
-                                        ax_g2.set_ylabel("Số lượng lớp", fontsize=9)
-                                        ax_g2.set_title(f"So sánh Số lượng lớp - {other_col} theo Năm học", fontsize=10, fontweight="bold")
-                                        ax_g2.tick_params(axis="x", rotation=rotate_ticks)
-                                        ax_g2.legend(title="Năm học", fontsize=8, title_fontsize=8)
-                                        ax_g2.grid(axis="y", linestyle="--", alpha=0.5)
-                                        st.pyplot(fig_g2, bbox_inches="tight")
-    
-                                    else:
-                                        # --- BỐ CỤC HÀNG NGANG (2 CỘT SONG SONG) ---
-                                        col_g1, col_g2 = st.columns(2)
-    
-                                        with col_g1:
-                                            fig_g1, ax_g1 = plt.subplots(figsize=(max(6.0, dyn_w_grp/2), 4.5))
-                                            pivot_tiet.plot(kind="bar", ax=ax_g1, width=0.8)
-                                            add_bar_labels(ax_g1)
-                                            ax_g1.set_xlabel("Ký hiệu" if needs_mapping_grp else other_col, fontsize=9)
-                                            ax_g1.set_ylabel("Tổng số tiết", fontsize=9)
-                                            ax_g1.set_title(f"So sánh Tổng số tiết - {other_col}", fontsize=10, fontweight="bold")
-                                            ax_g1.tick_params(axis="x", rotation=rotate_ticks)
-                                            ax_g1.legend(title="Năm học", fontsize=8, title_fontsize=8)
-                                            ax_g1.grid(axis="y", linestyle="--", alpha=0.5)
-                                            st.pyplot(fig_g1, bbox_inches="tight")
-    
-                                        with col_g2:
-                                            fig_g2, ax_g2 = plt.subplots(figsize=(max(6.0, dyn_w_grp/2), 4.5))
-                                            pivot_lop.plot(kind="bar", ax=ax_g2, width=0.8, colormap="Oranges")
-                                            add_bar_labels(ax_g2)
-                                            ax_g2.set_xlabel("Ký hiệu" if needs_mapping_grp else other_col, fontsize=9)
-                                            ax_g2.set_ylabel("Số lượng lớp", fontsize=9)
-                                            ax_g2.set_title(f"So sánh Số lượng lớp - {other_col}", fontsize=10, fontweight="bold")
-                                            ax_g2.tick_params(axis="x", rotation=rotate_ticks)
-                                            ax_g2.legend(title="Năm học", fontsize=8, title_fontsize=8)
-                                            ax_g2.grid(axis="y", linestyle="--", alpha=0.5)
-                                            st.pyplot(fig_g2, bbox_inches="tight")
-    
-                                    # 4. Hiển thị bảng chú thích ký hiệu nếu có rút gọn
-                                    if needs_mapping_grp:
-                                        st.markdown(f"**📝 Chú thích ký hiệu trục hoành cho ({other_col}):**")
-                                        with st.expander(f"📅 **(Bấm để xem chú thích {other_col})**", expanded=False):
-                                            note_df_grp = pd.DataFrame(list(label_mapping_grp.items()), columns=["Ký hiệu", "Tên đầy đủ"])
-                                            st.dataframe(note_df_grp, use_container_width=True, hide_index=True)
+                                        # 🌟 Kiểm tra nếu tên giá trị trục X quá dài thì tự động quy ước ký hiệu K1, K2...
+                                        unique_labels_yr = df_yr_grouped[plot_yr_base].astype(str).tolist()
+                                        needs_mapping_yr = any(len(lbl) > 15 for lbl in unique_labels_yr)
+        
+                                        if needs_mapping_yr:
+                                            label_mapping_yr = {lbl: f"K{i+1}" for i, lbl in enumerate(unique_labels_yr)}
+                                            df_yr_grouped["_Short_Label"] = df_yr_grouped[plot_yr_base].map(label_mapping_yr)
+                                            x_plot_col_yr = "_Short_Label"
+                                        else:
+                                            x_plot_col_yr = plot_yr_base
+        
+                                        num_bars_yr = len(df_yr_grouped)
+                                        dyn_w_yr = max(6.0, num_bars_yr * 0.4)
+                                        f_size_yr = 6 if num_bars_yr > 15 else (7 if num_bars_yr > 10 else 8)
+        
+                                        # Biểu đồ tiết theo năm học
+                                        with col_y1:
+                                            fig_y1, ax_y1 = plt.subplots(figsize=(dyn_w_yr, 3.5))
+                                            bars_y1 = ax_y1.bar(df_yr_grouped[x_plot_col_yr].astype(str), df_yr_grouped["Tổng số tiết"], color="#3274A1")
+                                            for bar in bars_y1:
+                                                h = bar.get_height()
+                                                ax_y1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=f_size_yr, fontweight="bold")
+                                            
+                                            ax_y1.set_xlabel("Ký hiệu" if needs_mapping_yr else other_col, fontsize=9)
+                                            ax_y1.set_ylabel("Tổng số tiết", fontsize=9)
+                                            ax_y1.set_title(f"Tổng số tiết - {other_col} (Năm: {yr})", fontsize=10, fontweight="bold")
+                                            # 🌟 Sửa lỗi: So sánh số lượng cột num_bars_yr với 8 thay vì dùng needs_mapping_yr
+                                            ax_y1.tick_params(axis="x", rotation=45 if num_bars_yr > 8 else 0)
+        
+                                            st.pyplot(fig_y1, bbox_inches="tight")
+        
+                                        # Biểu đồ lớp theo năm học
+                                        with col_y2:
+                                            fig_y2, ax_y2 = plt.subplots(figsize=(dyn_w_yr, 3.5))
+                                            bars_y2 = ax_y2.bar(df_yr_grouped[x_plot_col_yr].astype(str), df_yr_grouped["Số lượng lớp"], color="#E1812C")
+                                            for bar in bars_y2:
+                                                h = bar.get_height()
+                                                ax_y2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=f_size_yr, fontweight="bold")
+                                            
+                                            ax_y2.set_xlabel("Ký hiệu" if needs_mapping_yr else other_col, fontsize=9)
+                                            ax_y2.set_ylabel("Số lượng lớp", fontsize=9)
+                                            ax_y2.set_title(f"Số lượng lớp - {other_col} (Năm: {yr})", fontsize=10, fontweight="bold")
+                                            # 🌟 Sửa lỗi: So sánh số lượng cột num_bars_yr với 8 thay vì dùng needs_mapping_yr
+                                            ax_y2.tick_params(axis="x", rotation=45 if num_bars_yr > 8 else 0)
+                                            
+                                            st.pyplot(fig_y2, bbox_inches="tight")
+        
+                                        # 🌟 Hiển thị bảng chú thích ngay bên dưới nếu biểu đồ của năm đó có dùng ký hiệu viết tắt
+                                        if needs_mapping_yr:
+                                            st.markdown(f"**📝 Chú thích ký hiệu trục hoành (Năm học: {yr} - {other_col}):**")
+                                            with st.expander(f"📅 **(Bấm để xem chú thích năm {yr})**", expanded=False):
+                                                note_df_yr = pd.DataFrame(list(label_mapping_yr.items()), columns=["Ký hiệu", "Tên đầy đủ"])
+                                                st.dataframe(note_df_yr, use_container_width=True, hide_index=True)
     
                     else:
                         df_temp_detail = total_rec_df.copy()
