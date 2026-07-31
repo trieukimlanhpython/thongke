@@ -861,12 +861,14 @@ with tab1:
 
                         st.markdown("##### 🧹 2.1 Bảng thống kê SAU KHI trừ trùng lặp")
                         
-                        # 🌟 Dùng cú pháp groupby đơn giản và an toàn tuyệt đối để tránh mọi lỗi KeyError của Pandas
+                        # 🌟 Tự động nhận diện lại cột chứa tiết hoặc điểm số thực tế có sẵn trong df_clean_unified
+                        actual_tiet_col = next((c for c in df_clean_unified.columns if any(x in str(c).lower() for x in ["tiết", "period", "sum", "count"])), None)
+                        
                         if "Năm học hiển thị" in df_clean_unified.columns:
                             df_after = df_clean_unified.groupby("Năm học hiển thị").size().reset_index(name="Số lượng sản phẩm độc lập")
                             
-                            if tiet_col_target in df_clean_unified.columns:
-                                df_tiet_sum = df_clean_unified.groupby("Năm học hiển thị")[tiet_col_target].sum().reset_index(name="Tổng số tiết thực hiện")
+                            if actual_tiet_col and pd.api.types.is_numeric_dtype(df_clean_unified[actual_tiet_col]):
+                                df_tiet_sum = df_clean_unified.groupby("Năm học hiển thị")[actual_tiet_col].sum().reset_index(name="Tổng số tiết thực hiện")
                                 df_after = pd.merge(df_after, df_tiet_sum, on="Năm học hiển thị", how="left")
                             else:
                                 df_after["Tổng số tiết thực hiện"] = 0
