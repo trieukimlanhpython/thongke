@@ -625,8 +625,6 @@ with tab1:
                                         note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
                                         st.dataframe(note_df, use_container_width=True, hide_index=True)
     
-                                st.markdown("---")
-    
                             # 🌟 TRƯỜNG HỢP 2: VẼ BỔ SUNG BIỂU ĐỒ CHI TIẾT THEO TỪNG NĂM HỌC KHI CHỌN ĐỒNG THỜI NHIỀU TIÊU CHÍ
                             if has_year_selected and other_criteria_cols:
                                 st.markdown("---")
@@ -639,7 +637,7 @@ with tab1:
                                     list_years = sorted(df_plot_data["Năm học"].astype(str).unique())
     
                                     for yr in list_years:
-                                        st.markdown(###### Năm học: **{yr}**")
+                                        st.markdown(f"###### Năm học: **{yr}**")
                                         df_yr_sub = df_plot_data[df_plot_data["Năm học"].astype(str) == yr]
     
                                         if df_yr_sub.empty:
