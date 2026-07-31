@@ -930,9 +930,10 @@ with tab1:
                         # Cấu hình quy tắc gom nhóm: 
                         # - Số lượng (trước gom nhóm) tính theo sum của tiet_col_target (hoặc count nếu quy ước cũ, giữ nguyên logic sum/count)
                         # - Số lượng sau gom nhóm tính theo count dòng dữ liệu độc lập (Sản phẩm chuẩn hóa)
+                        # Sửa lại đoạn này trong code của bạn:
                         agg_dyn_dict = {
                             tiet_col_target: ["sum", "count"],
-                            "Sản phẩm chuẩn hóa": "count", 
+                            "Sản phẩm chuẩn hóa": lambda x: len(x), # Đếm đúng số dòng hiển thị thực tế sau gom nhóm
                             "_full_name": lambda x: ", ".join(x.dropna().unique()),
                         }
                         if name_prod_col and name_prod_col in df_clean_unified.columns:
