@@ -558,7 +558,7 @@ with tab1:
                         st.dataframe(df_gd_detail, use_container_width=True)
     
                         # ==========================================
-                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG (TỰ ĐỘNG CẮT KHÚC MỖI 10 GIÁ TRỊ & GIỮ NÉT CAO)
+                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG (TỰ ĐỘNG CHIA ĐÔI LIỀN MẠCH)
                         # ==========================================
                         first_col_name = df_gd_detail.columns[0]
                         df_plot_data = df_gd_detail[df_gd_detail[first_col_name] != "**Tổng cộng**"].copy()
@@ -576,7 +576,7 @@ with tab1:
                             other_criteria_cols = [c for c in active_criteria_cols if c != "Năm học"]
     
                             # ==========================================
-                            # 🌟 TRƯỜNG HỢP 1: CHỈ CHỌN MỘT TIÊU CHÍ HOẶC KHÔNG CÓ NĂM HỌC ĐI KÈM (CÓ CẮT KHÚC MỖI 10 GIÁ TRỊ)
+                            # 🌟 TRƯỜNG HỢP 1: CHỈ CHỌN MỘT TIÊU CHÍ (CHIA ĐÔI 2 PHẦN LIỀN MẠCH)
                             # ==========================================
                             for crit_col in active_criteria_cols:
                                 st.markdown(f"###### 📌 Phân tích theo tiêu chí: **{crit_col}**")
@@ -601,24 +601,25 @@ with tab1:
                                 else:
                                     x_plot_col = plot_base_col
     
-                                # 🌟 Cắt dữ liệu thành các chunk mỗi chunk tối đa 10 giá trị
-                                chunk_size = 10
-                                total_items = len(df_grouped_crit)
-                                chunks = [df_grouped_crit.iloc[i:i + chunk_size] for i in range(0, total_items, chunk_size)]
+                                # 🌟 Tự động chia đôi dữ liệu thành đúng 2 phần
+                                chunks = np.array_split(df_grouped_crit, 2)
     
                                 for idx, chunk_df in enumerate(chunks):
+                                    if chunk_df.empty:
+                                        continue
                                     num_bars = len(chunk_df)
-                                    dyn_w = max(6.0, num_bars * 0.5)
-                                    val_font_size = 7 if num_bars > 10 else 8
+                                    dynamic_width = max(6.0, num_bars * 0.45)
+                                    val_font_size = 6 if num_bars > 20 else (7 if num_bars > 12 else 8)
+                                    rotate_x = 45 if num_bars > 8 else 0
     
-                                    if total_items > chunk_size:
-                                        st.markdown(f"*(Phần {idx + 1} / {len(chunks)})*")
+                                    if len(chunks) > 1:
+                                        st.markdown(f"*(Phần {idx + 1} / 2)*")
     
                                     col_c1, col_c2 = st.columns(2)
     
                                     with col_c1:
-                                        fig1, ax1 = plt.subplots(figsize=(dyn_w, 3.8), dpi=200)
-                                        bars1 = ax1.bar(chunk_df[x_plot_col].astype(str), chunk_df["Tổng số tiết"], color="#4C72B0", width=0.7)
+                                        fig1, ax1 = plt.subplots(figsize=(dynamic_width, 4.2), dpi=250)
+                                        bars1 = ax1.bar(chunk_df[x_plot_col].astype(str), chunk_df["Tổng số tiết"], color="#4C72B0", width=0.75)
                                         for bar in bars1:
                                             h = bar.get_height()
                                             ax1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=val_font_size, fontweight="bold")
@@ -626,13 +627,13 @@ with tab1:
                                         ax1.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=9)
                                         ax1.set_ylabel("Tổng số tiết", fontsize=9)
                                         ax1.set_title(f"Tổng số tiết theo {crit_col} (Phần {idx+1})", fontsize=10, fontweight="bold")
-                                        ax1.tick_params(axis="x", rotation=45 if num_bars > 6 else 0)
+                                        ax1.tick_params(axis="x", rotation=rotate_x)
                                         ax1.grid(axis="y", linestyle="--", alpha=0.4)
                                         st.pyplot(fig1, bbox_inches="tight")
     
                                     with col_c2:
-                                        fig2, ax2 = plt.subplots(figsize=(dyn_w, 3.8), dpi=200)
-                                        bars2 = ax2.bar(chunk_df[x_plot_col].astype(str), chunk_df["Số lượng lớp"], color="#DD8452", width=0.7)
+                                        fig2, ax2 = plt.subplots(figsize=(dynamic_width, 4.2), dpi=250)
+                                        bars2 = ax2.bar(chunk_df[x_plot_col].astype(str), chunk_df["Số lượng lớp"], color="#DD8452", width=0.75)
                                         for bar in bars2:
                                             h = bar.get_height()
                                             ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=val_font_size, fontweight="bold")
@@ -640,7 +641,7 @@ with tab1:
                                         ax2.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=9)
                                         ax2.set_ylabel("Số lượng lớp", fontsize=9)
                                         ax2.set_title(f"Số lượng lớp theo {crit_col} (Phần {idx+1})", fontsize=10, fontweight="bold")
-                                        ax2.tick_params(axis="x", rotation=45 if num_bars > 6 else 0)
+                                        ax2.tick_params(axis="x", rotation=rotate_x)
                                         ax2.grid(axis="y", linestyle="--", alpha=0.4)
                                         st.pyplot(fig2, bbox_inches="tight")
     
@@ -652,9 +653,10 @@ with tab1:
                                         note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
                                         st.dataframe(note_df, use_container_width=True, hide_index=True)
     
+                                st.markdown("---")
     
                             # ==========================================
-                            # 🌟 TRƯỜNG HỢP 2: BIỂU ĐỒ CỘT NHÓM SO SÁNH NĂM HỌC (CÓ CẮT KHÚC MỖI 10 GIÁ TRỊ & ĐỘ NÉT CAO)
+                            # 🌟 TRƯỜNG HỢP 2: BIỂU ĐỒ CỘT NHÓM SO SÁNH NĂM HỌC (CHIA ĐÔI 2 PHẦN LIỀN MẠCH)
                             # ==========================================
                             if has_year_selected and other_criteria_cols:
                                 st.markdown("---")
@@ -685,19 +687,24 @@ with tab1:
                                         pivot_tiet.index = pivot_tiet.index.map(label_mapping_grp)
                                         pivot_lop.index = pivot_lop.index.map(label_mapping_grp)
     
-                                    chunk_size = 10
-                                    total_grp = len(pivot_tiet)
-                                    chunk_indices = range(0, total_grp, chunk_size)
+                                    # 🌟 Tự động chia đôi DataFrame thành 2 phần bằng nhau theo dòng
+                                    split_idx = len(pivot_tiet) // 2
+                                    if split_idx == 0:
+                                        split_idx = len(pivot_tiet)
     
-                                    for c_idx in chunk_indices:
-                                        sub_tiet = pivot_tiet.iloc[c_idx:c_idx + chunk_size]
-                                        sub_lop = pivot_lop.iloc[c_idx:c_idx + chunk_size]
+                                    chunks_tiet = [pivot_tiet.iloc[:split_idx], pivot_tiet.iloc[split_idx:]]
+                                    chunks_lop = [pivot_lop.iloc[:split_idx], pivot_lop.iloc[split_idx:]]
+    
+                                    for c_idx, (sub_tiet, sub_lop) in enumerate(zip(chunks_tiet, chunks_lop)):
+                                        if sub_tiet.empty:
+                                            continue
                                         num_bars_grp = len(sub_tiet)
-                                        dyn_w_grp = max(6.0, num_bars_grp * 0.6)
-                                        bar_font_size = 6 if num_bars_grp > 10 else 7
+                                        dyn_w_grp = max(8.0, num_bars_grp * 0.55)
+                                        rotate_ticks = 45 if num_bars_grp > 6 else 0
+                                        bar_font_size = 5 if num_bars_grp > 20 else (6 if num_bars_grp > 12 else 7)
     
-                                        if total_grp > chunk_size:
-                                            st.markdown(f"*(Phần {(c_idx // chunk_size) + 1} / {(total_grp - 1) // chunk_size + 1})*")
+                                        if len(chunks_tiet) > 1:
+                                            st.markdown(f"*(Phần {c_idx + 1} / 2)*")
     
                                         def add_bar_labels(ax_obj):
                                             for p in ax_obj.patches:
@@ -707,32 +714,32 @@ with tab1:
                                                                     (p.get_x() + p.get_width() / 2., h),
                                                                     ha='center', va='bottom',
                                                                     fontsize=bar_font_size, fontweight='bold',
-                                                                    rotation=0, xytext=(0, 2),
+                                                                    rotation=90 if num_bars_grp > 15 else 0,
+                                                                    xytext=(0, 2),
                                                                     textcoords='offset points')
     
-                                        # Vẽ song song 2 biểu đồ nhóm ngang cho mỗi khúc 10 giá trị
                                         col_g1, col_g2 = st.columns(2)
     
                                         with col_g1:
-                                            fig_g1, ax_g1 = plt.subplots(figsize=(dyn_w_grp, 4.0), dpi=200)
-                                            sub_tiet.plot(kind="bar", ax=ax_g1, width=0.75)
+                                            fig_g1, ax_g1 = plt.subplots(figsize=(dyn_w_grp, 4.2), dpi=250)
+                                            sub_tiet.plot(kind="bar", ax=ax_g1, width=0.8)
                                             add_bar_labels(ax_g1)
                                             ax_g1.set_xlabel("Ký hiệu" if needs_mapping_grp else other_col, fontsize=9)
                                             ax_g1.set_ylabel("Tổng số tiết", fontsize=9)
-                                            ax_g1.set_title(f"So sánh Tổng số tiết - {other_col}", fontsize=10, fontweight="bold")
-                                            ax_g1.tick_params(axis="x", rotation=45 if num_bars_grp > 6 else 0)
+                                            ax_g1.set_title(f"So sánh Tổng số tiết - {other_col} (Phần {c_idx+1})", fontsize=10, fontweight="bold")
+                                            ax_g1.tick_params(axis="x", rotation=rotate_ticks)
                                             ax_g1.legend(title="Năm học", fontsize=8, title_fontsize=8)
                                             ax_g1.grid(axis="y", linestyle="--", alpha=0.4)
                                             st.pyplot(fig_g1, bbox_inches="tight")
     
                                         with col_g2:
-                                            fig_g2, ax_g2 = plt.subplots(figsize=(dyn_w_grp, 4.0), dpi=200)
-                                            sub_lop.plot(kind="bar", ax=ax_g2, width=0.75, colormap="Oranges")
+                                            fig_g2, ax_g2 = plt.subplots(figsize=(dyn_w_grp, 4.2), dpi=250)
+                                            sub_lop.plot(kind="bar", ax=ax_g2, width=0.8, colormap="Oranges")
                                             add_bar_labels(ax_g2)
                                             ax_g2.set_xlabel("Ký hiệu" if needs_mapping_grp else other_col, fontsize=9)
                                             ax_g2.set_ylabel("Số lượng lớp", fontsize=9)
-                                            ax_g2.set_title(f"So sánh Số lượng lớp - {other_col}", fontsize=10, fontweight="bold")
-                                            ax_g2.tick_params(axis="x", rotation=45 if num_bars_grp > 6 else 0)
+                                            ax_g2.set_title(f"So sánh Số lượng lớp - {other_col} (Phần {c_idx+1})", fontsize=10, fontweight="bold")
+                                            ax_g2.tick_params(axis="x", rotation=rotate_ticks)
                                             ax_g2.legend(title="Năm học", fontsize=8, title_fontsize=8)
                                             ax_g2.grid(axis="y", linestyle="--", alpha=0.4)
                                             st.pyplot(fig_g2, bbox_inches="tight")
