@@ -627,6 +627,7 @@ with tab1:
     
                             # 🌟 TRƯỜNG HỢP 2: VẼ BỔ SUNG BIỂU ĐỒ CHI TIẾT THEO TỪNG NĂM HỌC KHI CHỌN ĐỒNG THỜI NHIỀU TIÊU CHÍ (CÓ KÝ HIỆU TRỤC X)
                             if has_year_selected and other_criteria_cols:
+                                st.markdown("---")
                                 st.markdown("#### 🌟 3.1 Biểu đồ bóc tách chi tiết theo Từng năm học cho các tiêu chí khác")
     
                                 for other_col in other_criteria_cols:
@@ -680,7 +681,8 @@ with tab1:
                                             ax_y1.set_xlabel("Ký hiệu" if needs_mapping_yr else other_col, fontsize=9)
                                             ax_y1.set_ylabel("Tổng số tiết", fontsize=9)
                                             ax_y1.set_title(f"Tổng số tiết - {other_col} (Năm: {yr})", fontsize=10, fontweight="bold")
-                                            ax_y1.tick_params(axis="x", rotation=0 if needs_mapping_yr else 45)
+                                            ax_y1.tick_params(axis="x", rotation=45 if needs_mapping_yr > 8 else 0)
+                    
                                             st.pyplot(fig_y1, bbox_inches="tight")
     
                                         # Biểu đồ lớp theo năm học
@@ -694,7 +696,8 @@ with tab1:
                                             ax_y2.set_xlabel("Ký hiệu" if needs_mapping_yr else other_col, fontsize=9)
                                             ax_y2.set_ylabel("Số lượng lớp", fontsize=9)
                                             ax_y2.set_title(f"Số lượng lớp - {other_col} (Năm: {yr})", fontsize=10, fontweight="bold")
-                                            ax_y2.tick_params(axis="x", rotation=0 if needs_mapping_yr else 45)
+                                            ax_y2.tick_params(axis="x", rotation=45 if needs_mapping_yr > 8 else 0)
+                                            
                                             st.pyplot(fig_y2, bbox_inches="tight")
     
                                         # 🌟 Hiển thị bảng chú thích ngay bên dưới nếu biểu đồ của năm đó có dùng ký hiệu viết tắt
@@ -704,8 +707,6 @@ with tab1:
                                                 note_df_yr = pd.DataFrame(list(label_mapping_yr.items()), columns=["Ký hiệu", "Tên đầy đủ"])
                                                 st.dataframe(note_df_yr, use_container_width=True, hide_index=True)
     
-                                        st.markdown("---")
-
                     else:
                         df_temp_detail = total_rec_df.copy()
                         df_temp_detail.columns = [str(c).strip() for c in df_temp_detail.columns]
