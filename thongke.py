@@ -569,43 +569,60 @@ with tab1:
                             
                             metrics_cols = ["Tổng số tiết", "Số lượng lớp"]
                             active_criteria_cols = [c for c in df_gd_detail.columns if c not in metrics_cols and c != "**Tổng cộng**"]
-    
+                
                             has_short_name = "short_name" in [c.lower() for c in df_clean.columns]
                             short_name_col_actual = next((c for c in df_clean.columns if c.lower() == "short_name"), None)
-    
+                
                             # Kiểm tra xem người dùng có chọn đồng thời "Năm học" và các tiêu chí phụ khác không
                             has_year_selected = "Năm học" in active_criteria_cols
                             other_criteria_cols = [c for c in active_criteria_cols if c != "Năm học"]
-    
+                
                             # 🌟 TRƯỜNG HỢP 1: CHỈ CHỌN MỘT TIÊU CHÍ HOẶC KHÔNG CÓ NĂM HỌC ĐI KÈM
                             for crit_col in active_criteria_cols:
                                 st.markdown(f"###### 📌 Phân tích theo tiêu chí: **{crit_col}**")
+                                
+                                # 🌟 Thêm bộ lọc checkbox ngay tại đồ thị cho "Tên môn học" hoặc "Giảng viên"
+                                df_crit_filtered = df_plot_data.copy()
+                                if crit_col in ["Tên môn học", "Giảng viên"]:
+                                    unique_vals_crit = sorted(df_plot_data[crit_col].astype(str).unique())
+                                    selected_vals_crit = st.multiselect(
+                                        f"🎯 Lọc {crit_col} hiển thị trên biểu đồ (Bỏ trống = Hiện toàn bộ):",
+                                        options=unique_vals_crit,
+                                        key=f"filter_crit_{crit_col}"
+                                    )
+                                    if selected_vals_crit:
+                                        df_crit_filtered = df_crit_filtered[df_crit_filtered[crit_col].astype(str).isin(selected_vals_crit)]
+                
+                                if df_crit_filtered.empty:
+                                    st.warning(f"⚠️ Không có dữ liệu phù hợp với bộ lọc cho tiêu chí **{crit_col}**.")
+                                    continue
+                
                                 col_c1, col_c2 = st.columns(2)
-    
+                
                                 if crit_col == "Tên môn học" and has_short_name and short_name_col_actual:
-                                    df_plot_mapped = df_plot_data.copy()
+                                    df_plot_mapped = df_crit_filtered.copy()
                                     mapping_dict = df_clean[[c_subject, short_name_col_actual]].drop_duplicates().set_index(c_subject)[short_name_col_actual].to_dict()
                                     df_plot_mapped["Trục_X_Vẽ"] = df_plot_mapped[crit_col].map(mapping_dict).fillna(df_plot_mapped[crit_col])
                                     plot_base_col = "Trục_X_Vẽ"
                                 else:
                                     plot_base_col = crit_col
-    
-                                df_grouped_crit = df_plot_data.groupby(plot_base_col)[metrics_cols].sum().reset_index()
-    
+                
+                                df_grouped_crit = df_crit_filtered.groupby(plot_base_col)[metrics_cols].sum().reset_index()
+                
                                 unique_labels = df_grouped_crit[plot_base_col].astype(str).tolist()
-                                needs_mapping = any(len(lbl) > 15 for lbl in unique_labels)
-    
-                                if needs_mapping:
+                                needs_matching = any(len(lbl) > 15 for lbl in unique_labels)
+                
+                                if needs_matching:
                                     label_mapping = {lbl: f"K{i+1}" for i, lbl in enumerate(unique_labels)}
                                     df_grouped_crit["_Short_Label"] = df_grouped_crit[plot_base_col].map(label_mapping)
                                     x_plot_col = "_Short_Label"
                                 else:
                                     x_plot_col = plot_base_col
-    
+                
                                 num_bars = len(df_grouped_crit)
                                 dynamic_width = max(6.0, num_bars * 0.4)
                                 val_font_size = 6 if num_bars > 15 else (7 if num_bars > 10 else 8)
-    
+                
                                 with col_c1:
                                     fig1, ax1 = plt.subplots(figsize=(dynamic_width, 4.0))
                                     bars1 = ax1.bar(df_grouped_crit[x_plot_col].astype(str), df_grouped_crit["Tổng số tiết"], color="#4C72B0")
@@ -618,7 +635,7 @@ with tab1:
                                     ax1.set_title(f"Tổng số tiết theo {crit_col}", fontsize=10, fontweight="bold")
                                     ax1.tick_params(axis="x", rotation=45 if num_bars > 8 else 0)
                                     st.pyplot(fig1, bbox_inches="tight")
-    
+                
                                 with col_c2:
                                     fig2, ax2 = plt.subplots(figsize=(dynamic_width, 4.0))
                                     bars2 = ax2.bar(df_grouped_crit[x_plot_col].astype(str), df_grouped_crit["Số lượng lớp"], color="#DD8452")
@@ -631,13 +648,13 @@ with tab1:
                                     ax2.set_title(f"Số lượng lớp theo {crit_col}", fontsize=10, fontweight="bold")
                                     ax2.tick_params(axis="x", rotation=45 if num_bars > 8 else 0)
                                     st.pyplot(fig2, bbox_inches="tight")
-    
-                                if needs_mapping:
+                
+                                if needs_matching:
                                     st.markdown(f"**📝 Chú thích ký hiệu trục hoành cho ({crit_col}):**")
                                     with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
                                         note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
                                         st.dataframe(note_df, use_container_width=True, hide_index=True)
-    
+                
                             # 🌟 TRƯỜNG HỢP 2: VẼ BỔ SUNG BIỂU ĐỒ SO SÁNH THEO NĂM HỌC TRÊN CÙNG MỘT ĐỒ THỊ (NĂM HỌC LÀ LEGEND)
                             if has_year_selected and other_criteria_cols:
                                 st.markdown("---")
@@ -646,9 +663,25 @@ with tab1:
                                 for other_col in other_criteria_cols:
                                     st.markdown(f"##### 📌 Phân tích tiêu chí **{other_col}** so sánh theo **Năm học**")
                                     
+                                    # 🌟 Thêm bộ lọc checkbox ngay tại đồ thị so sánh theo năm cho "Tên môn học" hoặc "Giảng viên"
+                                    df_other_filtered = df_plot_data.copy()
+                                    if other_col in ["Tên môn học", "Giảng viên"]:
+                                        unique_vals_other = sorted(df_plot_data[other_col].astype(str).unique())
+                                        selected_vals_other = st.multiselect(
+                                            f"🎯 Lọc {other_col} hiển thị trên biểu đồ so sánh (Bỏ trống = Hiện toàn bộ):",
+                                            options=unique_vals_other,
+                                            key=f"filter_other_{other_col}"
+                                        )
+                                        if selected_vals_other:
+                                            df_other_filtered = df_other_filtered[df_other_filtered[other_col].astype(str).isin(selected_vals_other)]
+                
+                                    if df_other_filtered.empty:
+                                        st.warning(f"⚠️ Không có dữ liệu phù hợp với bộ lọc cho tiêu chí **{other_col}**.")
+                                        continue
+                
                                     # Chuẩn hóa dữ liệu tên môn học nếu có short_name
                                     if other_col == "Tên môn học" and has_short_name and short_name_col_actual:
-                                        df_plot_mapped_yr = df_plot_data.copy()
+                                        df_plot_mapped_yr = df_other_filtered.copy()
                                         mapping_dict = df_clean[[c_subject, short_name_col_actual]].drop_duplicates().set_index(c_subject)[short_name_col_actual].to_dict()
                                         df_plot_mapped_yr["Trục_X_Vẽ"] = df_plot_mapped_yr[other_col].map(mapping_dict).fillna(df_plot_mapped_yr[other_col])
                                         plot_yr_base = "Trục_X_Vẽ"
@@ -656,8 +689,8 @@ with tab1:
                                         plot_yr_base = other_col
                                     
                                     # Pivot dữ liệu để đưa Năm học lên làm cột (legend) cho biểu đồ
-                                    df_pivot_tiet = df_plot_data.pivot_table(index=plot_yr_base, columns="Năm học", values="Tổng số tiết", aggfunc="sum").fillna(0)
-                                    df_pivot_lop = df_plot_data.pivot_table(index=plot_yr_base, columns="Năm học", values="Số lượng lớp", aggfunc="sum").fillna(0)
+                                    df_pivot_tiet = df_other_filtered.pivot_table(index=plot_yr_base, columns="Năm học", values="Tổng số tiết", aggfunc="sum").fillna(0)
+                                    df_pivot_lop = df_other_filtered.pivot_table(index=plot_yr_base, columns="Năm học", values="Số lượng lớp", aggfunc="sum").fillna(0)
                                     
                                     # Kiểm tra nếu tên giá trị trục X quá dài thì tự động quy ước ký hiệu K1, K2...
                                     unique_labels_yr = df_pivot_tiet.index.astype(str).tolist()
@@ -679,10 +712,9 @@ with tab1:
                                         fig_y1, ax_y1 = plt.subplots(figsize=(dyn_w_yr, 4.0))
                                         ax = df_pivot_tiet.plot(kind="bar", ax=ax_y1, width=0.8)
                                         
-                                        # Vòng lặp hiển thị giá trị trên các bar grouped plot trong Matplotlib/Pandas
                                         for p in ax_y1.patches:
                                             h = p.get_height()
-                                            if h > 0:  # Chỉ hiển thị nếu giá trị lớn hơn 0
+                                            if h > 0:
                                                 ax_y1.annotate(f"{int(h):,}",
                                                                (p.get_x() + p.get_width() / 2., h),
                                                                ha='center', va='bottom',
@@ -705,7 +737,6 @@ with tab1:
                                         fig_y2, ax_y2 = plt.subplots(figsize=(dyn_w_yr, 4.0))
                                         ax2 = df_pivot_lop.plot(kind="bar", ax=ax_y2, width=0.8, colormap="tab20")
                                         
-                                        # Vòng lặp hiển thị giá trị trên các bar
                                         for p in ax_y2.patches:
                                             h = p.get_height()
                                             if h > 0:
@@ -726,7 +757,6 @@ with tab1:
                                         
                                         st.pyplot(fig_y2, bbox_inches="tight")
                                     
-                                    # Hiển thị bảng chú thích nếu trục X dùng ký hiệu viết tắt (K1, K2...)
                                     if needs_mapping_yr:
                                         st.markdown(f"**📝 Chú thích ký hiệu trục hoành ({other_col}):**")
                                         with st.expander(f"📅 **(Bấm để xem chú thích chi tiết)**", expanded=False):
