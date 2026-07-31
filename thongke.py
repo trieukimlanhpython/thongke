@@ -394,14 +394,20 @@ with tab1:
                         df_clean = total_rec_df.drop_duplicates().copy()
                         df_clean.columns = [str(c).strip().lower() for c in df_clean.columns]
     
-                        # 🌟 Quét và chuẩn hóa chuẩn xác cột term (bao gồm cả trường hợp term_x, term_y hoặc viết hoa)
-                        term_actual_col = next((c for c in df_clean.columns if "term" in c), None)
-                        if term_actual_col:
-                            df_clean["term"] = df_clean[term_actual_col].astype(str).str.strip()
-                        else:
-                            df_clean["term"] = "Không rõ"
+                        if "term_x" in df_clean.columns:
+                            df_clean["term"] = df_clean["term_x"]
     
-                        time_col_actual = next((c for c in df_clean.columns if any(x in c for x in ["năm học", "year", "đợt"])), None)
+                        # 🌟 Nhận diện và xử lý tách thông tin "đợt" từ cột "code" (Ví dụ: 2526.D1 -> Đợt 1)
+                        code_col_actual = next((c for c in df_clean.columns if "code" in c), None)
+                        if code_col_actual:
+                            # Tách lấy chữ cái/số sau dấu chấm hoặc chữ D (VD: .d1 -> Đợt 1)
+                            df_clean["_dot_hoc"] = df_clean[code_col_actual].astype(str).str.upper().apply(
+                                lambda x: "Đợt 1" if "D1" in x or "ĐỢT 1" in x else ("Đợt 2" if "D2" in x or "ĐỢT 2" in x else "Khác")
+                            )
+                        else:
+                            df_clean["_dot_hoc"] = "Không rõ"
+    
+                        time_col_actual = next((c for c in df_clean.columns if any(x in c for x in ["năm học", "year", "đợt", "term"])), None)
                         if "năm học hiển thị" not in df_clean.columns and time_col_actual:
                             df_clean["năm học hiển thị"] = df_clean[time_col_actual].apply(quy_doi_nam_hoc)
                         elif "năm học hiển thị" not in df_clean.columns:
@@ -416,9 +422,10 @@ with tab1:
                         c_knowledge = "knowledge" if "knowledge" in df_clean.columns else None
                         c_session = "session" if "session" in df_clean.columns else None
                         c_location = "location" if "location" in df_clean.columns else None
-                        c_term = "term"  # 🌟 Gán trực tiếp khóa term đã được chuẩn hóa
+                        c_term = "term" if "term" in df_clean.columns else None
                         c_faculty = "faculty" if "faculty" in df_clean.columns else None
                         c_note = "note" if "note" in df_clean.columns else None
+                        c_dot = "_dot_hoc"  # 🌟 Khóa đợt học
     
                         name_col = "name" if "name" in df_clean.columns else None
                         surname_col = "surname" if "surname" in df_clean.columns else None
@@ -450,7 +457,7 @@ with tab1:
                         st.dataframe(df_after_disp, use_container_width=True)
     
                         # ==========================================
-                        # 🔍 2. BẢNG CHI TIẾT GIẢNG DẠY (TÙY CHỈNH TIÊU CHÍ)
+                        # 🔍 2. BẢNG CHI TIẾT GIẢNG DẠY (BỔ SUNG TIÊU CHÍ ĐỢT)
                         # ==========================================
                         st.markdown("##### 🔍 2. Bảng chi tiết Giảng dạy (Tùy chỉnh theo tiêu chí)")
     
@@ -466,9 +473,10 @@ with tab1:
                         with col_opt3:
                             opt_subj = st.checkbox("Theo Môn học", value=True, key="chk_gd_subj")
                             opt_loc = st.checkbox("Theo Địa điểm", value=False, key="chk_gd_loc")
+                            opt_dot = st.checkbox("Theo Đợt học", value=False, key="chk_gd_dot")  # 🌟 Checkbox Đợt học
                         with col_opt4:
                             opt_lecturer = st.checkbox("Theo Giảng viên", value=True, key="chk_gd_lect")
-                            opt_term = st.checkbox("Theo Học kỳ", value=False, key="chk_gd_term")  # 🌟 Kích hoạt checkbox Học kỳ
+                            opt_term = st.checkbox("Theo Học kỳ", value=False, key="chk_gd_term")
     
                         group_detail_keys = []
                         if opt_year:
@@ -483,8 +491,10 @@ with tab1:
                             group_detail_keys.append(c_session)
                         if opt_loc and c_location and c_location in df_clean.columns:
                             group_detail_keys.append(c_location)
-                        if opt_term and c_term in df_clean.columns:
-                            group_detail_keys.append(c_term)  # 🌟 Đưa term vào khóa gom nhóm
+                        if opt_term and c_term and c_term in df_clean.columns:
+                            group_detail_keys.append(c_term)
+                        if opt_dot:
+                            group_detail_keys.append(c_dot)  # 🌟 Thêm key Đợt học vào nhóm
                         if opt_faculty and c_faculty and c_faculty in df_clean.columns:
                             group_detail_keys.append(c_faculty)
                         if opt_note and c_note and c_note in df_clean.columns:
@@ -518,7 +528,9 @@ with tab1:
                         if c_location:
                             rename_detail_dict[c_location] = "Địa điểm"
                         if c_term:
-                            rename_detail_dict[c_term] = "Học kỳ"  # 🌟 Đổi tên hiển thị Học kỳ
+                            rename_detail_dict[c_term] = "Học kỳ"
+                        if c_dot:
+                            rename_detail_dict[c_dot] = "Đợt học"  # 🌟 Đổi tên hiển thị Đợt học
                         if c_faculty:
                             rename_detail_dict[c_faculty] = "Khoa quản lý"
                         if c_note:
@@ -546,7 +558,7 @@ with tab1:
                         st.dataframe(df_gd_detail, use_container_width=True)
     
                         # ==========================================
-                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG (HỖ TRỢ BÓC TÁCH THEO TỪNG NĂM HỌC KHI CHỌN ĐỒNG THỜI)
+                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG (HỖ TRỢ BÓC TÁCH THEO TỪNG NĂM HỌC)
                         # ==========================================
                         first_col_name = df_gd_detail.columns[0]
                         df_plot_data = df_gd_detail[df_gd_detail[first_col_name] != "**Tổng cộng**"].copy()
@@ -560,11 +572,10 @@ with tab1:
                             has_short_name = "short_name" in [c.lower() for c in df_clean.columns]
                             short_name_col_actual = next((c for c in df_clean.columns if c.lower() == "short_name"), None)
     
-                            # Kiểm tra xem người dùng có chọn đồng thời "Năm học" và các tiêu chí phụ khác không
                             has_year_selected = "Năm học" in active_criteria_cols
                             other_criteria_cols = [c for c in active_criteria_cols if c != "Năm học"]
     
-                            # 🌟 TRƯỜNG HỢP 1: CHỈ CHỌN MỘT TIÊU CHÍ HOẶC KHÔNG CÓ NĂM HỌC ĐI KÈM
+                            # TRƯỜNG HỢP 1: CHỌN MỘT TIÊU CHÍ HOẶC KHÔNG CÓ NĂM HỌC ĐI KÈM
                             for crit_col in active_criteria_cols:
                                 st.markdown(f"###### 📌 Phân tích theo tiêu chí: **{crit_col}**")
                                 col_c1, col_c2 = st.columns(2)
@@ -625,26 +636,27 @@ with tab1:
                                         note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
                                         st.dataframe(note_df, use_container_width=True, hide_index=True)
     
-                            # 🌟 TRƯỜNG HỢP 2: VẼ BỔ SUNG BIỂU ĐỒ CHI TIẾT THEO TỪNG NĂM HỌC KHI CHỌN ĐỒNG THỜI NHIỀU TIÊU CHÍ (CÓ KÝ HIỆU TRỤC X)
+                                st.markdown("---")
+    
+                            # TRƯỜNG HỢP 2: VẼ BỔ SUNG BIỂU ĐỒ CHI TIẾT THEO TỪNG NĂM HỌC KHI CHỌN ĐỒNG THỜI NHIỀU TIÊU CHÍ
                             if has_year_selected and other_criteria_cols:
                                 st.markdown("---")
                                 st.markdown("#### 🌟 3.1 Biểu đồ bóc tách chi tiết theo Từng năm học cho các tiêu chí khác")
-        
+    
                                 for other_col in other_criteria_cols:
                                     st.markdown(f"##### 📌 Phân tích tiêu chí **{other_col}** bóc tách theo **Năm học**")
                                     
-                                    # Lấy danh sách các năm học có sẵn trong dữ liệu
                                     list_years = sorted(df_plot_data["Năm học"].astype(str).unique())
-        
+    
                                     for yr in list_years:
                                         st.markdown(f"###### Năm học: **{yr}**")
                                         df_yr_sub = df_plot_data[df_plot_data["Năm học"].astype(str) == yr]
-        
+    
                                         if df_yr_sub.empty:
                                             continue
-        
+    
                                         col_y1, col_y2 = st.columns(2)
-        
+    
                                         if other_col == "Tên môn học" and has_short_name and short_name_col_actual:
                                             df_yr_mapped = df_yr_sub.copy()
                                             mapping_dict = df_clean[[c_subject, short_name_col_actual]].drop_duplicates().set_index(c_subject)[short_name_col_actual].to_dict()
@@ -652,25 +664,23 @@ with tab1:
                                             plot_yr_base = "Trục_X_Vẽ"
                                         else:
                                             plot_yr_base = other_col
-        
+    
                                         df_yr_grouped = df_yr_sub.groupby(plot_yr_base)[metrics_cols].sum().reset_index()
                                         
-                                        # 🌟 Kiểm tra nếu tên giá trị trục X quá dài thì tự động quy ước ký hiệu K1, K2...
                                         unique_labels_yr = df_yr_grouped[plot_yr_base].astype(str).tolist()
                                         needs_mapping_yr = any(len(lbl) > 15 for lbl in unique_labels_yr)
-        
+    
                                         if needs_mapping_yr:
                                             label_mapping_yr = {lbl: f"K{i+1}" for i, lbl in enumerate(unique_labels_yr)}
                                             df_yr_grouped["_Short_Label"] = df_yr_grouped[plot_yr_base].map(label_mapping_yr)
                                             x_plot_col_yr = "_Short_Label"
                                         else:
                                             x_plot_col_yr = plot_yr_base
-        
+    
                                         num_bars_yr = len(df_yr_grouped)
                                         dyn_w_yr = max(6.0, num_bars_yr * 0.4)
                                         f_size_yr = 6 if num_bars_yr > 15 else (7 if num_bars_yr > 10 else 8)
-        
-                                        # Biểu đồ tiết theo năm học
+    
                                         with col_y1:
                                             fig_y1, ax_y1 = plt.subplots(figsize=(dyn_w_yr, 3.5))
                                             bars_y1 = ax_y1.bar(df_yr_grouped[x_plot_col_yr].astype(str), df_yr_grouped["Tổng số tiết"], color="#3274A1")
@@ -681,12 +691,9 @@ with tab1:
                                             ax_y1.set_xlabel("Ký hiệu" if needs_mapping_yr else other_col, fontsize=9)
                                             ax_y1.set_ylabel("Tổng số tiết", fontsize=9)
                                             ax_y1.set_title(f"Tổng số tiết - {other_col} (Năm: {yr})", fontsize=10, fontweight="bold")
-                                            # 🌟 Sửa lỗi: So sánh số lượng cột num_bars_yr với 8 thay vì dùng needs_mapping_yr
                                             ax_y1.tick_params(axis="x", rotation=45 if num_bars_yr > 8 else 0)
-        
                                             st.pyplot(fig_y1, bbox_inches="tight")
-        
-                                        # Biểu đồ lớp theo năm học
+    
                                         with col_y2:
                                             fig_y2, ax_y2 = plt.subplots(figsize=(dyn_w_yr, 3.5))
                                             bars_y2 = ax_y2.bar(df_yr_grouped[x_plot_col_yr].astype(str), df_yr_grouped["Số lượng lớp"], color="#E1812C")
@@ -697,17 +704,15 @@ with tab1:
                                             ax_y2.set_xlabel("Ký hiệu" if needs_mapping_yr else other_col, fontsize=9)
                                             ax_y2.set_ylabel("Số lượng lớp", fontsize=9)
                                             ax_y2.set_title(f"Số lượng lớp - {other_col} (Năm: {yr})", fontsize=10, fontweight="bold")
-                                            # 🌟 Sửa lỗi: So sánh số lượng cột num_bars_yr với 8 thay vì dùng needs_mapping_yr
                                             ax_y2.tick_params(axis="x", rotation=45 if num_bars_yr > 8 else 0)
-                                            
                                             st.pyplot(fig_y2, bbox_inches="tight")
-        
-                                        # 🌟 Hiển thị bảng chú thích ngay bên dưới nếu biểu đồ của năm đó có dùng ký hiệu viết tắt
+    
                                         if needs_mapping_yr:
                                             st.markdown(f"**📝 Chú thích ký hiệu trục hoành (Năm học: {yr} - {other_col}):**")
                                             with st.expander(f"📅 **(Bấm để xem chú thích năm {yr})**", expanded=False):
                                                 note_df_yr = pd.DataFrame(list(label_mapping_yr.items()), columns=["Ký hiệu", "Tên đầy đủ"])
                                                 st.dataframe(note_df_yr, use_container_width=True, hide_index=True)
+    
     
                     else:
                         df_temp_detail = total_rec_df.copy()
