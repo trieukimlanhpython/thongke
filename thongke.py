@@ -1116,7 +1116,7 @@ with tab1:
                                                          (p.get_x() + p.get_width() / 2., h),
                                                          ha='center', va='bottom',
                                                          fontsize=val_font_size_nckh, fontweight='bold',
-                                                         rotation=45 if num_bars_nckh > 4 else 0,
+                                                         rotation=45 if num_bars_nckh > 2 else 0,
                                                          xytext=(0, 2),
                                                          textcoords='offset points')
                                     
