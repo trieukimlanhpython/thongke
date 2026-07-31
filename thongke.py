@@ -573,7 +573,7 @@ with tab1:
                                     ax1.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=9)
                                     ax1.set_ylabel("Tổng số tiết", fontsize=9)
                                     ax1.set_title(f"Tổng số tiết theo {crit_col}", fontsize=10, fontweight="bold")
-                                    ax1.tick_params(axis="x", rotation=30 if needs_mapping else 45)
+                                    ax1.tick_params(axis="x", rotation=45 if needs_mapping else 45)
                                     st.pyplot(fig1, bbox_inches="tight")
     
                                 # Biểu đồ 2: Số lượng lớp
@@ -587,7 +587,7 @@ with tab1:
                                     ax2.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=9)
                                     ax2.set_ylabel("Số lượng lớp", fontsize=9)
                                     ax2.set_title(f"Số lượng lớp theo {crit_col}", fontsize=10, fontweight="bold")
-                                    ax2.tick_params(axis="x", rotation=30 if needs_mapping else 45)
+                                    ax2.tick_params(axis="x", rotation=45 if needs_mapping else 45)
                                     st.pyplot(fig2, bbox_inches="tight")
     
                                 # Hiển thị bảng chú thích ngay bên dưới nếu có dùng ký hiệu viết tắt
@@ -896,7 +896,7 @@ with tab1:
                                     ax1.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=8)
                                     ax1.set_ylabel("Số lượng sản phẩm", fontsize=9)
                                     ax1.set_title(f"Số lượng theo {display_name}", fontsize=10, fontweight="bold")
-                                    ax1.tick_params(axis="x", rotation=30 if needs_mapping else 45)
+                                    ax1.tick_params(axis="x", rotation=45 if needs_mapping else 45)
                                     st.pyplot(fig1, bbox_inches="tight")
     
                                 # Biểu đồ 2: Tổng số tiết thực hiện
@@ -910,7 +910,7 @@ with tab1:
                                     ax2.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=8)
                                     ax2.set_ylabel("Tổng số tiết thực hiện", fontsize=9)
                                     ax2.set_title(f"Tổng số tiết theo {display_name}", fontsize=10, fontweight="bold")
-                                    ax2.tick_params(axis="x", rotation=30 if needs_mapping else 45)
+                                    ax2.tick_params(axis="x", rotation=45 if needs_mapping else 45)
                                     st.pyplot(fig2, bbox_inches="tight")
     
                                 # Nếu có dùng ký hiệu rút gọn, hiển thị bảng chú thích ngay bên dưới biểu đồ
