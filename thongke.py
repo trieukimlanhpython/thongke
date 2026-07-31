@@ -575,9 +575,9 @@ with tab1:
                                     bars1 = ax1.bar(df_grouped_crit[x_plot_col].astype(str), df_grouped_crit["Tổng số tiết"], color="#4C72B0")
                                     for bar in bars1:
                                         h = bar.get_height()
-                                        ax1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
+                                        ax1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=6, fontweight="bold")
                                     
-                                    ax1.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=9)
+                                    ax1.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=7)
                                     ax1.set_ylabel("Tổng số tiết", fontsize=9)
                                     ax1.set_title(f"Tổng số tiết theo {crit_col}", fontsize=10, fontweight="bold")
                                     ax1.tick_params(axis="x", rotation=45 if needs_mapping else 45)
@@ -589,9 +589,9 @@ with tab1:
                                     bars2 = ax2.bar(df_grouped_crit[x_plot_col].astype(str), df_grouped_crit["Số lượng lớp"], color="#DD8452")
                                     for bar in bars2:
                                         h = bar.get_height()
-                                        ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
+                                        ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=6, fontweight="bold")
                                     
-                                    ax2.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=9)
+                                    ax2.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=7)
                                     ax2.set_ylabel("Số lượng lớp", fontsize=9)
                                     ax2.set_title(f"Số lượng lớp theo {crit_col}", fontsize=10, fontweight="bold")
                                     ax2.tick_params(axis="x", rotation=45 if needs_mapping else 45)
@@ -900,9 +900,9 @@ with tab1:
                                     bars1 = ax1.bar(df_grouped_nckh[x_plot_col].astype(str), df_grouped_nckh["Số lượng"], color="#55A868")
                                     for bar in bars1:
                                         h = bar.get_height()
-                                        ax1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
+                                        ax1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=6, fontweight="bold")
                                     
-                                    ax1.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=8)
+                                    ax1.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=7)
                                     ax1.set_ylabel("Số lượng sản phẩm", fontsize=9)
                                     ax1.set_title(f"Số lượng theo {display_name}", fontsize=10, fontweight="bold")
                                     ax1.tick_params(axis="x", rotation=45 if needs_mapping else 45)
@@ -914,9 +914,9 @@ with tab1:
                                     bars2 = ax2.bar(df_grouped_nckh[x_plot_col].astype(str), df_grouped_nckh["Tổng số tiết"], color="#C44E52")
                                     for bar in bars2:
                                         h = bar.get_height()
-                                        ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
+                                        ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=6, fontweight="bold")
                                     
-                                    ax2.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=8)
+                                    ax2.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=7)
                                     ax2.set_ylabel("Tổng số tiết thực hiện", fontsize=9)
                                     ax2.set_title(f"Tổng số tiết theo {display_name}", fontsize=10, fontweight="bold")
                                     ax2.tick_params(axis="x", rotation=45 if needs_mapping else 45)
