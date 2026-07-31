@@ -860,9 +860,10 @@ with tab1:
                             st.dataframe(df_before_disp, use_container_width=True)
 
                         st.markdown("##### 🧹 2.1 Bảng thống kê SAU KHI trừ trùng lặp")
+                        count_col_name = tiet_col_target if tiet_col_target in df_clean_unified.columns else df_clean_unified.columns[0]
                         df_after = df_clean_unified.groupby("Năm học hiển thị").agg(**{
-                            "Số lượng sản phẩm độc lập": (tiet_col_target, "count"),
-                            "Tổng số tiết thực hiện": (tiet_col_target, "sum")
+                            "Số lượng sản phẩm độc lập": (count_col_name, "count"),
+                            "Tổng số tiết thực hiện": (tiet_col_target, "sum") if tiet_col_target in df_clean_unified.columns else (count_col_name, "count")
                         }).reset_index().sort_values("Năm học hiển thị")
 
                         tot_sp_a = df_after["Số lượng sản phẩm độc lập"].sum()
@@ -882,8 +883,8 @@ with tab1:
                             group_keys_summary.append("Năm học hiển thị")
 
                             df_phanloai_summary = df_clean_unified.groupby(group_keys_summary).agg(**{
-                                "Số lượng sản phẩm": (tiet_col_target, "count"),
-                                "Tổng số tiết": (tiet_col_target, "sum")
+                                "Số lượng sản phẩm": (count_col_name, "count"),
+                                "Tổng số tiết": (tiet_col_target, "sum") if tiet_col_target in df_clean_unified.columns else (count_col_name, "count")
                             }).reset_index().sort_values(group_keys_summary)
 
                             tot_sl_pl = df_phanloai_summary["Số lượng sản phẩm"].sum()
@@ -899,7 +900,9 @@ with tab1:
 
                         cols_lower_all = {str(c).strip().lower(): c for c in df_clean_unified.columns}
                         col_ma_sp = next((cols_lower_all[c] for c in cols_lower_all if any(x in c for x in ["mã sản phẩm", "ma san pham", "code"])), None)
-                        col_tap_chi = next((cols_lower_all[c] for c in cols_lower_all if any(x in c for x in ["tạp chí", "tap chi", "hội thảo", "hoi thao", "sách", "sach"])), None)
+                        
+                        # 🌟 Mở rộng từ khóa nhận diện linh hoạt cho Tên Tạp chí / Hội thảo, Sách
+                        col_tap_chi = next((cols_lower_all[c] for c in cols_lower_all if any(x in c for x in ["tạp chí", "tap chi", "hội thảo", "hoi thao", "sách", "sach", "nhà xuất bản", "nxb"])), None)
                         col_isbn = next((cols_lower_all[c] for c in cols_lower_all if any(x in c for x in ["isbn", "issn"])), None)
 
                         with st.expander("⚙️ **Chọn tiêu chí gom nhóm (Bấm để mở/đóng)**", expanded=False):
@@ -979,7 +982,7 @@ with tab1:
 
                         df_nckh_detail = df_nckh_detail.rename(columns=rename_nckh_dict)
                         
-                        # 🌟 Tạo cột Số lượng đúng sau khi gom nhóm (Mỗi dòng kết quả sau gom nhóm tương ứng với 1 sản phẩm độc lập = 1)
+                        # 🌟 Cố định "Số lượng" sau gom nhóm luôn bằng 1 cho mỗi dòng độc lập chuẩn hóa
                         df_nckh_detail["Số lượng"] = 1
 
                         for col_drop in ["_clean_prod_name", "_clean_id", "_clean_key", "Sản phẩm chuẩn hóa", "_source_table"]:
@@ -1037,6 +1040,8 @@ with tab1:
                                 allowed_mapping.append((role_col_check, "Vai trò"))
                             if opt_pl1 and phan_loai_col and phan_loai_col in df_nckh_detail.columns:
                                 allowed_mapping.append((phan_loai_col, "PL Cấp 1"))
+                            if opt_tap and col_tap_chi and col_tap_chi in df_nckh_detail.columns:
+                                allowed_mapping.append((col_tap_chi, "Tên Tạp chí / Hội thảo, Sách"))
                             
                             for col_name, display_name in allowed_mapping:
                                 if col_name not in df_plot_nckh.columns:
