@@ -394,12 +394,14 @@ with tab1:
                         df_clean = total_rec_df.drop_duplicates().copy()
                         df_clean.columns = [str(c).strip().lower() for c in df_clean.columns]
     
-                        # 🌟 Khắc phục triệt để lỗi đổi tên cột thành term_x hoặc term_y sau khi merge
-                        for col_name in list(df_clean.columns):
-                            if col_name.startswith("term") or col_name == "term":
-                                df_clean["term"] = df_clean[col_name]
+                        # 🌟 Quét và chuẩn hóa chuẩn xác cột term (bao gồm cả trường hợp term_x, term_y hoặc viết hoa)
+                        term_actual_col = next((c for c in df_clean.columns if "term" in c), None)
+                        if term_actual_col:
+                            df_clean["term"] = df_clean[term_actual_col].astype(str).str.strip()
+                        else:
+                            df_clean["term"] = "Không rõ"
     
-                        time_col_actual = next((c for c in df_clean.columns if any(x in c for x in ["năm học", "year", "đợt", "term"])), None)
+                        time_col_actual = next((c for c in df_clean.columns if any(x in c for x in ["năm học", "year", "đợt"])), None)
                         if "năm học hiển thị" not in df_clean.columns and time_col_actual:
                             df_clean["năm học hiển thị"] = df_clean[time_col_actual].apply(quy_doi_nam_hoc)
                         elif "năm học hiển thị" not in df_clean.columns:
@@ -414,7 +416,7 @@ with tab1:
                         c_knowledge = "knowledge" if "knowledge" in df_clean.columns else None
                         c_session = "session" if "session" in df_clean.columns else None
                         c_location = "location" if "location" in df_clean.columns else None
-                        c_term = "term" if "term" in df_clean.columns else None
+                        c_term = "term"  # 🌟 Gán trực tiếp khóa term đã được chuẩn hóa
                         c_faculty = "faculty" if "faculty" in df_clean.columns else None
                         c_note = "note" if "note" in df_clean.columns else None
     
@@ -466,8 +468,8 @@ with tab1:
                             opt_loc = st.checkbox("Theo Địa điểm", value=False, key="chk_gd_loc")
                         with col_opt4:
                             opt_lecturer = st.checkbox("Theo Giảng viên", value=True, key="chk_gd_lect")
-                            opt_term = st.checkbox("Theo Học kỳ", value=False, key="chk_gd_term")
-                            
+                            opt_term = st.checkbox("Theo Học kỳ", value=False, key="chk_gd_term")  # 🌟 Kích hoạt checkbox Học kỳ
+    
                         group_detail_keys = []
                         if opt_year:
                             group_detail_keys.append("năm học hiển thị")
@@ -481,8 +483,8 @@ with tab1:
                             group_detail_keys.append(c_session)
                         if opt_loc and c_location and c_location in df_clean.columns:
                             group_detail_keys.append(c_location)
-                        if opt_term and c_term and c_term in df_clean.columns:
-                            group_detail_keys.append(c_term)
+                        if opt_term and c_term in df_clean.columns:
+                            group_detail_keys.append(c_term)  # 🌟 Đưa term vào khóa gom nhóm
                         if opt_faculty and c_faculty and c_faculty in df_clean.columns:
                             group_detail_keys.append(c_faculty)
                         if opt_note and c_note and c_note in df_clean.columns:
@@ -516,7 +518,7 @@ with tab1:
                         if c_location:
                             rename_detail_dict[c_location] = "Địa điểm"
                         if c_term:
-                            rename_detail_dict[c_term] = "Học kỳ"
+                            rename_detail_dict[c_term] = "Học kỳ"  # 🌟 Đổi tên hiển thị Học kỳ
                         if c_faculty:
                             rename_detail_dict[c_faculty] = "Khoa quản lý"
                         if c_note:
