@@ -441,11 +441,11 @@ with tab1:
                         st.dataframe(df_after_disp, use_container_width=True)
     
                         # ==========================================
-                        # 🔍 2. BẢNG CHI TIẾT GIẢNG DẠY (MỞ RỘNG THÊM KNOWLEDGE, SESSION, LOCATION)
+                        # 🔍 2. BẢNG CHI TIẾT GIẢNG DẠY (TÙY CHỈNH TIÊU CHÍ ĐẦY ĐỦ)
                         # ==========================================
                         st.markdown("##### 🔍 2. Bảng chi tiết Giảng dạy (Tùy chỉnh theo tiêu chí)")
     
-                        # Chia checkbox thành 2 hàng/nhóm cho gọn gàng (7 tiêu chí)
+                        # Chia checkbox thành 4 cột cho gọn gàng và cân đối
                         col_opt1, col_opt2, col_opt3, col_opt4 = st.columns(4)
                         with col_opt1:
                             opt_year = st.checkbox("Theo Năm học", value=True, key="chk_gd_year")
@@ -458,7 +458,7 @@ with tab1:
                             opt_loc = st.checkbox("Theo Địa điểm", value=False, key="chk_gd_loc")
                         with col_opt4:
                             opt_lecturer = st.checkbox("Theo Giảng viên", value=True, key="chk_gd_lect")
-                            opt_term = st.checkbox("Theo Học kỳ", value=True, key="chk_gd_term")
+                            opt_term = st.checkbox("Theo Học kỳ", value=False, key="chk_gd_term")  # 🌟 Đã bật checkbox Học kỳ
     
                         group_detail_keys = []
                         if opt_year:
@@ -474,7 +474,7 @@ with tab1:
                         if opt_loc and c_location and c_location in df_clean.columns:
                             group_detail_keys.append(c_location)
                         if opt_term and c_term and c_term in df_clean.columns:
-                            group_detail_keys.append(c_term)
+                            group_detail_keys.append(c_term)  # 🌟 Thêm key gom nhóm Học kỳ
                         if opt_lecturer:
                             group_detail_keys.append("_full_name")
     
@@ -488,6 +488,7 @@ with tab1:
     
                         df_gd_detail = df_clean.groupby(group_detail_keys).agg(agg_detail_dict).reset_index()
     
+                        # Ánh xạ tên cột sang tiếng Việt thân thiện
                         rename_detail_dict = {
                             "năm học hiển thị": "Năm học",
                             c_subject: "Tên môn học",
@@ -504,7 +505,7 @@ with tab1:
                         if c_location:
                             rename_detail_dict[c_location] = "Địa điểm"
                         if c_term:
-                            rename_detail_dict[c_location] = "Học kỳ"
+                            rename_detail_dict[c_term] = "Học kỳ"  # 🌟 Sửa lỗi ánh xạ Học kỳ chuẩn xác
     
                         df_gd_detail = df_gd_detail.rename(columns=rename_detail_dict)
     
@@ -579,7 +580,7 @@ with tab1:
                                     ax1.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=9)
                                     ax1.set_ylabel("Tổng số tiết", fontsize=9)
                                     ax1.set_title(f"Tổng số tiết theo {crit_col}", fontsize=10, fontweight="bold")
-                                    ax1.tick_params(axis="x", rotation=45 if needs_mapping else 45)
+                                    ax1.tick_params(axis="x", rotation=0 if needs_mapping else 45)
                                     st.pyplot(fig1, bbox_inches="tight")
     
                                 # Biểu đồ 2: Số lượng lớp
@@ -593,7 +594,7 @@ with tab1:
                                     ax2.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=9)
                                     ax2.set_ylabel("Số lượng lớp", fontsize=9)
                                     ax2.set_title(f"Số lượng lớp theo {crit_col}", fontsize=10, fontweight="bold")
-                                    ax2.tick_params(axis="x", rotation=45 if needs_mapping else 45)
+                                    ax2.tick_params(axis="x", rotation=0 if needs_mapping else 45)
                                     st.pyplot(fig2, bbox_inches="tight")
     
                                 # Hiển thị bảng chú thích ngay bên dưới nếu có dùng ký hiệu viết tắt
@@ -602,6 +603,8 @@ with tab1:
                                     with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
                                         note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
                                         st.dataframe(note_df, use_container_width=True, hide_index=True)
+    
+                                st.markdown("---")
 
                     else:
                         df_temp_detail = total_rec_df.copy()
