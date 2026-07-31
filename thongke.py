@@ -602,8 +602,8 @@ with tab1:
                                     x_plot_col = plot_base_col
     
                                 # 🌟 Tự động chia đôi dữ liệu thành đúng 2 phần
-                                chunks = np.array_split(df_grouped_crit, 2)
-    
+                                raw_chunks = np.array_split(df_grouped_crit, 2)
+                                chunks = [pd.DataFrame(c, columns=df_grouped_crit.columns) for c in raw_chunks if len(c) > 0]
                                 for idx, chunk_df in enumerate(chunks):
                                     if chunk_df.empty:
                                         continue
