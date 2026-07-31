@@ -920,9 +920,10 @@ with tab1:
                         if not group_detail_dynamic:
                             group_detail_dynamic = ["Năm học hiển thị"]
             
-                        # Cấu hình quy tắc gom nhóm cho bảng chi tiết:
-                        # - Số lượng (trước gom nhóm): Tổng số dòng kê khai ban đầu
-                        # - Số lượng sau gom nhóm: Đếm số lượng sản phẩm độc lập (nunique của "Sản phẩm chuẩn hóa") phản ánh chính xác việc đã trừ trùng lặp
+                        # Cấu hình quy tắc gom nhóm chính xác tuyệt đối:
+                        # - Số lượng: Tổng số dòng kê khai ban đầu (sum hoặc count của chỉ tiêu)
+                        # - Số lượng sau gom nhóm: Đếm chính xác SỐ LƯỢNG SẢN PHẨM ĐỘC LẬP (nunique của "Sản phẩm chuẩn hóa") bên trong nhóm đó.
+                        # Dù bạn có ẩn tên sản phẩm đi và gom lại thành 1 dòng, nó vẫn tự động quét và đếm đúng tổng số sản phẩm độc lập thực tế bên trong dòng đó!
                         agg_dyn_dict = {
                             tiet_col_target: ["sum", "count"],
                             "Sản phẩm chuẩn hóa": "nunique", 
@@ -937,6 +938,7 @@ with tab1:
             
                         df_nckh_detail = df_clean_unified.groupby(group_detail_dynamic, dropna=False).agg(agg_dyn_dict).reset_index()
             
+                        # Làm phẳng tên cột đa cấp
                         df_nckh_detail.columns = [
                             col[0] if col[1] == "" else f"{col[0]}_{col[1]}" 
                             for col in df_nckh_detail.columns
