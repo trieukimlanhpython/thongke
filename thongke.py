@@ -529,73 +529,43 @@ with tab1:
                         st.dataframe(df_gd_detail, use_container_width=True)
     
                         # ==========================================
-                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG (CÓ KÝ HIỆU KÝ TỰ TRỤC X CHO TÊN DÀI)
+                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG (TỰ ĐỘNG MỞ RỘNG CHIỀU RỘNG KHI CÓ NHIỀU CỘT)
                         # ==========================================
-                        first_col_name = df_gd_detail.columns[0]
-                        df_plot_data = df_gd_detail[df_gd_detail[first_col_name] != "**Tổng cộng**"].copy()
-                        
-                        if not df_plot_data.empty:
-                            st.markdown("##### 📊 3. Biểu đồ trực quan Giảng dạy (Tự động vẽ theo các tiêu chí đã chọn)")
+                        num_bars = len(df_grouped_crit)
+                        # Tự động tính toán chiều rộng hình vẽ: tối thiểu 6 inches, nếu nhiều cột thì mỗi cột cộng thêm 0.35 inches
+                        dynamic_width = max(6.0, num_bars * 0.35)
+
+                        # Biểu đồ 1: Tổng số tiết
+                        with col_c1:
+                            fig1, ax1 = plt.subplots(figsize=(dynamic_width, 4.0))
+                            bars1 = ax1.bar(df_grouped_crit[x_plot_col].astype(str), df_grouped_crit["Tổng số tiết"], color="#4C72B0")
+                            for bar in bars1:
+                                h = bar.get_height()
+                                ax1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=7, fontweight="bold", rotation=0)
                             
-                            metrics_cols = ["Tổng số tiết", "Số lượng lớp"]
-                            active_criteria_cols = [c for c in df_gd_detail.columns if c not in metrics_cols and c != "**Tổng cộng**"]
-    
-                            has_short_name = "short_name" in [c.lower() for c in df_clean.columns]
-                            short_name_col_actual = next((c for c in df_clean.columns if c.lower() == "short_name"), None)
-    
-                            for crit_col in active_criteria_cols:
-                                st.markdown(f"###### 📌 Phân tích theo tiêu chí: **{crit_col}**")
-                                col_c1, col_c2 = st.columns(2)
-    
-                                # Xử lý ưu tiên short_name nếu là Tên môn học
-                                if crit_col == "Tên môn học" and has_short_name and short_name_col_actual:
-                                    df_plot_mapped = df_plot_data.copy()
-                                    mapping_dict = df_clean[[c_subject, short_name_col_actual]].drop_duplicates().set_index(c_subject)[short_name_col_actual].to_dict()
-                                    df_plot_mapped["Trục_X_Vẽ"] = df_plot_mapped[crit_col].map(mapping_dict).fillna(df_plot_mapped[crit_col])
-                                    plot_base_col = "Trục_X_Vẽ"
-                                else:
-                                    plot_base_col = crit_col
-    
-                                df_grouped_crit = df_plot_data.groupby(plot_base_col)[metrics_cols].sum().reset_index()
-    
-                                # Kiểm tra nếu tên giá trị trục X quá dài thì tự động quy ước ký hiệu K1, K2...
-                                unique_labels = df_grouped_crit[plot_base_col].astype(str).tolist()
-                                needs_mapping = any(len(lbl) > 15 for lbl in unique_labels)
-    
-                                if needs_mapping:
-                                    label_mapping = {lbl: f"K{i+1}" for i, lbl in enumerate(unique_labels)}
-                                    df_grouped_crit["_Short_Label"] = df_grouped_crit[plot_base_col].map(label_mapping)
-                                    x_plot_col = "_Short_Label"
-                                else:
-                                    x_plot_col = plot_base_col
-    
-                                # Biểu đồ 1: Tổng số tiết
-                                with col_c1:
-                                    fig1, ax1 = plt.subplots(figsize=(6, 3.5))
-                                    bars1 = ax1.bar(df_grouped_crit[x_plot_col].astype(str), df_grouped_crit["Tổng số tiết"], color="#4C72B0")
-                                    for bar in bars1:
-                                        h = bar.get_height()
-                                        ax1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
-                                    
-                                    ax1.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=9)
-                                    ax1.set_ylabel("Tổng số tiết", fontsize=9)
-                                    ax1.set_title(f"Tổng số tiết theo {crit_col}", fontsize=10, fontweight="bold")
-                                    ax1.tick_params(axis="x", rotation=0 if needs_mapping else 45)
-                                    st.pyplot(fig1, bbox_inches="tight")
-    
-                                # Biểu đồ 2: Số lượng lớp
-                                with col_c2:
-                                    fig2, ax2 = plt.subplots(figsize=(6, 3.5))
-                                    bars2 = ax2.bar(df_grouped_crit[x_plot_col].astype(str), df_grouped_crit["Số lượng lớp"], color="#DD8452")
-                                    for bar in bars2:
-                                        h = bar.get_height()
-                                        ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
-                                    
-                                    ax2.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=9)
-                                    ax2.set_ylabel("Số lượng lớp", fontsize=9)
-                                    ax2.set_title(f"Số lượng lớp theo {crit_col}", fontsize=10, fontweight="bold")
-                                    ax2.tick_params(axis="x", rotation=0 if needs_mapping else 45)
-                                    st.pyplot(fig2, bbox_inches="tight")
+                            ax1.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=9)
+                            ax1.set_ylabel("Tổng số tiết", fontsize=9)
+                            ax1.set_title(f"Tổng số tiết theo {crit_col}", fontsize=10, fontweight="bold")
+                            
+                            # Tinh chỉnh hiển thị trục X
+                            ha_align = "right" if num_bars > 10 else "center"
+                            ax1.tick_params(axis="x", rotation=45 if num_bars > 10 else 0)
+                            st.pyplot(fig1, bbox_inches="tight")
+
+                        # Biểu đồ 2: Số lượng lớp
+                        with col_c2:
+                            fig2, ax2 = plt.subplots(figsize=(dynamic_width, 4.0))
+                            bars2 = ax2.bar(df_grouped_crit[x_plot_col].astype(str), df_grouped_crit["Số lượng lớp"], color="#DD8452")
+                            for bar in bars2:
+                                h = bar.get_height()
+                                ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=7, fontweight="bold", rotation=0)
+                            
+                            ax2.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=9)
+                            ax2.set_ylabel("Số lượng lớp", fontsize=9)
+                            ax2.set_title(f"Số lượng lớp theo {crit_col}", fontsize=10, fontweight="bold")
+                            
+                            ax2.tick_params(axis="x", rotation=45 if num_bars > 10 else 0)
+                            st.pyplot(fig2, bbox_inches="tight")
     
                                 # Hiển thị bảng chú thích ngay bên dưới nếu có dùng ký hiệu viết tắt
                                 if needs_mapping:
