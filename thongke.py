@@ -388,183 +388,214 @@ with tab1:
                     )
 
                     if is_only_gd:
-                        # ==========================================
-                        # 📚 XỬ LÝ RIÊNG CHO KHỐI GIẢNG DẠY (CHỈ HIỂN THỊ BẢNG TỔNG HỢP THEO NĂM HỌC)
-                        # ==========================================
-                        df_clean = total_rec_df.drop_duplicates().copy()
-                        df_clean.columns = [str(c).strip().lower() for c in df_clean.columns]
+                    # ==========================================
+                    # 📚 XỬ LÝ RIÊNG CHO KHỐI GIẢNG DẠY
+                    # ==========================================
+                    df_clean = total_rec_df.drop_duplicates().copy()
+                    df_clean.columns = [str(c).strip().lower() for c in df_clean.columns]
 
-                        time_col_actual = next((c for c in df_clean.columns if any(x in c for x in ["năm học", "year", "đợt", "term"])), None)
-                        if "năm học hiển thị" not in df_clean.columns and time_col_actual:
-                            df_clean["năm học hiển thị"] = df_clean[time_col_actual].apply(quy_doi_nam_hoc)
-                        elif "năm học hiển thị" not in df_clean.columns:
-                            df_clean["năm học hiển thị"] = "Chưa xác định"
+                    time_col_actual = next((c for c in df_clean.columns if any(x in c for x in ["năm học", "year", "đợt", "term"])), None)
+                    if "năm học hiển thị" not in df_clean.columns and time_col_actual:
+                        df_clean["năm học hiển thị"] = df_clean[time_col_actual].apply(quy_doi_nam_hoc)
+                    elif "năm học hiển thị" not in df_clean.columns:
+                        df_clean["năm học hiển thị"] = "Chưa xác định"
 
-                        tiet_col = next((c for c in df_clean.columns if any(x in c for x in ["tiết", "period"])), list(df_clean.columns)[-1])
-                        df_clean[tiet_col] = pd.to_numeric(df_clean[tiet_col], errors="coerce").fillna(0)
+                    tiet_col = next((c for c in df_clean.columns if any(x in c for x in ["tiết", "period"])), list(df_clean.columns)[-1])
+                    df_clean[tiet_col] = pd.to_numeric(df_clean[tiet_col], errors="coerce").fillna(0)
 
-                        c_class = "class" if "class" in df_clean.columns else df_clean.columns[0]
-                        c_subject = "subject" if "subject" in df_clean.columns else ("short_name" if "short_name" in df_clean.columns else df_clean.columns[0])
-                        c_program = "program" if "program" in df_clean.columns else None
-                        name_col = "name" if "name" in df_clean.columns else None
-                        surname_col = "surname" if "surname" in df_clean.columns else None
+                    c_class = "class" if "class" in df_clean.columns else df_clean.columns[0]
+                    c_subject = "subject" if "subject" in df_clean.columns else ("short_name" if "short_name" in df_clean.columns else df_clean.columns[0])
+                    c_program = "program" if "program" in df_clean.columns else None
+                    c_knowledge = "knowledge" if "knowledge" in df_clean.columns else None
+                    c_session = "session" if "session" in df_clean.columns else None
+                    c_location = "location" if "location" in df_clean.columns else None
 
-                        if name_col:
-                            if surname_col:
-                                df_clean["_full_name"] = df_clean[surname_col].astype(str) + " " + df_clean[name_col].astype(str)
-                            else:
-                                df_clean["_full_name"] = df_clean[name_col].astype(str)
+                    name_col = "name" if "name" in df_clean.columns else None
+                    surname_col = "surname" if "surname" in df_clean.columns else None
+
+                    if name_col:
+                        if surname_col:
+                            df_clean["_full_name"] = df_clean[surname_col].astype(str) + " " + df_clean[name_col].astype(str)
                         else:
-                            df_clean["_full_name"] = "Không rõ"
+                            df_clean["_full_name"] = df_clean[name_col].astype(str)
+                    else:
+                        df_clean["_full_name"] = "Không rõ"
 
-                        # 🌟 CHỈ TẠO VÀ HIỂN THỊ DUY NHẤT BẢNG TỔNG HỢP THEO NĂM HỌC
-                        df_after = df_clean.groupby("năm học hiển thị").agg(**{
-                            "Tổng số tiết thực hiện": (tiet_col, "sum"),
-                            "Số lượng lớp": (c_class, "nunique"),
-                            "Số lượng môn học": (c_subject, "nunique")
-                        }).reset_index().sort_values("năm học hiển thị")
+                    # 1. Bảng tổng hợp Giảng dạy theo Năm học
+                    df_after = df_clean.groupby("năm học hiển thị").agg(**{
+                        "Tổng số tiết thực hiện": (tiet_col, "sum"),
+                        "Số lượng lớp": (c_class, "nunique"),
+                        "Số lượng môn học": (c_subject, "nunique")
+                    }).reset_index().sort_values("năm học hiển thị")
+                    
+                    df_after = df_after.rename(columns={"năm học hiển thị": "Năm học hiển thị"})
+
+                    st.markdown("##### 🧹 1. Bảng tổng hợp Giảng dạy theo Năm học")
+                    tot_lop = df_after["Số lượng lớp"].sum()
+                    tot_tiet = df_after["Tổng số tiết thực hiện"].sum()
+
+                    df_after_disp = df_after.copy()
+                    df_after_disp.loc[len(df_after_disp)] = ["**Tổng cộng**", tot_tiet, tot_lop, float('nan')]
+                    df_after_disp = df_after_disp[["Năm học hiển thị", "Số lượng lớp", "Số lượng môn học", "Tổng số tiết thực hiện"]]
+                    st.dataframe(df_after_disp, use_container_width=True)
+
+                    # ==========================================
+                    # 🔍 2. BẢNG CHI TIẾT GIẢNG DẠY (MỞ RỘNG THÊM KNOWLEDGE, SESSION, LOCATION)
+                    # ==========================================
+                    st.markdown("##### 🔍 2. Bảng chi tiết Giảng dạy (Tùy chỉnh theo tiêu chí)")
+
+                    # Chia checkbox thành 2 hàng/nhóm cho gọn gàng (7 tiêu chí)
+                    col_opt1, col_opt2, col_opt3, col_opt4 = st.columns(4)
+                    with col_opt1:
+                        opt_year = st.checkbox("Theo Năm học", value=True, key="chk_gd_year")
+                        opt_know = st.checkbox("Theo Knowledge", value=False, key="chk_gd_know")
+                    with col_opt2:
+                        opt_prog = st.checkbox("Theo Chương trình (Program)", value=True, key="chk_gd_prog")
+                        opt_sess = st.checkbox("Theo Session", value=False, key="chk_gd_sess")
+                    with col_opt3:
+                        opt_subj = st.checkbox("Theo Môn học (Subject)", value=True, key="chk_gd_subj")
+                        opt_loc = st.checkbox("Theo Location", value=False, key="chk_gd_loc")
+                    with col_opt4:
+                        opt_lecturer = st.checkbox("Theo Giảng viên", value=True, key="chk_gd_lect")
+
+                    group_detail_keys = []
+                    if opt_year:
+                        group_detail_keys.append("năm học hiển thị")
+                    if opt_prog and c_program and c_program in df_clean.columns:
+                        group_detail_keys.append(c_program)
+                    if opt_subj:
+                        group_detail_keys.append(c_subject)
+                    if opt_know and c_knowledge and c_knowledge in df_clean.columns:
+                        group_detail_keys.append(c_knowledge)
+                    if opt_sess and c_session and c_session in df_clean.columns:
+                        group_detail_keys.append(c_session)
+                    if opt_loc and c_location and c_location in df_clean.columns:
+                        group_detail_keys.append(c_location)
+                    if opt_lecturer:
+                        group_detail_keys.append("_full_name")
+
+                    if not group_detail_keys:
+                        group_detail_keys = ["năm học hiển thị"]
+
+                    agg_detail_dict = {
+                        tiet_col: "sum",
+                        c_class: "nunique"
+                    }
+
+                    df_gd_detail = df_clean.groupby(group_detail_keys).agg(agg_detail_dict).reset_index()
+
+                    rename_detail_dict = {
+                        "năm học hiển thị": "Năm học",
+                        c_subject: "Tên môn học",
+                        tiet_col: "Tổng số tiết",
+                        c_class: "Số lượng lớp",
+                        "_full_name": "Giảng viên"
+                    }
+                    if c_program:
+                        rename_detail_dict[c_program] = "Chương trình"
+                    if c_knowledge:
+                        rename_detail_dict[c_knowledge] = "Knowledge"
+                    if c_session:
+                        rename_detail_dict[c_session] = "Session"
+                    if c_location:
+                        rename_detail_dict[c_location] = "Location"
+
+                    df_gd_detail = df_gd_detail.rename(columns=rename_detail_dict)
+
+                    if not df_gd_detail.empty:
+                        total_tiet_val = df_gd_detail["Tổng số tiết"].sum()
+                        total_lop_val = df_gd_detail["Số lượng lớp"].sum()
                         
-                        df_after = df_after.rename(columns={"năm học hiển thị": "Năm học hiển thị"})
-
-                        st.markdown("##### 🧹 1. Bảng tổng hợp Giảng dạy theo Năm học")
-                        tot_lop = df_after["Số lượng lớp"].sum()
-                        tot_tiet = df_after["Tổng số tiết thực hiện"].sum()
-
-                        df_after_disp = df_after.copy()
-                        # Dùng float('nan') cho cột số lượng môn học ở dòng tổng cộng để giữ nguyên căn lề phải chuẩn số
-                        df_after_disp.loc[len(df_after_disp)] = ["**Tổng cộng**", tot_tiet, tot_lop, float('nan')]
+                        total_row = {}
+                        for col_name in df_gd_detail.columns:
+                            if col_name == df_gd_detail.columns[0]:
+                                total_row[col_name] = "**Tổng cộng**"
+                            elif col_name == "Tổng số tiết":
+                                total_row[col_name] = total_tiet_val
+                            elif col_name == "Số lượng lớp":
+                                total_row[col_name] = total_lop_val
+                            else:
+                                total_row[col_name] = ""
                         
-                        # Sắp xếp lại thứ tự cột
-                        df_after_disp = df_after_disp[["Năm học hiển thị", "Số lượng lớp", "Số lượng môn học", "Tổng số tiết thực hiện"]]
-                        st.dataframe(df_after_disp, use_container_width=True)
+                        df_gd_detail.loc[len(df_gd_detail)] = total_row
 
-                        st.markdown("##### 🔍 2. Bảng chi tiết Giảng dạy (Tùy chỉnh theo tiêu chí)")
+                    st.dataframe(df_gd_detail, use_container_width=True)
 
-                        col_opt1, col_opt2, col_opt3, col_opt4 = st.columns(4)
-                        with col_opt1:
-                            opt_year = st.checkbox("Theo Năm học", value=True)
-                        with col_opt2:
-                            opt_prog = st.checkbox("Theo Chương trình (Program)", value=True)
-                        with col_opt3:
-                            opt_subj = st.checkbox("Theo Môn học (Subject)", value=True)
-                        with col_opt4:
-                            opt_lecturer = st.checkbox("Theo Giảng viên", value=True)
-
-                        group_detail_keys = []
-                        if opt_year:
-                            group_detail_keys.append("năm học hiển thị")
-                        if opt_prog and c_program and c_program in df_clean.columns:
-                            group_detail_keys.append(c_program)
-                        if opt_subj:
-                            group_detail_keys.append(c_subject)
-                        if opt_lecturer:
-                            group_detail_keys.append("_full_name")
-
-                        if not group_detail_keys:
-                            group_detail_keys = ["năm học hiển thị"]
-
-                        agg_detail_dict = {
-                            tiet_col: "sum",
-                            c_class: "nunique"
-                        }
-
-                        df_gd_detail = df_clean.groupby(group_detail_keys).agg(agg_detail_dict).reset_index()
-
-                        rename_detail_dict = {
-                            "năm học hiển thị": "Năm học",
-                            c_subject: "Tên môn học",
-                            tiet_col: "Tổng số tiết",
-                            c_class: "Số lượng lớp",
-                            "_full_name": "Giảng viên"
-                        }
-                        if c_program:
-                            rename_detail_dict[c_program] = "Chương trình"
-
-                        df_gd_detail = df_gd_detail.rename(columns=rename_detail_dict)
-
-                        if not df_gd_detail.empty:
-                            total_tiet_val = df_gd_detail["Tổng số tiết"].sum()
-                            total_lop_val = df_gd_detail["Số lượng lớp"].sum()
-                            
-                            total_row = {}
-                            for col_name in df_gd_detail.columns:
-                                if col_name == df_gd_detail.columns[0]:
-                                    total_row[col_name] = "**Tổng cộng**"
-                                elif col_name == "Tổng số tiết":
-                                    total_row[col_name] = total_tiet_val
-                                elif col_name == "Số lượng lớp":
-                                    total_row[col_name] = total_lop_val
-                                else:
-                                    total_row[col_name] = ""
-                            
-                            df_gd_detail.loc[len(df_gd_detail)] = total_row
-
-                        st.dataframe(df_gd_detail, use_container_width=True)
-
-                        # ==========================================
-                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG THEO TỪNG TIÊU CHÍ ĐÃ CHỌN Ở 2.3 (ƯU TIÊN SHORT_NAME CHO MÔN HỌC)
-                        # ==========================================
-                        first_col_name = df_gd_detail.columns[0]
-                        df_plot_data = df_gd_detail[df_gd_detail[first_col_name] != "**Tổng cộng**"].copy()
+                    # ==========================================
+                    # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG (CÓ KÝ HIỆU KÝ TỰ TRỤC X CHO TÊN DÀI)
+                    # ==========================================
+                    first_col_name = df_gd_detail.columns[0]
+                    df_plot_data = df_gd_detail[df_gd_detail[first_col_name] != "**Tổng cộng**"].copy()
+                    
+                    if not df_plot_data.empty:
+                        st.markdown("##### 📊 3. Biểu đồ trực quan Giảng dạy (Tự động vẽ theo các tiêu chí đã chọn)")
                         
-                        if not df_plot_data.empty:
-                            st.markdown("##### 📊 3. Biểu đồ trực quan Giảng dạy (Tự động vẽ theo các tiêu chí đã chọn)")
-                            
-                            metrics_cols = ["Tổng số tiết", "Số lượng lớp"]
-                            active_criteria_cols = [c for c in df_gd_detail.columns if c not in metrics_cols and c != "**Tổng cộng**"]
+                        metrics_cols = ["Tổng số tiết", "Số lượng lớp"]
+                        active_criteria_cols = [c for c in df_gd_detail.columns if c not in metrics_cols and c != "**Tổng cộng**"]
 
-                            # Nếu bảng chi tiết đang gom theo "Tên môn học" và trong df_clean gốc có cột "short_name", 
-                            # ta thay thế tạm giá trị trục X thành short_name để vẽ đồ thị cho gọn đẹp
-                            has_short_name = "short_name" in [c.lower() for c in df_clean.columns]
-                            short_name_col_actual = next((c for c in df_clean.columns if c.lower() == "short_name"), None)
+                        has_short_name = "short_name" in [c.lower() for c in df_clean.columns]
+                        short_name_col_actual = next((c for c in df_clean.columns if c.lower() == "short_name"), None)
 
-                            for crit_col in active_criteria_cols:
-                                st.markdown(f"###### 📌 Phân tích theo tiêu chí: **{crit_col}**")
-                                col_c1, col_c2 = st.columns(2)
+                        for crit_col in active_criteria_cols:
+                            st.markdown(f"###### 📌 Phân tích theo tiêu chí: **{crit_col}**")
+                            col_c1, col_c2 = st.columns(2)
 
-                                # Xử lý riêng nếu tiêu chí đang xét là "Tên môn học" và có tồn tại cột short_name
-                                if crit_col == "Tên môn học" and has_short_name and short_name_col_actual:
-                                    # Tạo bản sao dữ liệu vẽ và map sang short_name từ bảng df_clean gốc
-                                    df_plot_mapped = df_plot_data.copy()
-                                    # Thực hiện ánh xạ thông qua phép merge với df_clean để lấy short_name tương ứng
-                                    mapping_dict = df_clean[[c_subject, short_name_col_actual]].drop_duplicates().set_index(c_subject)[short_name_col_actual].to_dict()
-                                    df_plot_mapped["Trục_X_Vẽ"] = df_plot_mapped[crit_col].map(mapping_dict).fillna(df_plot_mapped[crit_col])
-                                    plot_x_col = "Trục_X_Vẽ"
-                                    xlabel_title = "Môn học (Short name)"
-                                else:
-                                    plot_x_col = crit_col
-                                    xlabel_title = crit_col
+                            # Xử lý ưu tiên short_name nếu là Tên môn học
+                            if crit_col == "Tên môn học" and has_short_name and short_name_col_actual:
+                                df_plot_mapped = df_plot_data.copy()
+                                mapping_dict = df_clean[[c_subject, short_name_col_actual]].drop_duplicates().set_index(c_subject)[short_name_col_actual].to_dict()
+                                df_plot_mapped["Trục_X_Vẽ"] = df_plot_mapped[crit_col].map(mapping_dict).fillna(df_plot_mapped[crit_col])
+                                plot_base_col = "Trục_X_Vẽ"
+                            else:
+                                plot_base_col = crit_col
 
-                                # Chuẩn bị dữ liệu nhóm theo trục X phù hợp
-                                df_grouped_crit = df_plot_mapped.groupby(plot_x_col)[metrics_cols].sum().reset_index() if (crit_col == "Tên môn học" and has_short_name) else df_plot_data.groupby(crit_col)[metrics_cols].sum().reset_index()
+                            df_grouped_crit = df_plot_data.groupby(plot_base_col)[metrics_cols].sum().reset_index()
 
-                                # Biểu đồ 1: Tổng số tiết theo tiêu chí
-                                with col_c1:
-                                    fig1, ax1 = plt.subplots(figsize=(6, 3.5))
-                                    bars1 = ax1.bar(df_grouped_crit[plot_x_col].astype(str) if crit_col == "Tên môn học" and has_short_name else df_grouped_crit[crit_col].astype(str), df_grouped_crit["Tổng số tiết"], color="#4C72B0")
-                                    for bar in bars1:
-                                        h = bar.get_height()
-                                        ax1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
-                                    
-                                    ax1.set_xlabel(xlabel_title, fontsize=9)
-                                    ax1.set_ylabel("Tổng số tiết", fontsize=9)
-                                    ax1.set_title(f"Tổng số tiết theo {crit_col}", fontsize=10, fontweight="bold")
-                                    ax1.tick_params(axis="x", rotation=45)
-                                    st.pyplot(fig1, bbox_inches="tight")
+                            # Kiểm tra nếu tên giá trị trục X quá dài thì tự động quy ước ký hiệu K1, K2...
+                            unique_labels = df_grouped_crit[plot_base_col].astype(str).tolist()
+                            needs_mapping = any(len(lbl) > 15 for lbl in unique_labels)
 
-                                # Biểu đồ 2: Số lượng lớp theo tiêu chí
-                                with col_c2:
-                                    fig2, ax2 = plt.subplots(figsize=(6, 3.5))
-                                    bars2 = ax2.bar(df_grouped_crit[plot_x_col].astype(str) if crit_col == "Tên môn học" and has_short_name else df_grouped_crit[crit_col].astype(str), df_grouped_crit["Số lượng lớp"], color="#DD8452")
-                                    for bar in bars2:
-                                        h = bar.get_height()
-                                        ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
-                                    
-                                    ax2.set_xlabel(xlabel_title, fontsize=9)
-                                    ax2.set_ylabel("Số lượng lớp", fontsize=9)
-                                    ax2.set_title(f"Số lượng lớp theo {crit_col}", fontsize=10, fontweight="bold")
-                                    ax2.tick_params(axis="x", rotation=45)
-                                    st.pyplot(fig2, bbox_inches="tight")
+                            if needs_mapping:
+                                label_mapping = {lbl: f"K{i+1}" for i, lbl in enumerate(unique_labels)}
+                                df_grouped_crit["_Short_Label"] = df_grouped_crit[plot_base_col].map(label_mapping)
+                                x_plot_col = "_Short_Label"
+                            else:
+                                x_plot_col = plot_base_col
+
+                            # Biểu đồ 1: Tổng số tiết
+                            with col_c1:
+                                fig1, ax1 = plt.subplots(figsize=(6, 3.5))
+                                bars1 = ax1.bar(df_grouped_crit[x_plot_col].astype(str), df_grouped_crit["Tổng số tiết"], color="#4C72B0")
+                                for bar in bars1:
+                                    h = bar.get_height()
+                                    ax1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
+                                
+                                ax1.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=9)
+                                ax1.set_ylabel("Tổng số tiết", fontsize=9)
+                                ax1.set_title(f"Tổng số tiết theo {crit_col}", fontsize=10, fontweight="bold")
+                                ax1.tick_params(axis="x", rotation=0 if needs_mapping else 45)
+                                st.pyplot(fig1, bbox_inches="tight")
+
+                            # Biểu đồ 2: Số lượng lớp
+                            with col_c2:
+                                fig2, ax2 = plt.subplots(figsize=(6, 3.5))
+                                bars2 = ax2.bar(df_grouped_crit[x_plot_col].astype(str), df_grouped_crit["Số lượng lớp"], color="#DD8452")
+                                for bar in bars2:
+                                    h = bar.get_height()
+                                    ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
+                                
+                                ax2.set_xlabel("Ký hiệu" if needs_mapping else crit_col, fontsize=9)
+                                ax2.set_ylabel("Số lượng lớp", fontsize=9)
+                                ax2.set_title(f"Số lượng lớp theo {crit_col}", fontsize=10, fontweight="bold")
+                                ax2.tick_params(axis="x", rotation=0 if needs_mapping else 45)
+                                st.pyplot(fig2, bbox_inches="tight")
+
+                            # Hiển thị bảng chú thích ngay bên dưới nếu có dùng ký hiệu viết tắt
+                            if needs_mapping:
+                                st.markdown(f"**📝 Chú thích ký hiệu trục hoành cho ({crit_col}):**")
+                                with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
+                                    note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
+                                    st.dataframe(note_df, use_container_width=True, hide_index=True)
 
                     else:
                         df_temp_detail = total_rec_df.copy()
