@@ -862,7 +862,7 @@ with tab1:
                                         h = bar.get_height()
                                         ax1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
                                     
-                                    ax1.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=9)
+                                    ax1.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=8)
                                     ax1.set_ylabel("Số lượng sản phẩm", fontsize=9)
                                     ax1.set_title(f"Số lượng theo {display_name}", fontsize=10, fontweight="bold")
                                     ax1.tick_params(axis="x", rotation=0 if needs_mapping else 45)
@@ -876,7 +876,7 @@ with tab1:
                                         h = bar.get_height()
                                         ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=8, fontweight="bold")
                                     
-                                    ax2.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=9)
+                                    ax2.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=8)
                                     ax2.set_ylabel("Tổng số tiết thực hiện", fontsize=9)
                                     ax2.set_title(f"Tổng số tiết theo {display_name}", fontsize=10, fontweight="bold")
                                     ax2.tick_params(axis="x", rotation=0 if needs_mapping else 45)
