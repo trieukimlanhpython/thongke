@@ -567,14 +567,14 @@ with tab1:
                             ax2.tick_params(axis="x", rotation=45 if num_bars > 10 else 0)
                             st.pyplot(fig2, bbox_inches="tight")
     
-                                # Hiển thị bảng chú thích ngay bên dưới nếu có dùng ký hiệu viết tắt
-                                if needs_mapping:
-                                    st.markdown(f"**📝 Chú thích ký hiệu trục hoành cho ({crit_col}):**")
-                                    with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
-                                        note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
-                                        st.dataframe(note_df, use_container_width=True, hide_index=True)
-    
-                                st.markdown("---")
+                            # Hiển thị bảng chú thích ngay bên dưới nếu có dùng ký hiệu viết tắt
+                            if needs_mapping:
+                                st.markdown(f"**📝 Chú thích ký hiệu trục hoành cho ({crit_col}):**")
+                                with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
+                                    note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
+                                    st.dataframe(note_df, use_container_width=True, hide_index=True)
+
+                            st.markdown("---")
 
                     else:
                         df_temp_detail = total_rec_df.copy()
