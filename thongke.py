@@ -765,7 +765,6 @@ with tab1:
                                             note_df_yr = pd.DataFrame(list(label_mapping_yr.items()), columns=["Ký hiệu", "Tên đầy đủ"])
                                             st.dataframe(note_df_yr, use_container_width=True, hide_index=True)
     
-    
                     else:
                         df_temp_detail = total_rec_df.copy()
                         df_temp_detail.columns = [str(c).strip() for c in df_temp_detail.columns]
@@ -833,7 +832,7 @@ with tab1:
                             group_keys_final.insert(1, loai_hd_col)
 
                         agg_rules_detail = {
-                            tiet_col_target: "first",
+                            tiet_col_target: ["sum", "count"],
                             "_full_name": lambda x: ", ".join(x.dropna().unique()),
                         }
                         if cap_do_col and cap_do_col in df_temp_detail.columns:
@@ -954,6 +953,8 @@ with tab1:
                             tiet_col_target: ["sum", "count"],
                             "_full_name": lambda x: ", ".join(x.dropna().unique()),
                         }
+                        if cap_do_col and cap_do_col in df_clean_unified.columns:
+                            agg_dyn_dict[cap_do_col] = "first"
                         if name_prod_col and name_prod_col in df_clean_unified.columns:
                             agg_dyn_dict[name_prod_col] = lambda x: " / ".join(x.dropna().unique())
                         if id_col_check and id_col_check in df_clean_unified.columns:
@@ -970,7 +971,7 @@ with tab1:
 
                         rename_nckh_dict = {
                             f"{tiet_col_target}_sum": "Tổng số tiết",
-                            f"{tiet_col_target}_count": "Số lượng",
+                            f"{tiet_col_target}_count": "SL trước trùng lắp",
                             "_full_name": "Danh sách thành viên"
                         }
                         if role_col_check:
@@ -978,12 +979,15 @@ with tab1:
 
                         df_nckh_detail = df_nckh_detail.rename(columns=rename_nckh_dict)
                         
+                        # 🌟 Tạo cột Số lượng đúng sau khi gom nhóm (Mỗi dòng kết quả sau gom nhóm tương ứng với 1 sản phẩm độc lập = 1)
+                        df_nckh_detail["Số lượng"] = 1
+
                         for col_drop in ["_clean_prod_name", "_clean_id", "_clean_key", "Sản phẩm chuẩn hóa", "_source_table"]:
                             if col_drop in df_nckh_detail.columns:
                                 df_nckh_detail = df_nckh_detail.drop(columns=[col_drop])
 
                         front_cols = [c for c in group_detail_dynamic if c in df_nckh_detail.columns]
-                        middle_cols = [c for c in ["Số lượng", "Tổng số tiết"] if c in df_nckh_detail.columns]
+                        middle_cols = [c for c in ["Số lượng", "SL trước trùng lắp", "Tổng số tiết"] if c in df_nckh_detail.columns]
                         end_cols = [c for c in df_nckh_detail.columns if c not in front_cols + middle_cols]
                         
                         cols_order = front_cols + middle_cols + end_cols
@@ -991,6 +995,7 @@ with tab1:
 
                         if not df_nckh_detail.empty:
                             tot_sl_nckh = df_nckh_detail["Số lượng"].sum() if "Số lượng" in df_nckh_detail.columns else 0
+                            tot_sl_truoc = df_nckh_detail["SL trước trùng lắp"].sum() if "SL trước trùng lắp" in df_nckh_detail.columns else 0
                             tot_tiet_nckh = df_nckh_detail["Tổng số tiết"].sum() if "Tổng số tiết" in df_nckh_detail.columns else 0
                             
                             total_row_nckh = {}
@@ -999,6 +1004,8 @@ with tab1:
                                     total_row_nckh[col_name] = "**Tổng cộng**"
                                 elif col_name == "Số lượng":
                                     total_row_nckh[col_name] = tot_sl_nckh
+                                elif col_name == "SL trước trùng lắp":
+                                    total_row_nckh[col_name] = tot_sl_truoc
                                 elif col_name == "Tổng số tiết":
                                     total_row_nckh[col_name] = tot_tiet_nckh
                                 else:
@@ -1008,7 +1015,7 @@ with tab1:
                         st.dataframe(df_nckh_detail, use_container_width=True)
 
                         # ==========================================
-                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG CHO NCKH (SO SÁNH CÁC NĂM HỌC DẠNG CỘT NHÓM - GIỐNG PHẦN GIẢNG DẠY)
+                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG CHO NCKH (DỰA TRÊN CỘT "Số lượng" SAU KHI GOM NHÓM)
                         # ==========================================
                         first_col_nckh = df_nckh_detail.columns[0]
                         df_plot_nckh = df_nckh_detail[df_nckh_detail[first_col_nckh] != "**Tổng cộng**"].copy()
@@ -1019,7 +1026,6 @@ with tab1:
                             metrics_nckh = ["Số lượng", "Tổng số tiết"]
                             has_year_nckh = "Năm học hiển thị" in df_nckh_detail.columns
                             
-                            # Danh sách ánh xạ chính xác từ checkbox và tên cột tương ứng trong bảng chi tiết
                             allowed_mapping = []
                             if opt_y and has_year_nckh:
                                 allowed_mapping.append(("Năm học hiển thị", "Năm học"))
@@ -1032,14 +1038,12 @@ with tab1:
                             if opt_pl1 and phan_loai_col and phan_loai_col in df_nckh_detail.columns:
                                 allowed_mapping.append((phan_loai_col, "PL Cấp 1"))
                             
-                            # Duyệt và vẽ cặp biểu đồ cho từng tiêu chí được phép
                             for col_name, display_name in allowed_mapping:
                                 if col_name not in df_plot_nckh.columns:
                                     continue
                                 
                                 st.markdown(f"###### 📌 Phân tích theo tiêu chí: **{display_name}**")
                                 
-                                # 🌟 Thêm bộ lọc checkbox/multiselect ngay tại đồ thị NCKH (Mặc định hiện toàn bộ nếu bỏ trống)
                                 df_nckh_filtered = df_plot_nckh.copy()
                                 unique_vals_nckh = sorted(df_plot_nckh[col_name].astype(str).unique())
                                 selected_vals_nckh = st.multiselect(
@@ -1049,25 +1053,22 @@ with tab1:
                                 )
                                 if selected_vals_nckh:
                                     df_nckh_filtered = df_nckh_filtered[df_nckh_filtered[col_name].astype(str).isin(selected_vals_nckh)]
-                
+
                                 if df_nckh_filtered.empty:
                                     st.warning(f"⚠️ Không có dữ liệu phù hợp với bộ lọc cho tiêu chí **{display_name}**.")
                                     continue
-                
+
                                 col_chart1, col_chart2 = st.columns(2)
                                 
-                                # Nếu tiêu chí đang xét KHÁC "Năm học hiển thị" và có dữ liệu năm học -> Dùng pivot table để đưa Năm học lên làm cột (legend nhóm cột cạnh nhau)
                                 if col_name != "Năm học hiển thị" and has_year_nckh:
                                     df_pivot_qty = df_nckh_filtered.pivot_table(index=col_name, columns="Năm học hiển thị", values="Số lượng", aggfunc="sum").fillna(0)
                                     df_pivot_tiet = df_nckh_filtered.pivot_table(index=col_name, columns="Năm học hiển thị", values="Tổng số tiết", aggfunc="sum").fillna(0)
                                     is_grouped_years = True
                                 else:
-                                    # Nếu chính là tiêu chí Năm học hoặc không tách năm -> Gom nhóm bình thường
                                     df_pivot_qty = df_nckh_filtered.groupby(col_name)[["Số lượng"]].sum()
                                     df_pivot_tiet = df_nckh_filtered.groupby(col_name)[["Tổng số tiết"]].sum()
                                     is_grouped_years = False
-                
-                                # Xử lý tự động rút gọn tên trên trục hoành nếu tên quá dài
+
                                 unique_labels = df_pivot_qty.index.astype(str).tolist()
                                 needs_mapping = any(len(lbl) > 15 for lbl in unique_labels)
                                 
@@ -1076,17 +1077,15 @@ with tab1:
                                     label_mapping = {lbl: f"K{i+1}" for i, lbl in enumerate(unique_labels)}
                                     df_pivot_qty.index = df_pivot_qty.index.map(label_mapping)
                                     df_pivot_tiet.index = df_pivot_tiet.index.map(label_mapping)
-                
+
                                 num_bars_nckh = len(df_pivot_qty)
                                 dynamic_width_nckh = max(7.0, num_bars_nckh * 0.6)
                                 val_font_size_nckh = 6 if num_bars_nckh > 15 else (7 if num_bars_nckh > 10 else 8)
                                 
-                                # 1. Biểu đồ Số lượng sản phẩm
                                 with col_chart1:
                                     fig1, ax1 = plt.subplots(figsize=(dynamic_width_nckh, 4.0))
                                     df_pivot_qty.plot(kind="bar", stacked=False, ax=ax1, width=0.8, colormap="tab20")
                                     
-                                    # Vòng lặp hiển thị giá trị trên đầu các bar
                                     for p in ax1.patches:
                                         h = p.get_height()
                                         if h > 0:
@@ -1107,12 +1106,10 @@ with tab1:
                                     ax1.grid(axis="y", linestyle="--", alpha=0.5)
                                     st.pyplot(fig1, bbox_inches="tight")
                                 
-                                # 2. Biểu đồ Tổng số tiết thực hiện
                                 with col_chart2:
                                     fig2, ax2 = plt.subplots(figsize=(dynamic_width_nckh, 4.0))
                                     df_pivot_tiet.plot(kind="bar", stacked=False, ax=ax2, width=0.8, colormap="Accent")
                                     
-                                    # Vòng lặp hiển thị giá trị trên đầu các bar
                                     for p in ax2.patches:
                                         h = p.get_height()
                                         if h > 0:
@@ -1120,7 +1117,7 @@ with tab1:
                                                          (p.get_x() + p.get_width() / 2., h),
                                                          ha='center', va='bottom',
                                                          fontsize=val_font_size_nckh, fontweight='bold',
-                                                         rotation=45 if num_bars_nckh > 2 else 0,
+                                                         rotation=45 if num_bars_nckh > 8 else 0,
                                                          xytext=(0, 2),
                                                          textcoords='offset points')
                                     
@@ -1133,7 +1130,6 @@ with tab1:
                                     ax2.grid(axis="y", linestyle="--", alpha=0.5)
                                     st.pyplot(fig2, bbox_inches="tight")
                                 
-                                # Nếu có dùng ký hiệu rút gọn, hiển thị bảng chú thích ngay bên dưới biểu đồ
                                 if needs_mapping:
                                     st.markdown(f"**📝 Chú thích ký hiệu trục hoành cho ({display_name}):**")
                                     with st.expander(f"📅 **(Bấm để mở/đóng)**", expanded=True):
