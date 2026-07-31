@@ -688,7 +688,7 @@ with tab1:
                                         # --- BỐ CỤC HÀNG DỌC (1 CỘT CHO MỖI DÒNG - TĂNG DPI CHỐNG NHỜM MỜ) ---
                                         
                                         # Biểu đồ nhóm 1: Tổng số tiết theo năm học
-                                        fig_g1, ax_g1 = plt.subplots(figsize=(dyn_w_grp, 4.5), dpi=300)
+                                        fig_g1, ax_g1 = plt.subplots(figsize=(dyn_w_grp, 4.5))
                                         pivot_tiet.plot(kind="bar", ax=ax_g1, width=0.8)
                                         add_bar_labels(ax_g1)
                                         ax_g1.set_xlabel("Ký hiệu" if needs_mapping_grp else other_col, fontsize=9)
@@ -702,7 +702,7 @@ with tab1:
                                         st.markdown("")
     
                                         # Biểu đồ nhóm 2: Số lượng lớp theo năm học
-                                        fig_g2, ax_g2 = plt.subplots(figsize=(dyn_w_grp, 4.5), dpi=300)
+                                        fig_g2, ax_g2 = plt.subplots(figsize=(dyn_w_grp, 4.5))
                                         pivot_lop.plot(kind="bar", ax=ax_g2, width=0.8, colormap="Oranges")
                                         add_bar_labels(ax_g2)
                                         ax_g2.set_xlabel("Ký hiệu" if needs_mapping_grp else other_col, fontsize=9)
@@ -718,7 +718,7 @@ with tab1:
                                         col_g1, col_g2 = st.columns(2)
     
                                         with col_g1:
-                                            fig_g1, ax_g1 = plt.subplots(figsize=(max(6.0, dyn_w_grp/2), 4.5), dpi=300)
+                                            fig_g1, ax_g1 = plt.subplots(figsize=(max(6.0, dyn_w_grp/2), 4.5))
                                             pivot_tiet.plot(kind="bar", ax=ax_g1, width=0.8)
                                             add_bar_labels(ax_g1)
                                             ax_g1.set_xlabel("Ký hiệu" if needs_mapping_grp else other_col, fontsize=9)
@@ -730,7 +730,7 @@ with tab1:
                                             st.pyplot(fig_g1, bbox_inches="tight")
     
                                         with col_g2:
-                                            fig_g2, ax_g2 = plt.subplots(figsize=(max(6.0, dyn_w_grp/2), 4.5), dpi=300)
+                                            fig_g2, ax_g2 = plt.subplots(figsize=(max(6.0, dyn_w_grp/2), 4.5))
                                             pivot_lop.plot(kind="bar", ax=ax_g2, width=0.8, colormap="Oranges")
                                             add_bar_labels(ax_g2)
                                             ax_g2.set_xlabel("Ký hiệu" if needs_mapping_grp else other_col, fontsize=9)
