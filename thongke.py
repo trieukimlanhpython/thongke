@@ -409,6 +409,7 @@ with tab1:
                         c_knowledge = "knowledge" if "knowledge" in df_clean.columns else None
                         c_session = "session" if "session" in df_clean.columns else None
                         c_location = "location" if "location" in df_clean.columns else None
+                        c_term = "term" if "term" in df_clean.columns else None
     
                         name_col = "name" if "name" in df_clean.columns else None
                         surname_col = "surname" if "surname" in df_clean.columns else None
@@ -457,6 +458,7 @@ with tab1:
                             opt_loc = st.checkbox("Theo Địa điểm", value=False, key="chk_gd_loc")
                         with col_opt4:
                             opt_lecturer = st.checkbox("Theo Giảng viên", value=True, key="chk_gd_lect")
+                            opt_term = st.checkbox("Theo Học kỳ", value=True, key="chk_gd_term")
     
                         group_detail_keys = []
                         if opt_year:
@@ -471,6 +473,8 @@ with tab1:
                             group_detail_keys.append(c_session)
                         if opt_loc and c_location and c_location in df_clean.columns:
                             group_detail_keys.append(c_location)
+                        if opt_term and c_term and c_term in df_clean.columns:
+                            group_detail_keys.append(c_term)
                         if opt_lecturer:
                             group_detail_keys.append("_full_name")
     
@@ -499,6 +503,8 @@ with tab1:
                             rename_detail_dict[c_session] = "Ca học"
                         if c_location:
                             rename_detail_dict[c_location] = "Địa điểm"
+                        if c_term:
+                            rename_detail_dict[c_location] = "Học kỳ"
     
                         df_gd_detail = df_gd_detail.rename(columns=rename_detail_dict)
     
