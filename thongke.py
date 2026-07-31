@@ -669,13 +669,26 @@ with tab1:
                                     
                                     num_bars_yr = len(df_pivot_tiet)
                                     dyn_w_yr = max(7.0, num_bars_yr * 0.6)
+                                    f_size_yr = 6 if num_bars_yr > 15 else (7 if num_bars_yr > 10 else 8)
                                     
                                     col_y1, col_y2 = st.columns(2)
                                     
                                     # 1. Biểu đồ Tổng số tiết (Gộp các năm học làm nhóm cột)
                                     with col_y1:
                                         fig_y1, ax_y1 = plt.subplots(figsize=(dyn_w_yr, 4.0))
-                                        df_pivot_tiet.plot(kind="bar", ax=ax_y1, width=0.8)
+                                        ax = df_pivot_tiet.plot(kind="bar", ax=ax_y1, width=0.8)
+                                        
+                                        # Vòng lặp hiển thị giá trị trên các bar grouped plot trong Matplotlib/Pandas
+                                        for p in ax_y1.patches:
+                                            h = p.get_height()
+                                            if h > 0:  # Chỉ hiển thị nếu giá trị lớn hơn 0
+                                                ax_y1.annotate(f"{int(h):,}",
+                                                               (p.get_x() + p.get_width() / 2., h),
+                                                               ha='center', va='bottom',
+                                                               fontsize=f_size_yr, fontweight='bold',
+                                                               rotation=45 if num_bars_yr > 8 else 0,
+                                                               xytext=(0, 2),
+                                                               textcoords='offset points')
                                         
                                         ax_y1.set_xlabel("Ký hiệu" if needs_mapping_yr else other_col, fontsize=9)
                                         ax_y1.set_ylabel("Tổng số tiết", fontsize=9)
@@ -689,7 +702,19 @@ with tab1:
                                     # 2. Biểu đồ Số lượng lớp (Gộp các năm học làm nhóm cột)
                                     with col_y2:
                                         fig_y2, ax_y2 = plt.subplots(figsize=(dyn_w_yr, 4.0))
-                                        df_pivot_lop.plot(kind="bar", ax=ax_y2, width=0.8, colormap="tab20")
+                                        ax2 = df_pivot_lop.plot(kind="bar", ax=ax_y2, width=0.8, colormap="tab20")
+                                        
+                                        # Vòng lặp hiển thị giá trị trên các bar
+                                        for p in ax_y2.patches:
+                                            h = p.get_height()
+                                            if h > 0:
+                                                ax_y2.annotate(f"{int(h):,}",
+                                                               (p.get_x() + p.get_width() / 2., h),
+                                                               ha='center', va='bottom',
+                                                               fontsize=f_size_yr, fontweight='bold',
+                                                               rotation=45 if num_bars_yr > 8 else 0,
+                                                               xytext=(0, 2),
+                                                               textcoords='offset points')
                                         
                                         ax_y2.set_xlabel("Ký hiệu" if needs_mapping_yr else other_col, fontsize=9)
                                         ax_y2.set_ylabel("Số lượng lớp", fontsize=9)
