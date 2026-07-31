@@ -546,7 +546,7 @@ with tab1:
                         st.dataframe(df_gd_detail, use_container_width=True)
     
                         # ==========================================
-                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG (CO GIÃN ĐỘ RỘNG & CHỐNG TRÀN SỐ LIỆU)
+                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG (HỖ TRỢ BÓC TÁCH THEO TỪNG NĂM HỌC KHI CHỌN ĐỒNG THỜI)
                         # ==========================================
                         first_col_name = df_gd_detail.columns[0]
                         df_plot_data = df_gd_detail[df_gd_detail[first_col_name] != "**Tổng cộng**"].copy()
@@ -560,6 +560,11 @@ with tab1:
                             has_short_name = "short_name" in [c.lower() for c in df_clean.columns]
                             short_name_col_actual = next((c for c in df_clean.columns if c.lower() == "short_name"), None)
     
+                            # Kiểm tra xem người dùng có chọn đồng thời "Năm học" và các tiêu chí phụ khác không
+                            has_year_selected = "Năm học" in active_criteria_cols
+                            other_criteria_cols = [c for c in active_criteria_cols if c != "Năm học"]
+    
+                            # 🌟 TRƯỜNG HỢP 1: CHỈ CHỌN MỘT TIÊU CHÍ HOẶC KHÔNG CÓ NĂM HỌC ĐI KÈM
                             for crit_col in active_criteria_cols:
                                 st.markdown(f"###### 📌 Phân tích theo tiêu chí: **{crit_col}**")
                                 col_c1, col_c2 = st.columns(2)
@@ -588,7 +593,6 @@ with tab1:
                                 dynamic_width = max(6.0, num_bars * 0.4)
                                 val_font_size = 6 if num_bars > 15 else (7 if num_bars > 10 else 8)
     
-                                # Biểu đồ 1: Tổng số tiết
                                 with col_c1:
                                     fig1, ax1 = plt.subplots(figsize=(dynamic_width, 4.0))
                                     bars1 = ax1.bar(df_grouped_crit[x_plot_col].astype(str), df_grouped_crit["Tổng số tiết"], color="#4C72B0")
@@ -602,7 +606,6 @@ with tab1:
                                     ax1.tick_params(axis="x", rotation=45 if num_bars > 8 else 0)
                                     st.pyplot(fig1, bbox_inches="tight")
     
-                                # Biểu đồ 2: Số lượng lớp
                                 with col_c2:
                                     fig2, ax2 = plt.subplots(figsize=(dynamic_width, 4.0))
                                     bars2 = ax2.bar(df_grouped_crit[x_plot_col].astype(str), df_grouped_crit["Số lượng lớp"], color="#DD8452")
@@ -623,6 +626,70 @@ with tab1:
                                         st.dataframe(note_df, use_container_width=True, hide_index=True)
     
                                 st.markdown("---")
+    
+                            # 🌟 TRƯỜNG HỢP 2: VẼ BỔ SUNG BIỂU ĐỒ CHI TIẾT THEO TỪNG NĂM HỌC KHI CHỌN ĐỒNG THỜI NHIỀU TIÊU CHÍ
+                            if has_year_selected and other_criteria_cols:
+                                st.markdown("---")
+                                st.markdown("#### 🌟 3.1 Biểu đồ bóc tách chi tiết theo Từng năm học cho các tiêu chí khác")
+    
+                                for other_col in other_criteria_cols:
+                                    st.markdown(f"##### 📌 Phân tích tiêu chí **{other_col}** bóc tách theo **Năm học**")
+                                    
+                                    # Lấy danh sách các năm học có sẵn trong dữ liệu
+                                    list_years = sorted(df_plot_data["Năm học"].astype(str).unique())
+    
+                                    for yr in list_years:
+                                        st.markdown(###### Năm học: **{yr}**")
+                                        df_yr_sub = df_plot_data[df_plot_data["Năm học"].astype(str) == yr]
+    
+                                        if df_yr_sub.empty:
+                                            continue
+    
+                                        col_y1, col_y2 = st.columns(2)
+    
+                                        if other_col == "Tên môn học" and has_short_name and short_name_col_actual:
+                                            df_yr_mapped = df_yr_sub.copy()
+                                            mapping_dict = df_clean[[c_subject, short_name_col_actual]].drop_duplicates().set_index(c_subject)[short_name_col_actual].to_dict()
+                                            df_yr_mapped["Trục_X_Vẽ"] = df_yr_mapped[other_col].map(mapping_dict).fillna(df_yr_mapped[other_col])
+                                            plot_yr_base = "Trục_X_Vẽ"
+                                        else:
+                                            plot_yr_base = other_col
+    
+                                        df_yr_grouped = df_yr_sub.groupby(plot_yr_base)[metrics_cols].sum().reset_index()
+                                        
+                                        num_bars_yr = len(df_yr_grouped)
+                                        dyn_w_yr = max(6.0, num_bars_yr * 0.4)
+                                        f_size_yr = 6 if num_bars_yr > 15 else (7 if num_bars_yr > 10 else 8)
+    
+                                        # Biểu đồ tiết theo năm học
+                                        with col_y1:
+                                            fig_y1, ax_y1 = plt.subplots(figsize=(dyn_w_yr, 3.5))
+                                            bars_y1 = ax_y1.bar(df_yr_grouped[plot_yr_base].astype(str), df_yr_grouped["Tổng số tiết"], color="#3274A1")
+                                            for bar in bars_y1:
+                                                h = bar.get_height()
+                                                ax_y1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=f_size_yr, fontweight="bold")
+                                            
+                                            ax_y1.set_xlabel(other_col, fontsize=9)
+                                            ax_y1.set_ylabel("Tổng số tiết", fontsize=9)
+                                            ax_y1.set_title(f"Tổng số tiết - {other_col} (Năm học: {yr})", fontsize=10, fontweight="bold")
+                                            ax_y1.tick_params(axis="x", rotation=45 if num_bars_yr > 8 else 0)
+                                            st.pyplot(fig_y1, bbox_inches="tight")
+    
+                                        # Biểu đồ lớp theo năm học
+                                        with col_y2:
+                                            fig_y2, ax_y2 = plt.subplots(figsize=(dyn_w_yr, 3.5))
+                                            bars_y2 = ax_y2.bar(df_yr_grouped[plot_yr_base].astype(str), df_yr_grouped["Số lượng lớp"], color="#E1812C")
+                                            for bar in bars_y2:
+                                                h = bar.get_height()
+                                                ax_y2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=f_size_yr, fontweight="bold")
+                                            
+                                            ax_y2.set_xlabel(other_col, fontsize=9)
+                                            ax_y2.set_ylabel("Số lượng lớp", fontsize=9)
+                                            ax_y2.set_title(f"Số lượng lớp - {other_col} (Năm học: {yr})", fontsize=10, fontweight="bold")
+                                            ax_y2.tick_params(axis="x", rotation=45 if num_bars_yr > 8 else 0)
+                                            st.pyplot(fig_y2, bbox_inches="tight")
+    
+                                        st.markdown("---")
 
                     else:
                         df_temp_detail = total_rec_df.copy()
