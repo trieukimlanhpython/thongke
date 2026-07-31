@@ -769,7 +769,7 @@ with tab1:
                         df_temp_detail = total_rec_df.copy()
                         df_temp_detail.columns = [str(c).strip() for c in df_temp_detail.columns]
 
-                        # 🌟 BƯỚC 1: Nhận diện cột Tên Tạp chí / Hội thảo, Sách ngay từ đầu (Tránh hard-code)
+                        # 🌟 1. Nhận diện các cột thông minh (Không hard-code)
                         tap_chi_col = next(
                             (
                                 c for c in df_temp_detail.columns
@@ -794,16 +794,22 @@ with tab1:
                         surname_col_check = next((c for c in df_temp_detail.columns if c.lower() == "surname"), None)
                         role_col_check = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["vai trò", "role"])), None)
 
+                        # 🌟 2. Làm sạch tên sản phẩm để chuẩn bị gom nhóm
                         if name_prod_col and not df_temp_detail.empty:
                             df_temp_detail["_clean_prod_name"] = df_temp_detail[name_prod_col].astype(str).str.lower().str.replace(r"\s+", " ", regex=True).str.strip()
                         else:
                             df_temp_detail["_clean_prod_name"] = "sản phẩm chung"
 
+                        # Kết hợp Mã sản phẩm hoặc Tên tạp chí/hội thảo để tăng độ chính xác phân biệt nếu tên gần giống nhau
+                        key_components = [df_temp_detail["_clean_prod_name"]]
                         if id_col_check and id_col_check in df_temp_detail.columns:
                             df_temp_detail["_clean_id"] = df_temp_detail[id_col_check].astype(str).str.lower().str.replace(r"\s+", "", regex=True).str.strip()
-                            df_temp_detail["_clean_key"] = df_temp_detail["_clean_prod_name"] + " | " + df_temp_detail["_clean_id"]
-                        else:
-                            df_temp_detail["_clean_key"] = df_temp_detail["_clean_prod_name"]
+                            key_components.append(df_temp_detail["_clean_id"])
+                        if tap_chi_col and tap_chi_col in df_temp_detail.columns:
+                            df_temp_detail["_clean_tap_chi"] = df_temp_detail[tap_chi_col].astype(str).str.lower().str.replace(r"\s+", " ", regex=True).str.strip()
+                            key_components.append(df_temp_detail["_clean_tap_chi"])
+                        
+                        df_temp_detail["_clean_key"] = df_temp_detail["_clean_prod_name"]
 
                         if name_col_check:
                             if surname_col_check:
@@ -813,6 +819,7 @@ with tab1:
                         else:
                             df_temp_detail["_full_name"] = "Không rõ"
 
+                        # 🌟 3. Thuật toán gom nhóm thông minh (TF-IDF tương đồng từ 85% - 90% trở lên)
                         unique_keys_detail = df_temp_detail["_clean_key"].unique()
                         key_to_canonical = {}
 
@@ -821,7 +828,7 @@ with tab1:
                             tfidf_matrix_d = vectorizer_d.transform(unique_keys_detail)
                             similarity_matrix_d = cosine_similarity(tfidf_matrix_d, tfidf_matrix_d)
 
-                            threshold_d = 0.85
+                            threshold_d = 0.85  # Ngưỡng tương đồng >= 85%
                             visited_d = set()
 
                             for i in range(len(unique_keys_detail)):
@@ -844,7 +851,10 @@ with tab1:
                         phan_loai_2 = next((c for c in df_temp_detail.columns if "phân loại cấp 2" in c.lower()), None)
                         phan_loai_3 = next((c for c in df_temp_detail.columns if "phân loại cấp 3" in c.lower()), None)
 
+                        # Bổ sung vai trò vào khóa gom nhóm ban đầu để phân tách khi tên sản phẩm giống nhau nhưng vai trò khác nhau
                         group_keys_final = ["Năm học hiển thị", "Sản phẩm chuẩn hóa"]
+                        if role_col_check and role_col_check in df_temp_detail.columns:
+                            group_keys_final.append(role_col_check)
                         if phan_loai_col:
                             group_keys_final.insert(0, phan_loai_col)
                         if loai_hd_col and loai_hd_col not in group_keys_final:
@@ -860,10 +870,9 @@ with tab1:
                             agg_rules_detail[name_prod_col] = lambda x: " / ".join(x.dropna().unique())
                         if id_col_check and id_col_check in df_temp_detail.columns:
                             agg_rules_detail[id_col_check] = lambda x: " / ".join(x.dropna().unique())
-                        if role_col_check:
+                        if role_col_check and role_col_check not in group_keys_final:
                             agg_rules_detail[role_col_check] = lambda x: " & ".join(x.dropna().unique())
 
-                        # 🌟 BƯỚC 2: Giữ lại cột tạp chí/hội thảo khi tạo df_clean_unified để không bị mất dữ liệu
                         if tap_chi_col and tap_chi_col in df_temp_detail.columns:
                             agg_rules_detail[tap_chi_col] = (
                                 lambda x: " / ".join(
@@ -874,6 +883,7 @@ with tab1:
                                 )
                             )
 
+                        # 🌟 4. Tạo DataFrame thống nhất đã loại trừ trùng lặp
                         df_clean_unified = df_temp_detail.groupby(group_keys_final, dropna=False).agg(agg_rules_detail).reset_index()
                         
                         st.markdown("##### 📋 1. Bảng thống kê TRƯỚC khi trừ trùng lặp")
@@ -889,7 +899,8 @@ with tab1:
                             df_before_disp.loc[len(df_before_disp)] = ["**Tổng cộng**", tot_d_b, tot_t_b]
                             st.dataframe(df_before_disp, use_container_width=True)
 
-                        st.markdown("##### 🧹 2.1 Bảng thống kê SAU KHI trừ trùng lặp")
+                        # 🌟 5. Bảng 2.1 (Thay thế cho bảng 2.1 và đã loại bỏ hoàn toàn bảng 2.2 cũ theo yêu cầu)
+                        st.markdown("##### 🧹 2.1 Bảng thống kê SAU KHI trừ trùng lặp sản phẩm")
                         df_after = df_clean_unified.groupby("Năm học hiển thị").agg(**{
                             "Số lượng sản phẩm độc lập": (tiet_col_target, "count"),
                             "Tổng số tiết thực hiện": (tiet_col_target, "sum")
@@ -901,36 +912,12 @@ with tab1:
                         df_after_disp.loc[len(df_after_disp)] = ["**Tổng cộng**", tot_sp_a, tot_t_a]
                         st.dataframe(df_after_disp, use_container_width=True)
 
-                        if phan_loai_col:
-                            st.markdown("##### 🏷️ 2.2 Thống kê tổng hợp theo Phân loại cấp 1, Loại hoạt động & Cấp độ")
-                            
-                            group_keys_summary = [phan_loai_col]
-                            if loai_hd_col and loai_hd_col in df_clean_unified.columns:
-                                group_keys_summary.append(loai_hd_col)
-                            if cap_do_col and cap_do_col in df_clean_unified.columns:
-                                group_keys_summary.append(cap_do_col)
-                            group_keys_summary.append("Năm học hiển thị")
-
-                            df_phanloai_summary = df_clean_unified.groupby(group_keys_summary).agg(**{
-                                "Số lượng sản phẩm": (tiet_col_target, "count"),
-                                "Tổng số tiết": (tiet_col_target, "sum")
-                            }).reset_index().sort_values(group_keys_summary)
-
-                            tot_sl_pl = df_phanloai_summary["Số lượng sản phẩm"].sum()
-                            tot_tiet_pl = df_phanloai_summary["Tổng số tiết"].sum()
-
-                            df_phanloai_summary_disp = df_phanloai_summary.copy()
-                            total_row = ["**Tổng cộng**"] + [""] * (len(df_phanloai_summary_disp.columns) - 3) + [tot_sl_pl, tot_tiet_pl]
-                            df_phanloai_summary_disp.loc[len(df_phanloai_summary_disp)] = total_row
-                            with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
-                                st.dataframe(df_phanloai_summary_disp, use_container_width=True)
-                       
+                        # 🌟 6. Bảng 2.3: Bảng chi tiết tùy chỉnh (Vẫn tuân thủ tuyệt đối quy tắc loại trừ trùng lặp từ df_clean_unified)
                         st.markdown("##### 🔍 2.3 Bảng chi tiết kèm Tên sản phẩm & Danh sách thành viên (Tùy chỉnh tiêu chí)")
 
                         cols_lower_all = {str(c).strip().lower(): c for c in df_clean_unified.columns}
                         col_ma_sp = next((cols_lower_all[c] for c in cols_lower_all if any(x in c for x in ["mã sản phẩm", "ma san pham", "code"])), None)
                         
-                        # 🌟 BƯỚC 3: Tìm trực tiếp trong df_clean_unified đang sử dụng thay vì dùng cols_lower_all cũ
                         col_tap_chi = next(
                             (
                                 c for c in df_clean_unified.columns
@@ -989,8 +976,6 @@ with tab1:
                             group_detail_dynamic.append(name_prod_col)
                         if opt_ma and col_ma_sp and col_ma_sp in df_clean_unified.columns:
                             group_detail_dynamic.append(col_ma_sp)
-                        
-                        # 🌟 BƯỚC 5: Thêm vào danh sách gom nhóm khi checkbox được tick
                         if opt_tap and col_tap_chi and col_tap_chi in df_clean_unified.columns:
                             group_detail_dynamic.append(col_tap_chi)
                         if opt_issn and col_isbn and col_isbn in df_clean_unified.columns:
@@ -1010,7 +995,6 @@ with tab1:
                         if role_col_check and role_col_check not in group_detail_dynamic:
                             agg_dyn_dict[role_col_check] = lambda x: " & ".join(x.dropna().unique())
 
-                        # 🌟 BƯỚC 4: Bổ sung quy tắc gộp vào agg_dyn_dict nếu checkbox bật
                         if tap_chi_col and tap_chi_col in df_clean_unified.columns:
                             agg_dyn_dict[tap_chi_col] = (
                                 lambda x: " / ".join(
@@ -1067,19 +1051,15 @@ with tab1:
 
                         st.dataframe(df_nckh_detail, use_container_width=True)
 
-                        # ==========================================
-                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG CHO NCKH (SO SÁNH CÁC NĂM HỌC DẠNG CỘT NHÓM - GIỐNG PHẦN GIẢNG DẠY)
-                        # ==========================================
+                        # 🌟 7. BIỂU ĐỒ TRỰC QUAN ĐỘNG: Hoàn toàn dựa trên dữ liệu đã trừ trùng lặp (`df_nckh_detail` / `df_clean_unified`)
                         first_col_nckh = df_nckh_detail.columns[0]
                         df_plot_nckh = df_nckh_detail[df_nckh_detail[first_col_nckh] != "**Tổng cộng**"].copy()
                         
                         if not df_plot_nckh.empty:
-                            st.markdown("##### 📊 3. Biểu đồ trực quan theo các tiêu chí đã chọn (So sánh diễn tiến theo Các năm học)")
+                            st.markdown("##### 📊 3. Biểu đồ trực quan theo các tiêu chí đã chọn (Dựa trên dữ liệu đã trừ trùng lặp)")
                             
-                            metrics_nckh = ["Số lượng", "Tổng số tiết"]
                             has_year_nckh = "Năm học hiển thị" in df_nckh_detail.columns
                             
-                            # Danh sách ánh xạ chính xác từ checkbox và tên cột tương ứng trong bảng chi tiết
                             allowed_mapping = []
                             if opt_y and has_year_nckh:
                                 allowed_mapping.append(("Năm học hiển thị", "Năm học"))
@@ -1092,14 +1072,12 @@ with tab1:
                             if opt_pl1 and phan_loai_col and phan_loai_col in df_nckh_detail.columns:
                                 allowed_mapping.append((phan_loai_col, "PL Cấp 1"))
                             
-                            # Duyệt và vẽ cặp biểu đồ cho từng tiêu chí được phép
                             for col_name, display_name in allowed_mapping:
                                 if col_name not in df_plot_nckh.columns:
                                     continue
                                 
                                 st.markdown(f"###### 📌 Phân tích theo tiêu chí: **{display_name}**")
                                 
-                                # 🌟 Thêm bộ lọc checkbox/multiselect ngay tại đồ thị NCKH (Mặc định hiện toàn bộ nếu bỏ trống)
                                 df_nckh_filtered = df_plot_nckh.copy()
                                 unique_vals_nckh = sorted(df_plot_nckh[col_name].astype(str).unique())
                                 selected_vals_nckh = st.multiselect(
@@ -1109,25 +1087,22 @@ with tab1:
                                 )
                                 if selected_vals_nckh:
                                     df_nckh_filtered = df_nckh_filtered[df_nckh_filtered[col_name].astype(str).isin(selected_vals_nckh)]
-                
+                                
                                 if df_nckh_filtered.empty:
                                     st.warning(f"⚠️ Không có dữ liệu phù hợp với bộ lọc cho tiêu chí **{display_name}**.")
                                     continue
-                
+                                
                                 col_chart1, col_chart2 = st.columns(2)
                                 
-                                # Nếu tiêu chí đang xét KHÁC "Năm học hiển thị" và có dữ liệu năm học -> Dùng pivot table để đưa Năm học lên làm cột (legend nhóm cột cạnh nhau)
                                 if col_name != "Năm học hiển thị" and has_year_nckh:
                                     df_pivot_qty = df_nckh_filtered.pivot_table(index=col_name, columns="Năm học hiển thị", values="Số lượng", aggfunc="sum").fillna(0)
                                     df_pivot_tiet = df_nckh_filtered.pivot_table(index=col_name, columns="Năm học hiển thị", values="Tổng số tiết", aggfunc="sum").fillna(0)
                                     is_grouped_years = True
                                 else:
-                                    # Nếu chính là tiêu chí Năm học hoặc không tách năm -> Gom nhóm bình thường
                                     df_pivot_qty = df_nckh_filtered.groupby(col_name)[["Số lượng"]].sum()
                                     df_pivot_tiet = df_nckh_filtered.groupby(col_name)[["Tổng số tiết"]].sum()
                                     is_grouped_years = False
-                
-                                # Xử lý tự động rút gọn tên trên trục hoành nếu tên quá dài
+                                
                                 unique_labels = df_pivot_qty.index.astype(str).tolist()
                                 needs_mapping = any(len(lbl) > 15 for lbl in unique_labels)
                                 
@@ -1136,27 +1111,25 @@ with tab1:
                                     label_mapping = {lbl: f"K{i+1}" for i, lbl in enumerate(unique_labels)}
                                     df_pivot_qty.index = df_pivot_qty.index.map(label_mapping)
                                     df_pivot_tiet.index = df_pivot_tiet.index.map(label_mapping)
-                
+                                
                                 num_bars_nckh = len(df_pivot_qty)
                                 dynamic_width_nckh = max(7.0, num_bars_nckh * 0.6)
                                 val_font_size_nckh = 6 if num_bars_nckh > 15 else (7 if num_bars_nckh > 10 else 8)
                                 
-                                # 1. Biểu đồ Số lượng sản phẩm
                                 with col_chart1:
                                     fig1, ax1 = plt.subplots(figsize=(dynamic_width_nckh, 4.0))
                                     df_pivot_qty.plot(kind="bar", stacked=False, ax=ax1, width=0.8, colormap="tab20")
                                     
-                                    # Vòng lặp hiển thị giá trị trên đầu các bar
                                     for p in ax1.patches:
                                         h = p.get_height()
                                         if h > 0:
                                             ax1.annotate(f"{int(h):,}",
-                                                         (p.get_x() + p.get_width() / 2., h),
-                                                         ha='center', va='bottom',
-                                                         fontsize=val_font_size_nckh, fontweight='bold',
-                                                         rotation=45 if num_bars_nckh > 8 else 0,
-                                                         xytext=(0, 2),
-                                                         textcoords='offset points')
+                                                       (p.get_x() + p.get_width() / 2., h),
+                                                       ha='center', va='bottom',
+                                                       fontsize=val_font_size_nckh, fontweight='bold',
+                                                       rotation=45 if num_bars_nckh > 8 else 0,
+                                                       xytext=(0, 2),
+                                                       textcoords='offset points')
                                     
                                     ax1.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=9)
                                     ax1.set_ylabel("Số lượng sản phẩm", fontsize=9)
@@ -1167,22 +1140,20 @@ with tab1:
                                     ax1.grid(axis="y", linestyle="--", alpha=0.5)
                                     st.pyplot(fig1, bbox_inches="tight")
                                 
-                                # 2. Biểu đồ Tổng số tiết thực hiện
                                 with col_chart2:
                                     fig2, ax2 = plt.subplots(figsize=(dynamic_width_nckh, 4.0))
                                     df_pivot_tiet.plot(kind="bar", stacked=False, ax=ax2, width=0.8, colormap="Accent")
                                     
-                                    # Vòng lặp hiển thị giá trị trên đầu các bar
                                     for p in ax2.patches:
                                         h = p.get_height()
                                         if h > 0:
                                             ax2.annotate(f"{int(h):,}",
-                                                         (p.get_x() + p.get_width() / 2., h),
-                                                         ha='center', va='bottom',
-                                                         fontsize=val_font_size_nckh, fontweight='bold',
-                                                         rotation=45 if num_bars_nckh > 2 else 0,
-                                                         xytext=(0, 2),
-                                                         textcoords='offset points')
+                                                       (p.get_x() + p.get_width() / 2., h),
+                                                       ha='center', va='bottom',
+                                                       fontsize=val_font_size_nckh, fontweight='bold',
+                                                       rotation=45 if num_bars_nckh > 2 else 0,
+                                                       xytext=(0, 2),
+                                                       textcoords='offset points')
                                     
                                     ax2.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=9)
                                     ax2.set_ylabel("Tổng số tiết thực hiện", fontsize=9)
@@ -1193,7 +1164,6 @@ with tab1:
                                     ax2.grid(axis="y", linestyle="--", alpha=0.5)
                                     st.pyplot(fig2, bbox_inches="tight")
                                 
-                                # Nếu có dùng ký hiệu rút gọn, hiển thị bảng chú thích ngay bên dưới biểu đồ
                                 if needs_mapping:
                                     st.markdown(f"**📝 Chú thích ký hiệu trục hoành cho ({display_name}):**")
                                     with st.expander(f"📅 **(Bấm để mở/đóng)**", expanded=True):
