@@ -860,14 +860,23 @@ with tab1:
                             st.dataframe(df_before_disp, use_container_width=True)
 
                         st.markdown("##### 🧹 2.1 Bảng thống kê SAU KHI trừ trùng lặp")
-                        count_col_name = tiet_col_target if tiet_col_target in df_clean_unified.columns else df_clean_unified.columns[0]
-                        df_after = df_clean_unified.groupby("Năm học hiển thị").agg(**{
-                            "Số lượng sản phẩm độc lập": (count_col_name, "count"),
-                            "Tổng số tiết thực hiện": (tiet_col_target, "sum") if tiet_col_target in df_clean_unified.columns else (count_col_name, "count")
-                        }).reset_index().sort_values("Năm học hiển thị")
+                        
+                        # 🌟 Dùng cú pháp groupby đơn giản và an toàn tuyệt đối để tránh mọi lỗi KeyError của Pandas
+                        if "Năm học hiển thị" in df_clean_unified.columns:
+                            df_after = df_clean_unified.groupby("Năm học hiển thị").size().reset_index(name="Số lượng sản phẩm độc lập")
+                            
+                            if tiet_col_target in df_clean_unified.columns:
+                                df_tiet_sum = df_clean_unified.groupby("Năm học hiển thị")[tiet_col_target].sum().reset_index(name="Tổng số tiết thực hiện")
+                                df_after = pd.merge(df_after, df_tiet_sum, on="Năm học hiển thị", how="left")
+                            else:
+                                df_after["Tổng số tiết thực hiện"] = 0
+                                
+                            df_after = df_after.sort_values("Năm học hiển thị")
+                        else:
+                            df_after = pd.DataFrame(columns=["Năm học hiển thị", "Số lượng sản phẩm độc lập", "Tổng số tiết thực hiện"])
 
-                        tot_sp_a = df_after["Số lượng sản phẩm độc lập"].sum()
-                        tot_t_a = df_after["Tổng số tiết thực hiện"].sum()
+                        tot_sp_a = df_after["Số lượng sản phẩm độc lập"].sum() if not df_after.empty else 0
+                        tot_t_a = df_after["Tổng số tiết thực hiện"].sum() if not df_after.empty else 0
                         df_after_disp = df_after.copy()
                         df_after_disp.loc[len(df_after_disp)] = ["**Tổng cộng**", tot_sp_a, tot_t_a]
                         st.dataframe(df_after_disp, use_container_width=True)
