@@ -769,7 +769,7 @@ with tab1:
                         df_temp_detail = total_rec_df.copy()
                         df_temp_detail.columns = [str(c).strip() for c in df_temp_detail.columns]
 
-                        # 🌟 1. Nhận diện các cột thông minh (Không hard-code)
+                        # Nhận diện cột Tên tạp chí / hội thảo động
                         tap_chi_col = next(
                             (
                                 c for c in df_temp_detail.columns
@@ -794,22 +794,16 @@ with tab1:
                         surname_col_check = next((c for c in df_temp_detail.columns if c.lower() == "surname"), None)
                         role_col_check = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["vai trò", "role"])), None)
 
-                        # 🌟 2. Làm sạch tên sản phẩm để chuẩn bị gom nhóm
                         if name_prod_col and not df_temp_detail.empty:
                             df_temp_detail["_clean_prod_name"] = df_temp_detail[name_prod_col].astype(str).str.lower().str.replace(r"\s+", " ", regex=True).str.strip()
                         else:
                             df_temp_detail["_clean_prod_name"] = "sản phẩm chung"
 
-                        # Kết hợp Mã sản phẩm hoặc Tên tạp chí/hội thảo để tăng độ chính xác phân biệt nếu tên gần giống nhau
-                        key_components = [df_temp_detail["_clean_prod_name"]]
                         if id_col_check and id_col_check in df_temp_detail.columns:
                             df_temp_detail["_clean_id"] = df_temp_detail[id_col_check].astype(str).str.lower().str.replace(r"\s+", "", regex=True).str.strip()
-                            key_components.append(df_temp_detail["_clean_id"])
-                        if tap_chi_col and tap_chi_col in df_temp_detail.columns:
-                            df_temp_detail["_clean_tap_chi"] = df_temp_detail[tap_chi_col].astype(str).str.lower().str.replace(r"\s+", " ", regex=True).str.strip()
-                            key_components.append(df_temp_detail["_clean_tap_chi"])
-                        
-                        df_temp_detail["_clean_key"] = df_temp_detail["_clean_prod_name"]
+                            df_temp_detail["_clean_key"] = df_temp_detail["_clean_prod_name"] + " | " + df_temp_detail["_clean_id"]
+                        else:
+                            df_temp_detail["_clean_key"] = df_temp_detail["_clean_prod_name"]
 
                         if name_col_check:
                             if surname_col_check:
@@ -819,7 +813,6 @@ with tab1:
                         else:
                             df_temp_detail["_full_name"] = "Không rõ"
 
-                        # 🌟 3. Thuật toán gom nhóm thông minh (TF-IDF tương đồng từ 85% - 90% trở lên)
                         unique_keys_detail = df_temp_detail["_clean_key"].unique()
                         key_to_canonical = {}
 
@@ -828,7 +821,7 @@ with tab1:
                             tfidf_matrix_d = vectorizer_d.transform(unique_keys_detail)
                             similarity_matrix_d = cosine_similarity(tfidf_matrix_d, tfidf_matrix_d)
 
-                            threshold_d = 0.85  # Ngưỡng tương đồng >= 85%
+                            threshold_d = 0.85
                             visited_d = set()
 
                             for i in range(len(unique_keys_detail)):
@@ -851,10 +844,7 @@ with tab1:
                         phan_loai_2 = next((c for c in df_temp_detail.columns if "phân loại cấp 2" in c.lower()), None)
                         phan_loai_3 = next((c for c in df_temp_detail.columns if "phân loại cấp 3" in c.lower()), None)
 
-                        # Bổ sung vai trò vào khóa gom nhóm ban đầu để phân tách khi tên sản phẩm giống nhau nhưng vai trò khác nhau
                         group_keys_final = ["Năm học hiển thị", "Sản phẩm chuẩn hóa"]
-                        if role_col_check and role_col_check in df_temp_detail.columns:
-                            group_keys_final.append(role_col_check)
                         if phan_loai_col:
                             group_keys_final.insert(0, phan_loai_col)
                         if loai_hd_col and loai_hd_col not in group_keys_final:
@@ -870,9 +860,10 @@ with tab1:
                             agg_rules_detail[name_prod_col] = lambda x: " / ".join(x.dropna().unique())
                         if id_col_check and id_col_check in df_temp_detail.columns:
                             agg_rules_detail[id_col_check] = lambda x: " / ".join(x.dropna().unique())
-                        if role_col_check and role_col_check not in group_keys_final:
+                        if role_col_check:
                             agg_rules_detail[role_col_check] = lambda x: " & ".join(x.dropna().unique())
 
+                        # Giữ lại cột tạp chí/hội thảo khi gom nhóm
                         if tap_chi_col and tap_chi_col in df_temp_detail.columns:
                             agg_rules_detail[tap_chi_col] = (
                                 lambda x: " / ".join(
@@ -883,7 +874,6 @@ with tab1:
                                 )
                             )
 
-                        # 🌟 4. Tạo DataFrame thống nhất đã loại trừ trùng lặp
                         df_clean_unified = df_temp_detail.groupby(group_keys_final, dropna=False).agg(agg_rules_detail).reset_index()
                         
                         st.markdown("##### 📋 1. Bảng thống kê TRƯỚC khi trừ trùng lặp")
@@ -899,8 +889,7 @@ with tab1:
                             df_before_disp.loc[len(df_before_disp)] = ["**Tổng cộng**", tot_d_b, tot_t_b]
                             st.dataframe(df_before_disp, use_container_width=True)
 
-                        # 🌟 5. Bảng 2.1 (Thay thế cho bảng 2.1 và đã loại bỏ hoàn toàn bảng 2.2 cũ theo yêu cầu)
-                        st.markdown("##### 🧹 2.1 Bảng thống kê SAU KHI trừ trùng lặp sản phẩm")
+                        st.markdown("##### 🧹 2.1 Bảng thống kê SAU KHI trừ trùng lặp")
                         df_after = df_clean_unified.groupby("Năm học hiển thị").agg(**{
                             "Số lượng sản phẩm độc lập": (tiet_col_target, "count"),
                             "Tổng số tiết thực hiện": (tiet_col_target, "sum")
@@ -912,7 +901,8 @@ with tab1:
                         df_after_disp.loc[len(df_after_disp)] = ["**Tổng cộng**", tot_sp_a, tot_t_a]
                         st.dataframe(df_after_disp, use_container_width=True)
 
-                        # 🌟 6. Bảng 2.3: Bảng chi tiết tùy chỉnh (Vẫn tuân thủ tuyệt đối quy tắc loại trừ trùng lặp từ df_clean_unified)
+                        # Đã loại bỏ hoàn toàn Bảng 2.2 theo yêu cầu
+
                         st.markdown("##### 🔍 2.3 Bảng chi tiết kèm Tên sản phẩm & Danh sách thành viên (Tùy chỉnh tiêu chí)")
 
                         cols_lower_all = {str(c).strip().lower(): c for c in df_clean_unified.columns}
@@ -1051,7 +1041,9 @@ with tab1:
 
                         st.dataframe(df_nckh_detail, use_container_width=True)
 
-                        # 🌟 7. BIỂU ĐỒ TRỰC QUAN ĐỘNG: Hoàn toàn dựa trên dữ liệu đã trừ trùng lặp (`df_nckh_detail` / `df_clean_unified`)
+                        # ==========================================
+                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG (DỰA TRÊN DỮ LIỆU ĐÃ TRỪ TRÙNG LẶP `df_clean_unified`)
+                        # ==========================================
                         first_col_nckh = df_nckh_detail.columns[0]
                         df_plot_nckh = df_nckh_detail[df_nckh_detail[first_col_nckh] != "**Tổng cộng**"].copy()
                         
