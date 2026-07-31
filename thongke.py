@@ -846,22 +846,14 @@ with tab1:
             
                         df_clean_unified = df_temp_detail.groupby(group_keys_final, dropna=False).agg(agg_rules_detail).reset_index()
                         
-                        st.markdown("##### 📋 1. Bảng thống kê TRƯỚC khi trừ trùng lặp")
-                        with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
-                            df_before = total_rec_df.groupby("Năm học hiển thị").agg(**{
-                                "Tổng số dòng kê khai": (tiet_col_target, "count"),
-                                "Tổng số tiết": (tiet_col_target, "sum")
-                            }).reset_index().sort_values("Năm học hiển thị")
-                    
-                            tot_d_b = df_before["Tổng số dòng kê khai"].sum()
-                            tot_t_b = df_before["Tổng số tiết"].sum()
-                            df_before_disp = df_before.copy()
-                            df_before_disp.loc[len(df_before_disp)] = ["**Tổng cộng**", tot_d_b, tot_t_b]
-                            st.dataframe(df_before_disp, use_container_width=True)
-            
-                        st.markdown("##### 🧹 2.1 Bảng thống kê SAU KHI trừ trùng lặp")
+                        # ==========================================
+                        # 🧹 1. BẢNG THỐNG KÊ SAU KHI TRỪ TRÙNG LẶP (ĐÃ CẬP NHẬT CHUẨN XÁC)
+                        # ==========================================
+                        st.markdown("##### 🧹 1. Bảng thống kê SAU KHI trừ trùng lặp (Theo Năm học)")
+                        
+                        # Đếm số lượng sản phẩm độc lập thực tế dựa trên "Sản phẩm chuẩn hóa" sau khi trừ trùng lặp ở df_clean_unified
                         df_after = df_clean_unified.groupby("Năm học hiển thị").agg(**{
-                            "Số lượng sản phẩm độc lập": (tiet_col_target, "count"),
+                            "Số lượng sản phẩm độc lập": ("Sản phẩm chuẩn hóa", "nunique"),
                             "Tổng số tiết thực hiện": (tiet_col_target, "sum")
                         }).reset_index().sort_values("Năm học hiển thị")
             
@@ -871,9 +863,10 @@ with tab1:
                         df_after_disp.loc[len(df_after_disp)] = ["**Tổng cộng**", tot_sp_a, tot_t_a]
                         st.dataframe(df_after_disp, use_container_width=True)
             
-                        # Bảng 2.2 cũ đã được loại bỏ hoàn toàn theo yêu cầu trước đó
-            
-                        st.markdown("##### 🔍 2.2 Bảng chi tiết kèm Tên sản phẩm & Danh sách thành viên (Tùy chỉnh tiêu chí)")
+                        # ==========================================
+                        # 🔍 2. BẢNG CHI TIẾT TÙY CHỈNH TIÊU CHÍ (ĐÃ SỬA CƠ CHẾ ĐẾM SAU GOM NHÓM)
+                        # ==========================================
+                        st.markdown("##### 🔍 2. Bảng chi tiết kèm Tên sản phẩm & Danh sách thành viên (Tùy chỉnh tiêu chí)")
             
                         cols_lower_all = {str(c).strip().lower(): c for c in df_clean_unified.columns}
                         col_ma_sp = next((cols_lower_all[c] for c in cols_lower_all if any(x in c for x in ["mã sản phẩm", "ma san pham", "code"])), None)
@@ -927,11 +920,12 @@ with tab1:
                         if not group_detail_dynamic:
                             group_detail_dynamic = ["Năm học hiển thị"]
             
-                        # Cấu hình quy tắc gom nhóm: 
-                        # 1. Định nghĩa lại quy tắc gom nhóm bảng 2.2
+                        # Cấu hình quy tắc gom nhóm cho bảng chi tiết:
+                        # - Số lượng (trước gom nhóm): Tổng số dòng kê khai ban đầu
+                        # - Số lượng sau gom nhóm: Đếm số lượng sản phẩm độc lập (nunique của "Sản phẩm chuẩn hóa") phản ánh chính xác việc đã trừ trùng lặp
                         agg_dyn_dict = {
                             tiet_col_target: ["sum", "count"],
-                            "Sản phẩm chuẩn hóa": "count", 
+                            "Sản phẩm chuẩn hóa": "nunique", 
                             "_full_name": lambda x: ", ".join(x.dropna().unique()),
                         }
                         if name_prod_col and name_prod_col in df_clean_unified.columns:
@@ -951,7 +945,7 @@ with tab1:
                         rename_nckh_dict = {
                             f"{tiet_col_target}_sum": "Tổng số tiết",
                             f"{tiet_col_target}_count": "Số lượng",
-                            "Sản phẩm chuẩn hóa_count": "Số lượng sau gom nhóm",
+                            "Sản phẩm chuẩn hóa_nunique": "Số lượng sau gom nhóm",
                             "_full_name": "Danh sách thành viên"
                         }
                         if role_col_check:
@@ -959,10 +953,6 @@ with tab1:
             
                         df_nckh_detail = df_nckh_detail.rename(columns=rename_nckh_dict)
                         
-                        # Đảm bảo cột "Số lượng sau gom nhóm" đếm đúng số dòng hiển thị thực tế (bằng len của nhóm sau gom)
-                        # Hoặc gán lại trực tiếp để chắc chắn không bị lệch Key
-                        df_nckh_detail["Số lượng sau gom nhóm"] = 1 # Vì mỗi dòng sau groupby ở đây là 1 nhóm độc lập duy nhất
-            
                         for col_drop in ["_clean_prod_name", "_clean_id", "_clean_key", "_source_table"]:
                             if col_drop in df_nckh_detail.columns:
                                 df_nckh_detail = df_nckh_detail.drop(columns=[col_drop])
@@ -976,7 +966,7 @@ with tab1:
             
                         if not df_nckh_detail.empty:
                             tot_sl_nckh = df_nckh_detail["Số lượng"].sum() if "Số lượng" in df_nckh_detail.columns else 0
-                            tot_sl_sau_gom = len(df_nckh_detail) # Tổng số lượng sau gom nhóm tính bằng số dòng thực tế hiển thị
+                            tot_sl_sau_gom = df_nckh_detail["Số lượng sau gom nhóm"].sum() if "Số lượng sau gom nhóm" in df_nckh_detail.columns else 0
                             tot_tiet_nckh = df_nckh_detail["Tổng số tiết"].sum() if "Tổng số tiết" in df_nckh_detail.columns else 0
                             
                             total_row_nckh = {}
@@ -996,7 +986,7 @@ with tab1:
                         st.dataframe(df_nckh_detail, use_container_width=True)
             
                         # ==========================================
-                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG CHO NCKH 
+                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG CHO NCKH (SỬ DỤNG "Số lượng sau gom nhóm")
                         # ==========================================
                         first_col_nckh = df_nckh_detail.columns[0]
                         df_plot_nckh = df_nckh_detail[df_nckh_detail[first_col_nckh] != "**Tổng cộng**"].copy()
