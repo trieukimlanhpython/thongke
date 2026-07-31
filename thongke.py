@@ -1004,19 +1004,22 @@ with tab1:
                         st.dataframe(df_nckh_detail, use_container_width=True)
 
                         # ==========================================
-                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG CHO NCKH (CHỈ VẼ 5 TIÊU CHỈ & GÁN KÝ HIỆU TRỤC X)
+                        # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG CHO NCKH (DẠNG STACKED BAR THEO NĂM HỌC)
                         # ==========================================
                         first_col_nckh = df_nckh_detail.columns[0]
                         df_plot_nckh = df_nckh_detail[df_nckh_detail[first_col_nckh] != "**Tổng cộng**"].copy()
                         
                         if not df_plot_nckh.empty:
-                            st.markdown("##### 📊 3. Biểu đồ trực quan theo các tiêu chí đã chọn")
+                            st.markdown("##### 📊 3. Biểu đồ trực quan theo các tiêu chí đã chọn (Cột chồng theo Năm học)")
                             
                             metrics_nckh = ["Số lượng", "Tổng số tiết"]
                             
+                            # Kiểm tra xem có cột "Năm học hiển thị" trong bảng chi tiết NCKH không để làm trục stacked
+                            has_year_nckh = "Năm học hiển thị" in df_nckh_detail.columns
+                            
                             # Danh sách ánh xạ chính xác từ checkbox và tên cột tương ứng trong bảng chi tiết
                             allowed_mapping = []
-                            if opt_y and "Năm học hiển thị" in df_nckh_detail.columns:
+                            if opt_y and has_year_nckh:
                                 allowed_mapping.append(("Năm học hiển thị", "Năm học"))
                             if opt_cap and cap_do_col and cap_do_col in df_nckh_detail.columns:
                                 allowed_mapping.append((cap_do_col, "Cấp độ"))
@@ -1034,7 +1037,7 @@ with tab1:
                                 
                                 st.markdown(f"###### 📌 Phân tích theo tiêu chí: **{display_name}**")
                                 
-                                # 🌟 Thêm bộ lọc checkbox/multiselect ngay tại đồ thị NCKH (Mặc định hiện toàn bộ nếu không chọn)
+                                # 🌟 Thêm bộ lọc checkbox/multiselect ngay tại đồ thị NCKH
                                 df_nckh_filtered = df_plot_nckh.copy()
                                 unique_vals_nckh = sorted(df_plot_nckh[col_name].astype(str).unique())
                                 selected_vals_nckh = st.multiselect(
@@ -1051,52 +1054,80 @@ with tab1:
                 
                                 col_chart1, col_chart2 = st.columns(2)
                                 
-                                # Nhóm dữ liệu theo tiêu chí đã lọc
-                                df_grouped_nckh = df_nckh_filtered.groupby(col_name)[metrics_nckh].sum().reset_index()
-                                
+                                # Nếu tiêu chí đang xét KHÁC "Năm học hiển thị" và có dữ liệu năm học -> Dùng pivot để vẽ stacked bar theo năm học
+                                if col_name != "Năm học hiển thị" and has_year_nckh:
+                                    df_pivot_qty = df_nckh_filtered.pivot_table(index=col_name, columns="Năm học hiển thị", values="Số lượng", aggfunc="sum").fillna(0)
+                                    df_pivot_tiet = df_nckh_filtered.pivot_table(index=col_name, columns="Năm học hiển thị", values="Tổng số tiết", aggfunc="sum").fillna(0)
+                                    is_stacked = True
+                                else:
+                                    # Nếu chính là tiêu chí Năm học hoặc không có tách năm thì gom nhóm bình thường
+                                    df_pivot_qty = df_nckh_filtered.groupby(col_name)[["Số lượng"]].sum()
+                                    df_pivot_tiet = df_nckh_filtered.groupby(col_name)[["Tổng số tiết"]].sum()
+                                    is_stacked = False
+                
                                 # Xử lý tự động rút gọn tên trên trục hoành nếu tên quá dài
-                                unique_labels = df_grouped_nckh[col_name].astype(str).tolist()
+                                unique_labels = df_pivot_qty.index.astype(str).tolist()
                                 needs_mapping = any(len(lbl) > 15 for lbl in unique_labels)
                                 
+                                label_mapping = {}
                                 if needs_mapping:
-                                    # Tạo từ điển ánh xạ từ Tên dài sang Ký hiệu ngắn (K1, K2, K3...)
                                     label_mapping = {lbl: f"K{i+1}" for i, lbl in enumerate(unique_labels)}
-                                    df_grouped_nckh["_Short_Label"] = df_grouped_nckh[col_name].map(label_mapping)
-                                    x_plot_col = "_Short_Label"
-                                else:
-                                    x_plot_col = col_name
+                                    df_pivot_qty.index = df_pivot_qty.index.map(label_mapping)
+                                    df_pivot_tiet.index = df_pivot_tiet.index.map(label_mapping)
                 
-                                # 🌟 Tự động co dãn chiều rộng và cỡ chữ tương tự như biểu đồ Giảng dạy
-                                num_bars_nckh = len(df_grouped_nckh)
+                                num_bars_nckh = len(df_pivot_qty)
                                 dynamic_width_nckh = max(6.0, num_bars_nckh * 0.4)
                                 val_font_size_nckh = 6 if num_bars_nckh > 15 else (7 if num_bars_nckh > 10 else 8)
                                 
-                                # Biểu đồ 1: Số lượng sản phẩm
+                                # Biểu đồ 1: Số lượng sản phẩm (Stacked / Cột)
                                 with col_chart1:
                                     fig1, ax1 = plt.subplots(figsize=(dynamic_width_nckh, 3.5))
-                                    bars1 = ax1.bar(df_grouped_nckh[x_plot_col].astype(str), df_grouped_nckh["Số lượng"], color="#55A868")
-                                    for bar in bars1:
-                                        h = bar.get_height()
-                                        ax1.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=val_font_size_nckh, fontweight="bold", rotation=45 if num_bars_nckh > 12 else 0)
+                                    ax_plot1 = df_pivot_qty.plot(kind="bar", stacked=is_stacked, ax=ax1, colormap="tab20", width=0.7)
+                                    
+                                    # Hiển thị giá trị trên các thanh bar
+                                    for p in ax1.patches:
+                                        h = p.get_height()
+                                        if h > 0:
+                                            ax1.annotate(f"{int(h):,}",
+                                                         (p.get_x() + p.get_width() / 2., p.get_y() + h / 2. if is_stacked else h),
+                                                         ha='center', va='center' if is_stacked else 'bottom',
+                                                         fontsize=val_font_size_nckh, fontweight='bold',
+                                                         rotation=45 if num_bars_nckh > 12 else 0,
+                                                         xytext=(0, 0 if is_stacked else 2),
+                                                         textcoords='offset points')
                                     
                                     ax1.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=9)
                                     ax1.set_ylabel("Số lượng sản phẩm", fontsize=9)
                                     ax1.set_title(f"Số lượng theo {display_name}", fontsize=10, fontweight="bold")
                                     ax1.tick_params(axis="x", rotation=45 if num_bars_nckh > 8 else 0)
+                                    if is_stacked:
+                                        ax1.legend(title="Năm học", fontsize=7, title_fontsize=7)
+                                    ax1.grid(axis="y", linestyle="--", alpha=0.5)
                                     st.pyplot(fig1, bbox_inches="tight")
                                 
-                                # Biểu đồ 2: Tổng số tiết thực hiện
+                                # Biểu đồ 2: Tổng số tiết thực hiện (Stacked / Cột)
                                 with col_chart2:
                                     fig2, ax2 = plt.subplots(figsize=(dynamic_width_nckh, 3.5))
-                                    bars2 = ax2.bar(df_grouped_nckh[x_plot_col].astype(str), df_grouped_nckh["Tổng số tiết"], color="#C44E52")
-                                    for bar in bars2:
-                                        h = bar.get_height()
-                                        ax2.text(bar.get_x() + bar.get_width()/2, h, f"{int(h):,}", ha="center", va="bottom", fontsize=val_font_size_nckh, fontweight="bold", rotation=45 if num_bars_nckh > 12 else 0)
+                                    ax_plot2 = df_pivot_tiet.plot(kind="bar", stacked=is_stacked, ax=ax2, colormap="Accent", width=0.7)
+                                    
+                                    for p in ax2.patches:
+                                        h = p.get_height()
+                                        if h > 0:
+                                            ax2.annotate(f"{int(h):,}",
+                                                         (p.get_x() + p.get_width() / 2., p.get_y() + h / 2. if is_stacked else h),
+                                                         ha='center', va='center' if is_stacked else 'bottom',
+                                                         fontsize=val_font_size_nckh, fontweight='bold',
+                                                         rotation=45 if num_bars_nckh > 12 else 0,
+                                                         xytext=(0, 0 if is_stacked else 2),
+                                                         textcoords='offset points')
                                     
                                     ax2.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=9)
                                     ax2.set_ylabel("Tổng số tiết thực hiện", fontsize=9)
                                     ax2.set_title(f"Tổng số tiết theo {display_name}", fontsize=10, fontweight="bold")
                                     ax2.tick_params(axis="x", rotation=45 if num_bars_nckh > 8 else 0)
+                                    if is_stacked:
+                                        ax2.legend(title="Năm học", fontsize=7, title_fontsize=7)
+                                    ax2.grid(axis="y", linestyle="--", alpha=0.5)
                                     st.pyplot(fig2, bbox_inches="tight")
                                 
                                 # Nếu có dùng ký hiệu rút gọn, hiển thị bảng chú thích ngay bên dưới biểu đồ
