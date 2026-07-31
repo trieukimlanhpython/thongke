@@ -769,6 +769,25 @@ with tab1:
                         df_temp_detail = total_rec_df.copy()
                         df_temp_detail.columns = [str(c).strip() for c in df_temp_detail.columns]
 
+                        # 🌟 BƯỚC 1: Nhận diện cột Tên Tạp chí / Hội thảo, Sách ngay từ đầu (Tránh hard-code)
+                        tap_chi_col = next(
+                            (
+                                c for c in df_temp_detail.columns
+                                if any(
+                                    x in c.lower()
+                                    for x in [
+                                        "tạp chí",
+                                        "tap chi",
+                                        "hội thảo",
+                                        "hoi thao",
+                                        "sách",
+                                        "sach",
+                                    ]
+                                )
+                            ),
+                            None,
+                        )
+
                         name_prod_col = next((c for c in df_temp_detail.columns if c.lower() in ["tên sản phẩm"]), None)
                         id_col_check = next((c for c in df_temp_detail.columns if c.lower() in ["mã sản phẩm", "code"]), None)
                         name_col_check = next((c for c in df_temp_detail.columns if c.lower() == "name"), None)
@@ -844,6 +863,17 @@ with tab1:
                         if role_col_check:
                             agg_rules_detail[role_col_check] = lambda x: " & ".join(x.dropna().unique())
 
+                        # 🌟 BƯỚC 2: Giữ lại cột tạp chí/hội thảo khi tạo df_clean_unified để không bị mất dữ liệu
+                        if tap_chi_col and tap_chi_col in df_temp_detail.columns:
+                            agg_rules_detail[tap_chi_col] = (
+                                lambda x: " / ".join(
+                                    pd.Series(x)
+                                    .dropna()
+                                    .astype(str)
+                                    .unique()
+                                )
+                            )
+
                         df_clean_unified = df_temp_detail.groupby(group_keys_final, dropna=False).agg(agg_rules_detail).reset_index()
                         
                         st.markdown("##### 📋 1. Bảng thống kê TRƯỚC khi trừ trùng lặp")
@@ -899,7 +929,25 @@ with tab1:
 
                         cols_lower_all = {str(c).strip().lower(): c for c in df_clean_unified.columns}
                         col_ma_sp = next((cols_lower_all[c] for c in cols_lower_all if any(x in c for x in ["mã sản phẩm", "ma san pham", "code"])), None)
-                        col_tap_chi = next((cols_lower_all[c] for c in cols_lower_all if any(x in c for x in ["tạp chí", "tap chi", "hội thảo", "hoi thao", "sách", "sach"])), None)
+                        
+                        # 🌟 BƯỚC 3: Tìm trực tiếp trong df_clean_unified đang sử dụng thay vì dùng cols_lower_all cũ
+                        col_tap_chi = next(
+                            (
+                                c for c in df_clean_unified.columns
+                                if any(
+                                    x in c.lower()
+                                    for x in [
+                                        "tạp chí",
+                                        "tap chi",
+                                        "hội thảo",
+                                        "hoi thao",
+                                        "sách",
+                                        "sach",
+                                    ]
+                                )
+                            ),
+                            None,
+                        )
                         col_isbn = next((cols_lower_all[c] for c in cols_lower_all if any(x in c for x in ["isbn", "issn"])), None)
 
                         with st.expander("⚙️ **Chọn tiêu chí gom nhóm (Bấm để mở/đóng)**", expanded=False):
@@ -941,6 +989,8 @@ with tab1:
                             group_detail_dynamic.append(name_prod_col)
                         if opt_ma and col_ma_sp and col_ma_sp in df_clean_unified.columns:
                             group_detail_dynamic.append(col_ma_sp)
+                        
+                        # 🌟 BƯỚC 5: Thêm vào danh sách gom nhóm khi checkbox được tick
                         if opt_tap and col_tap_chi and col_tap_chi in df_clean_unified.columns:
                             group_detail_dynamic.append(col_tap_chi)
                         if opt_issn and col_isbn and col_isbn in df_clean_unified.columns:
@@ -959,6 +1009,17 @@ with tab1:
                             agg_dyn_dict[id_col_check] = lambda x: " / ".join(x.dropna().unique())
                         if role_col_check and role_col_check not in group_detail_dynamic:
                             agg_dyn_dict[role_col_check] = lambda x: " & ".join(x.dropna().unique())
+
+                        # 🌟 BƯỚC 4: Bổ sung quy tắc gộp vào agg_dyn_dict nếu checkbox bật
+                        if tap_chi_col and tap_chi_col in df_clean_unified.columns:
+                            agg_dyn_dict[tap_chi_col] = (
+                                lambda x: " / ".join(
+                                    pd.Series(x)
+                                    .dropna()
+                                    .astype(str)
+                                    .unique()
+                                )
+                            )
 
                         df_nckh_detail = df_clean_unified.groupby(group_detail_dynamic, dropna=False).agg(agg_dyn_dict).reset_index()
 
