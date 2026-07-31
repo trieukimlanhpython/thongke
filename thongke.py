@@ -265,7 +265,8 @@ with tab1:
                 f"#### 📘 Nhóm kết quả tìm thấy từ bảng dữ liệu gốc: **{name}** —"
                 f" {len(rec_df)} dòng"
             )
-            st.dataframe(rec_df, use_container_width=True)
+            with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
+                st.dataframe(rec_df, use_container_width=True)
         else:
           st.warning("❌ Không tìm thấy dữ liệu phù hợp trong phạm vi đã chọn.")
     else:
