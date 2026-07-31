@@ -629,22 +629,22 @@ with tab1:
                             if has_year_selected and other_criteria_cols:
                                 st.markdown("---")
                                 st.markdown("#### 🌟 3.1 Biểu đồ bóc tách chi tiết theo Từng năm học cho các tiêu chí khác")
-    
+        
                                 for other_col in other_criteria_cols:
                                     st.markdown(f"##### 📌 Phân tích tiêu chí **{other_col}** bóc tách theo **Năm học**")
                                     
                                     # Lấy danh sách các năm học có sẵn trong dữ liệu
                                     list_years = sorted(df_plot_data["Năm học"].astype(str).unique())
-    
+        
                                     for yr in list_years:
                                         st.markdown(f"###### Năm học: **{yr}**")
                                         df_yr_sub = df_plot_data[df_plot_data["Năm học"].astype(str) == yr]
-    
+        
                                         if df_yr_sub.empty:
                                             continue
-    
+        
                                         col_y1, col_y2 = st.columns(2)
-    
+        
                                         if other_col == "Tên môn học" and has_short_name and short_name_col_actual:
                                             df_yr_mapped = df_yr_sub.copy()
                                             mapping_dict = df_clean[[c_subject, short_name_col_actual]].drop_duplicates().set_index(c_subject)[short_name_col_actual].to_dict()
@@ -652,24 +652,24 @@ with tab1:
                                             plot_yr_base = "Trục_X_Vẽ"
                                         else:
                                             plot_yr_base = other_col
-    
+        
                                         df_yr_grouped = df_yr_sub.groupby(plot_yr_base)[metrics_cols].sum().reset_index()
                                         
                                         # 🌟 Kiểm tra nếu tên giá trị trục X quá dài thì tự động quy ước ký hiệu K1, K2...
                                         unique_labels_yr = df_yr_grouped[plot_yr_base].astype(str).tolist()
                                         needs_mapping_yr = any(len(lbl) > 15 for lbl in unique_labels_yr)
-    
+        
                                         if needs_mapping_yr:
                                             label_mapping_yr = {lbl: f"K{i+1}" for i, lbl in enumerate(unique_labels_yr)}
                                             df_yr_grouped["_Short_Label"] = df_yr_grouped[plot_yr_base].map(label_mapping_yr)
                                             x_plot_col_yr = "_Short_Label"
                                         else:
                                             x_plot_col_yr = plot_yr_base
-    
+        
                                         num_bars_yr = len(df_yr_grouped)
                                         dyn_w_yr = max(6.0, num_bars_yr * 0.4)
                                         f_size_yr = 6 if num_bars_yr > 15 else (7 if num_bars_yr > 10 else 8)
-    
+        
                                         # Biểu đồ tiết theo năm học
                                         with col_y1:
                                             fig_y1, ax_y1 = plt.subplots(figsize=(dyn_w_yr, 3.5))
@@ -681,10 +681,11 @@ with tab1:
                                             ax_y1.set_xlabel("Ký hiệu" if needs_mapping_yr else other_col, fontsize=9)
                                             ax_y1.set_ylabel("Tổng số tiết", fontsize=9)
                                             ax_y1.set_title(f"Tổng số tiết - {other_col} (Năm: {yr})", fontsize=10, fontweight="bold")
-                                            ax_y1.tick_params(axis="x", rotation=45 if needs_mapping_yr > 8 else 0)
-                    
+                                            # 🌟 Sửa lỗi: So sánh số lượng cột num_bars_yr với 8 thay vì dùng needs_mapping_yr
+                                            ax_y1.tick_params(axis="x", rotation=45 if num_bars_yr > 8 else 0)
+        
                                             st.pyplot(fig_y1, bbox_inches="tight")
-    
+        
                                         # Biểu đồ lớp theo năm học
                                         with col_y2:
                                             fig_y2, ax_y2 = plt.subplots(figsize=(dyn_w_yr, 3.5))
@@ -696,10 +697,11 @@ with tab1:
                                             ax_y2.set_xlabel("Ký hiệu" if needs_mapping_yr else other_col, fontsize=9)
                                             ax_y2.set_ylabel("Số lượng lớp", fontsize=9)
                                             ax_y2.set_title(f"Số lượng lớp - {other_col} (Năm: {yr})", fontsize=10, fontweight="bold")
-                                            ax_y2.tick_params(axis="x", rotation=45 if needs_mapping_yr > 8 else 0)
+                                            # 🌟 Sửa lỗi: So sánh số lượng cột num_bars_yr với 8 thay vì dùng needs_mapping_yr
+                                            ax_y2.tick_params(axis="x", rotation=45 if num_bars_yr > 8 else 0)
                                             
                                             st.pyplot(fig_y2, bbox_inches="tight")
-    
+        
                                         # 🌟 Hiển thị bảng chú thích ngay bên dưới nếu biểu đồ của năm đó có dùng ký hiệu viết tắt
                                         if needs_mapping_yr:
                                             st.markdown(f"**📝 Chú thích ký hiệu trục hoành (Năm học: {yr} - {other_col}):**")
