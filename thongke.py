@@ -175,22 +175,32 @@ with tab1:
       if df1 is None or df1.empty or df2 is None or df2.empty or not detail_dfs:
         st.warning("⚠️ Vui lòng đảm bảo đã tải đủ df1, df2 và các bảng công việc.")
       else:
+        # 1. Tách từ khóa theo dấu phẩy hoặc dấu &
         raw_keywords = [
             k.strip() for k in re.split(r"[&,]", keyword_input) if k.strip()
         ]
 
+        # 2. Xử lý mở rộng từ đồng nghĩa thông minh
         expanded_keywords = []
         for kw in raw_keywords:
-          synonyms = [kw]
-          if any(k in kw for k in ["sách tham khảo", "sck", "tltk", "sách"]):
-            for s in ["sách tham khảo", "sck", "tltk", "sách"]:
-              if s not in synonyms:
-                synonyms.append(s)
-          elif "bài báo" in kw and "khoa học" not in kw:
-            synonyms.append("bài báo khoa học")
-          elif "đề tài" in kw:
-            synonyms.append("đề tài")
-          expanded_keywords.append(synonyms)
+            synonyms = [kw]
+            if any(k in kw for k in ["sách tham khảo", "sck", "tltk", "sách"]):
+                for s in ["sách tham khảo", "sck", "tltk", "sách"]:
+                    if s not in synonyms:
+                        synonyms.append(s)
+            elif "bài báo" in kw and "khoa học" not in kw:
+                synonyms.append("bài báo khoa học")
+            elif "đề tài" in kw:
+                synonyms.append("đề tài")
+            
+            # 🌟 MỚI: Tách nhỏ các từ đơn lẻ nếu người dùng gõ chuỗi dài (VD: "bài báo khoa học quốc tế" -> bắt buộc phải chứa cả "bài báo", "khoa học", "quốc tế")
+            sub_words = kw.split()
+            if len(sub_words) > 1:
+                for sw in sub_words:
+                    if len(sw) > 2 and sw not in synonyms: # Chỉ lấy từ có độ dài > 2 ký tự để tránh từ dừng (stop words)
+                        synonyms.append(sw)
+            
+            expanded_keywords.append(synonyms)
 
         st.info(
             f"🔍 Đang tìm theo điều kiện BẮT BUỘC CHỨA ĐỒNG THỜI các nhóm từ khóa:"
@@ -199,45 +209,46 @@ with tab1:
 
         target_search_dict = {}
         if "GD" in search_scope:
-          if "GD" in detail_dfs:
-            target_search_dict["GD"] = detail_dfs["GD"]
+            if "GD" in detail_dfs:
+                target_search_dict["GD"] = detail_dfs["GD"]
         elif "NCKH" in search_scope:
-          if "NCKH" in detail_dfs:
-            target_search_dict["NCKH"] = detail_dfs["NCKH"]
+            if "NCKH" in detail_dfs:
+                target_search_dict["NCKH"] = detail_dfs["NCKH"]
         elif "Other" in search_scope:
-          if "Other" in detail_dfs:
-            target_search_dict["Other"] = detail_dfs["Other"]
+            if "Other" in detail_dfs:
+                target_search_dict["Other"] = detail_dfs["Other"]
         else:
-          target_search_dict = detail_dfs
+            target_search_dict = detail_dfs
 
         for name, df in target_search_dict.items():
-          if df is None or df.empty:
-            continue
+            if df is None or df.empty:
+                continue
 
-          df_temp = df.copy()
-          df_temp.columns = [str(c).strip() for c in df_temp.columns]
+            df_temp = df.copy()
+            df_temp.columns = [str(c).strip() for c in df_temp.columns]
 
-          for col in df_temp.columns:
-            df_temp[col] = df_temp[col].fillna("").astype(str)
+            for col in df_temp.columns:
+                df_temp[col] = df_temp[col].fillna("").astype(str)
 
-          all_text_cols = list(df_temp.columns)
+            all_text_cols = list(df_temp.columns)
 
-          if all_text_cols:
-            mask = pd.Series(True, index=df_temp.index)
-            for syn_list in expanded_keywords:
-              mask_syn = pd.Series(False, index=df_temp.index)
-              for kw in syn_list:
-                mask_kw = pd.Series(False, index=df_temp.index)
-                for c in all_text_cols:
-                  mask_kw |= (
-                      df_temp[c].str.lower().str.contains(kw, case=False, na=False)
-                  )
-                mask_syn |= mask_kw
-              mask &= mask_syn
-          else:
-            mask = pd.Series(False, index=df_temp.index)
+            if all_text_cols:
+                mask = pd.Series(True, index=df_temp.index)
+                for syn_list in expanded_keywords:
+                    mask_syn = pd.Series(False, index=df_temp.index)
+                    for kw in syn_list:
+                        mask_kw = pd.Series(False, index=df_temp.index)
+                        for c in all_text_cols:
+                            # 🌟 SỬA ĐỔI: Kiểm tra chính xác toàn bộ cụm từ khóa xuất hiện trong cột
+                            mask_kw |= (
+                                df_temp[c].str.lower().str.contains(kw, case=False, na=False)
+                            )
+                        mask_syn |= mask_kw
+                    mask &= mask_syn
+            else:
+                mask = pd.Series(False, index=df_temp.index)
 
-          match_df = df_temp[mask].copy()
+            match_df = df_temp[mask].copy()
 
           if not match_df.empty:
             if "code" in match_df.columns and "code" in df1.columns:
