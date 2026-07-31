@@ -635,7 +635,8 @@ with tab1:
                                     with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
                                         note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
                                         st.dataframe(note_df, use_container_width=True, hide_index=True)
-                            # 🌟 TRƯỜNG HỢP 2: BIỂU ĐỒ CỘT NHÓM (GROUPED BAR CHART) SO SÁNH GIỮA CÁC NĂM HỌC
+                           
+                            # 🌟 TRƯỜNG HỢP 2: BIỂU ĐỒ CỘT NHÓM (GROUPED BAR CHART) SO SÁNH GIỮA CÁC NĂM HỌC (TỰ ĐỘNG ĐỔI BỐ CỤC NGANG/DỌC THEO SỐ LƯỢNG)
                             if has_year_selected and other_criteria_cols:
                                 st.markdown("---")
                                 st.markdown("#### 🌟 3.1 Biểu đồ so sánh chi tiết theo Từng năm học (Biểu đồ cột nhóm)")
@@ -669,13 +670,13 @@ with tab1:
                                     dyn_w_grp = max(8.0, num_bars_grp * max(1.2, len(pivot_tiet.columns) * 0.4))
                                     rotate_ticks = 45 if num_bars_grp > 6 or len(pivot_tiet.columns) > 3 else 0
     
-                                    col_g1, col_g2 = st.columns(2)
-    
-                                    # Biểu đồ nhóm 1: Tổng số tiết theo năm học
-                                    with col_g1:
+                                    # 🌟 ĐIỀU KIỆN BỐ CỤC: Nếu số lượng > 8 thì xếp hàng dọc (1 cột), ngược lại xếp hàng ngang (2 cột)
+                                    if num_bars_grp > 8:
+                                        # --- BỐ CỤC HÀNG DỌC (1 CỘT CHO MỖI DÒNG) ---
+                                        
+                                        # Biểu đồ nhóm 1: Tổng số tiết theo năm học
                                         fig_g1, ax_g1 = plt.subplots(figsize=(dyn_w_grp, 4.5))
                                         pivot_tiet.plot(kind="bar", ax=ax_g1, width=0.8)
-                                        
                                         ax_g1.set_xlabel("Ký hiệu" if needs_mapping_grp else other_col, fontsize=9)
                                         ax_g1.set_ylabel("Tổng số tiết", fontsize=9)
                                         ax_g1.set_title(f"So sánh Tổng số tiết - {other_col} theo Năm học", fontsize=10, fontweight="bold")
@@ -684,11 +685,11 @@ with tab1:
                                         ax_g1.grid(axis="y", linestyle="--", alpha=0.5)
                                         st.pyplot(fig_g1, bbox_inches="tight")
     
-                                    # Biểu đồ nhóm 2: Số lượng lớp theo năm học
-                                    with col_g2:
+                                        st.markdown("") # Khoảng cách nhỏ giữa 2 biểu đồ dọc
+    
+                                        # Biểu đồ nhóm 2: Số lượng lớp theo năm học
                                         fig_g2, ax_g2 = plt.subplots(figsize=(dyn_w_grp, 4.5))
                                         pivot_lop.plot(kind="bar", ax=ax_g2, width=0.8, colormap="Oranges")
-                                        
                                         ax_g2.set_xlabel("Ký hiệu" if needs_mapping_grp else other_col, fontsize=9)
                                         ax_g2.set_ylabel("Số lượng lớp", fontsize=9)
                                         ax_g2.set_title(f"So sánh Số lượng lớp - {other_col} theo Năm học", fontsize=10, fontweight="bold")
@@ -696,6 +697,32 @@ with tab1:
                                         ax_g2.legend(title="Năm học", fontsize=8, title_fontsize=8)
                                         ax_g2.grid(axis="y", linestyle="--", alpha=0.5)
                                         st.pyplot(fig_g2, bbox_inches="tight")
+    
+                                    else:
+                                        # --- BỐ CỤC HÀNG NGANG (2 CỘT SONG SONG) ---
+                                        col_g1, col_g2 = st.columns(2)
+    
+                                        with col_g1:
+                                            fig_g1, ax_g1 = plt.subplots(figsize=(max(6.0, dyn_w_grp/2), 4.5))
+                                            pivot_tiet.plot(kind="bar", ax=ax_g1, width=0.8)
+                                            ax_g1.set_xlabel("Ký hiệu" if needs_mapping_grp else other_col, fontsize=9)
+                                            ax_g1.set_ylabel("Tổng số tiết", fontsize=9)
+                                            ax_g1.set_title(f"So sánh Tổng số tiết - {other_col}", fontsize=10, fontweight="bold")
+                                            ax_g1.tick_params(axis="x", rotation=rotate_ticks)
+                                            ax_g1.legend(title="Năm học", fontsize=8, title_fontsize=8)
+                                            ax_g1.grid(axis="y", linestyle="--", alpha=0.5)
+                                            st.pyplot(fig_g1, bbox_inches="tight")
+    
+                                        with col_g2:
+                                            fig_g2, ax_g2 = plt.subplots(figsize=(max(6.0, dyn_w_grp/2), 4.5))
+                                            pivot_lop.plot(kind="bar", ax=ax_g2, width=0.8, colormap="Oranges")
+                                            ax_g2.set_xlabel("Ký hiệu" if needs_mapping_grp else other_col, fontsize=9)
+                                            ax_g2.set_ylabel("Số lượng lớp", fontsize=9)
+                                            ax_g2.set_title(f"So sánh Số lượng lớp - {other_col}", fontsize=10, fontweight="bold")
+                                            ax_g2.tick_params(axis="x", rotation=rotate_ticks)
+                                            ax_g2.legend(title="Năm học", fontsize=8, title_fontsize=8)
+                                            ax_g2.grid(axis="y", linestyle="--", alpha=0.5)
+                                            st.pyplot(fig_g2, bbox_inches="tight")
     
                                     # 4. Hiển thị bảng chú thích ký hiệu nếu có rút gọn
                                     if needs_mapping_grp:
