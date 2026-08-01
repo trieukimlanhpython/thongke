@@ -260,46 +260,121 @@ with tab1:
                 st.success(
                     f"✅ Tìm thấy kết quả phù hợp từ {len(found_records)} nhóm bảng"
                 )
-
-                # Nếu chọn "🌐 Tất cả các bảng", hiển thị ngắn gọn theo yêu cầu từng nội dung
+                # Nếu chọn "🌐 Tất cả các bảng", hiển thị ngắn gọn theo đúng chuẩn thống kê từng nội dung
                 if search_scope == "🌐 Tất cả các bảng":
                     for name, rec_df in found_records:
                         if name == "GD":
                             st.markdown(f"#### 📘 Tổng hợp nội dung: **Giảng dạy (GD)**")
-                            # Xử lý nhanh hiển thị bảng 1 cho GD
-                            df_clean_gd = rec_df.drop_duplicates().copy()
-                            df_clean_gd.columns = [str(c).strip().lower() for c in df_clean_gd.columns]
-                            time_col_gd = next((c for c in df_clean_gd.columns if any(x in c for x in ["năm học", "year", "đợt", "term"])), None)
-                            df_clean_gd["năm học hiển thị"] = df_clean_gd[time_col_gd].apply(quy_doi_nam_hoc) if time_col_gd else "Chưa xác định"
-                            tiet_col_gd = next((c for c in df_clean_gd.columns if any(x in c for x in ["tiết", "period"])), list(df_clean_gd.columns)[-1])
-                            df_clean_gd[tiet_col_gd] = pd.to_numeric(df_clean_gd[tiet_col_gd], errors="coerce").fillna(0)
-                            c_class_gd = "class" if "class" in df_clean_gd.columns else df_clean_gd.columns[0]
-                            c_subject_gd = "subject" if "subject" in df_clean_gd.columns else df_clean_gd.columns[0]
+                            # Đưa trực tiếp rec_df vào luồng xử lý chuẩn của GD
+                            df_clean = rec_df.drop_duplicates().copy()
+                            df_clean.columns = [str(c).strip().lower() for c in df_clean.columns]
+    
+                            if "term_x" in df_clean.columns:
+                                df_clean["term"] = df_clean["term_x"]
+    
+                            code_col_actual = next((c for c in df_clean.columns if "code" in c), None)
+                            if code_col_actual:
+                                df_clean["_dot_hoc"] = df_clean[code_col_actual].astype(str).str.upper().apply(
+                                    lambda x: "Đợt 1" if "D1" in x or "ĐỢT 1" in x else ("Đợt 2" if "D2" in x or "ĐỢT 2" in x else "Khác")
+                                )
+                            else:
+                                df_clean["_dot_hoc"] = "Không rõ"
+    
+                            time_col_actual = next((c for c in df_clean.columns if any(x in c for x in ["năm học", "year", "đợt", "term"])), None)
+                            if "năm học hiển thị" not in df_clean.columns and time_col_actual:
+                                df_clean["năm học hiển thị"] = df_clean[time_col_actual].apply(quy_doi_nam_hoc)
+                            elif "năm học hiển thị" not in df_clean.columns:
+                                df_clean["năm học hiển thị"] = "Chưa xác định"
+    
+                            tiet_col = next((c for c in df_clean.columns if any(x in c for x in ["tiết", "period"])), list(df_clean.columns)[-1])
+                            df_clean[tiet_col] = pd.to_numeric(df_clean[tiet_col], errors="coerce").fillna(0)
+    
+                            c_class = "class" if "class" in df_clean.columns else df_clean.columns[0]
+                            c_subject = "subject" if "subject" in df_clean.columns else ("short_name" if "short_name" in df_clean.columns else df_clean.columns[0])
+    
+                            df_after = df_clean.groupby("năm học hiển thị").agg(**{
+                                "Tổng số tiết thực hiện": (tiet_col, "sum"),
+                                "Số lượng lớp": (c_class, "nunique"),
+                                "Số lượng môn học": (c_subject, "nunique")
+                            }).reset_index().sort_values("năm học hiển thị")
                             
-                            df_after_gd = df_clean_gd.groupby("năm học hiển thị").agg(**{
-                                "Tổng số tiết thực hiện": (tiet_col_gd, "sum"),
-                                "Số lượng lớp": (c_class_gd, "nunique"),
-                                "Số lượng môn học": (c_subject_gd, "nunique")
-                            }).reset_index().sort_values("năm học hiển thị").rename(columns={"năm học hiển thị": "Năm học hiển thị"})
-                            st.dataframe(df_after_gd, use_container_width=True)
+                            df_after = df_after.rename(columns={"năm học hiển thị": "Năm học hiển thị"})
+                            tot_lop = df_after["Số lượng lớp"].sum()
+                            tot_tiet = df_after["Tổng số tiết thực hiện"].sum()
+    
+                            df_after_disp = df_after.copy()
+                            df_after_disp.loc[len(df_after_disp)] = ["**Tổng cộng**", tot_tiet, tot_lop, float('nan')]
+                            df_after_disp = df_after_disp[["Năm học hiển thị", "Số lượng lớp", "Số lượng môn học", "Tổng số tiết thực hiện"]]
+                            st.dataframe(df_after_disp, use_container_width=True)
 
                         elif name == "NCKH":
                             st.markdown(f"#### 📘 Tổng hợp nội dung: **Nghiên cứu khoa học (NCKH)**")
-                            # Xử lý nhanh bảng 2.1 (sau trừ trùng lặp sản phẩm) cho NCKH
-                            df_clean_nckh = rec_df.copy()
-                            df_clean_nckh.columns = [str(c).strip() for c in df_clean_nckh.columns]
-                            time_col_nckh = next((c for c in df_clean_nckh.columns if any(x in c for x in ["đợt kê khai", "năm học", "year"])), None)
-                            df_clean_nckh["Năm học hiển thị"] = df_clean_nckh[time_col_nckh].apply(quy_doi_nam_hoc) if time_col_nckh else "Chưa xác định"
-                            tiet_col_nckh = next((c for c in df_clean_nckh.columns if any(x in c for x in ["sỐ tiết kê khai", "tiết", "period"])), list(df_clean_nckh.columns)[-1])
-                            df_clean_nckh[tiet_col_nckh] = pd.to_numeric(df_clean_nckh[tiet_col_nckh], errors="coerce").fillna(0)
-                            name_prod_nckh = next((c for c in df_clean_nckh.columns if c.lower() in ["tên sản phẩm"]), None)
-                            df_clean_nckh["Sản phẩm chuẩn hóa"] = df_clean_nckh[name_prod_nckh].astype(str).str.lower().str.strip() if name_prod_nckh else "sản phẩm chung"
+                            # Đưa trực tiếp rec_df vào luồng xử lý trừ trùng lặp chuẩn của NCKH
+                            df_temp_detail = rec_df.copy()
+                            df_temp_detail.columns = [str(c).strip() for c in df_temp_detail.columns]
                             
-                            df_clean_unified_quick = df_clean_nckh.groupby(["Năm học hiển thị", "Sản phẩm chuẩn hóa"], dropna=False).agg({tiet_col_nckh: "first"}).reset_index()
-                            df_after_nckh = df_clean_unified_quick.groupby("Năm học hiển thị").agg(**{
-                                "Số lượng sản phẩm độc lập": (tiet_col_nckh, "count"),
-                                "Tổng số tiết thực hiện": (tiet_col_nckh, "sum")
-                            }).reset_index().sort_values("Năm học hiển thị")
+                            tiet_col_target_nckh = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["sỐ tiết kê khai", "tiết", "period"])), list(df_temp_detail.columns)[-1])
+                            time_col_target_nckh = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["đợt kê khai", "năm học", "year"])), None)
+                            
+                            df_temp_detail[tiet_col_target_nckh] = pd.to_numeric(df_temp_detail[tiet_col_target_nckh], errors="coerce").fillna(0)
+                            df_temp_detail["Năm học hiển thị"] = df_temp_detail[time_col_target_nckh].apply(quy_doi_nam_hoc) if time_col_target_nckh else "Chưa xác định"
+
+                            name_prod_col = next((c for c in df_temp_detail.columns if c.lower() in ["tên sản phẩm"]), None)
+                            id_col_check = next((c for c in df_temp_detail.columns if c.lower() in ["mã sản phẩm", "code"]), None)
+                            role_col_check = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["vai trò", "role"])), None)
+
+                            if name_prod_col and not df_temp_detail.empty:
+                                df_temp_detail["_clean_prod_name"] = df_temp_detail[name_prod_col].astype(str).str.lower().str.replace(r"\s+", " ", regex=True).str.strip()
+                            else:
+                                df_temp_detail["_clean_prod_name"] = "sản phẩm chung"
+
+                            if id_col_check and id_col_check in df_temp_detail.columns:
+                                df_temp_detail["_clean_id"] = df_temp_detail[id_col_check].astype(str).str.lower().str.replace(r"\s+", "", regex=True).str.strip()
+                                df_temp_detail["_clean_key"] = df_temp_detail["_clean_prod_name"] + " | " + df_temp_detail["_clean_id"]
+                            else:
+                                df_temp_detail["_clean_key"] = df_temp_detail["_clean_prod_name"]
+
+                            unique_keys_detail = df_temp_detail["_clean_key"].unique()
+                            key_to_canonical = {}
+
+                            if len(unique_keys_detail) > 1:
+                                vectorizer_d = TfidfVectorizer().fit(unique_keys_detail)
+                                tfidf_matrix_d = vectorizer_d.transform(unique_keys_detail)
+                                similarity_matrix_d = cosine_similarity(tfidf_matrix_d, tfidf_matrix_d)
+
+                                threshold_d = 0.85
+                                visited_d = set()
+
+                                for i in range(len(unique_keys_detail)):
+                                    if i in visited_d:
+                                        continue
+                                    canonical_key = unique_keys_detail[i]
+                                    similar_idx_d = np.where(similarity_matrix_d[i] >= threshold_d)[0]
+                                    for idx in similar_idx_d:
+                                        visited_d.add(idx)
+                                        key_to_canonical[unique_keys_detail[idx]] = canonical_key
+                            else:
+                                for k_item in unique_keys_detail:
+                                    key_to_canonical[k_item] = k_item
+
+                            df_temp_detail["Sản phẩm chuẩn hóa"] = df_temp_detail["_clean_key"].map(key_to_canonical)
+
+                            group_keys_final = ["Năm học hiển thị", "Sản phẩm chuẩn hóa"]
+                            if role_col_check and role_col_check in df_temp_detail.columns:
+                                group_keys_final.append(role_col_check)
+
+                            agg_rules_detail = {tiet_col_target_nckh: "first"}
+                            df_clean_unified_quick = df_temp_detail.groupby(group_keys_final, dropna=False).agg(agg_rules_detail).reset_index()
+
+                            df_after_nckh = df_clean_unified_quick.groupby("Năm học hiển thị", as_index=False).agg(
+                                Số_lượng_sản_phẩm_độc_lập=(tiet_col_target_nckh, "count"),
+                                Tổng_số_tiết_thực_hiện=(tiet_col_target_nckh, "sum")
+                            ).sort_values("Năm học hiển thị")
+
+                            df_after_nckh = df_after_nckh.rename(columns={
+                                "Số_lượng_sản_phẩm_độc_lập": "Số lượng sản phẩm độc lập",
+                                "Tổng_số_tiết_thực_hiện": "Tổng số tiết thực hiện"
+                            })
                             st.dataframe(df_after_nckh, use_container_width=True)
 
                         else:
