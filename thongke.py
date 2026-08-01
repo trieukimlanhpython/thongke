@@ -1153,106 +1153,106 @@ with tab1:
                                     opt_pl3 = st.checkbox("PL Cấp 3", value=False, key="chk_nckh_pl3")
                                 opt_tap = st.checkbox("Tên Tạp chí / Hội thảo, Sách", value=False, key="chk_nckh_tap")
 
-                            group_detail_dynamic = []
-                            if opt_y:
-                                group_detail_dynamic.append("Năm học")
-                            if opt_loai and loai_hd_col and loai_hd_col in df_clean_unified.columns:
-                                group_detail_dynamic.append(loai_hd_col)
-                            if opt_cap and cap_do_col and cap_do_col in df_clean_unified.columns:
-                                group_detail_dynamic.append(cap_do_col)
-                            if opt_pl1 and phan_loai_col and phan_loai_col in df_clean_unified.columns:
-                                group_detail_dynamic.append(phan_loai_col)
-                            if opt_pl2 and col_phan_loai_2 and col_phan_loai_2 in df_clean_unified.columns:
-                                group_detail_dynamic.append(col_phan_loai_2)
-                            if opt_pl3 and col_phan_loai_3 and col_phan_loai_3 in df_clean_unified.columns:
-                                group_detail_dynamic.append(col_phan_loai_3)
-                            if opt_role and role_col_check and role_col_check in df_clean_unified.columns:
-                                group_detail_dynamic.append(role_col_check)
-                            if opt_prod and name_prod_col and name_prod_col in df_clean_unified.columns:
-                                group_detail_dynamic.append(name_prod_col)
-                            if opt_ma and col_ma_sp and col_ma_sp in df_clean_unified.columns:
-                                group_detail_dynamic.append(col_ma_sp)
-                            if opt_tap and col_tap_chi and col_tap_chi in df_clean_unified.columns:
-                                group_detail_dynamic.append(col_tap_chi)
-                            if opt_issn and col_isbn and col_isbn in df_clean_unified.columns:
-                                group_detail_dynamic.append(col_isbn)
-
-                            if not group_detail_dynamic:
-                                group_detail_dynamic = ["Năm học"]
-
-                            agg_dyn_dict = {
-                                tiet_col_target: ["sum", "count"],
-                                "_full_name": lambda x: ", ".join(x.dropna().unique()),
-                            }
-                            if name_prod_col and name_prod_col in df_clean_unified.columns:
-                                agg_dyn_dict[name_prod_col] = lambda x: " / ".join(x.dropna().unique())
-                            if id_col_check and id_col_check in df_clean_unified.columns:
-                                agg_dyn_dict[id_col_check] = lambda x: " / ".join(x.dropna().unique())
-                            if role_col_check and role_col_check not in group_detail_dynamic:
-                                agg_dyn_dict[role_col_check] = lambda x: " & ".join(x.dropna().unique())
-
-                            if tap_chi_col and tap_chi_col in df_clean_unified.columns:
-                                agg_dyn_dict[tap_chi_col] = lambda x: " / ".join(pd.Series(x).dropna().astype(str).unique())
-                            if col_phan_loai_2 and col_phan_loai_2 in df_clean_unified.columns:
-                                agg_dyn_dict[col_phan_loai_2] = lambda x: " / ".join(pd.Series(x).dropna().astype(str).unique())
-                            if col_phan_loai_3 and col_phan_loai_3 in df_clean_unified.columns:
-                                agg_dyn_dict[col_phan_loai_3] = lambda x: " / ".join(pd.Series(x).dropna().astype(str).unique())
-                            if col_isbn and col_isbn in df_clean_unified.columns:
-                                agg_dyn_dict[col_isbn] = lambda x: " / ".join(pd.Series(x).dropna().astype(str).unique())
-
-                            # 🌟 Lọc bỏ các cột trùng lặp tên trong danh sách group_detail_dynamic để tránh lỗi duplicate index
-                            group_detail_dynamic = list(dict.fromkeys(group_detail_dynamic))
+                                group_detail_dynamic = []
+                                if opt_y:
+                                    group_detail_dynamic.append("Năm học")
+                                if opt_loai and loai_hd_col and loai_hd_col in df_clean_unified.columns:
+                                    group_detail_dynamic.append(loai_hd_col)
+                                if opt_cap and cap_do_col and cap_do_col in df_clean_unified.columns:
+                                    group_detail_dynamic.append(cap_do_col)
+                                if opt_pl1 and phan_loai_col and phan_loai_col in df_clean_unified.columns:
+                                    group_detail_dynamic.append(phan_loai_col)
+                                if opt_pl2 and col_phan_loai_2 and col_phan_loai_2 in df_clean_unified.columns:
+                                    group_detail_dynamic.append(col_phan_loai_2)
+                                if opt_pl3 and col_phan_loai_3 and col_phan_loai_3 in df_clean_unified.columns:
+                                    group_detail_dynamic.append(col_phan_loai_3)
+                                if opt_role and role_col_check and role_col_check in df_clean_unified.columns:
+                                    group_detail_dynamic.append(role_col_check)
+                                if opt_prod and name_prod_col and name_prod_col in df_clean_unified.columns:
+                                    group_detail_dynamic.append(name_prod_col)
+                                if opt_ma and col_ma_sp and col_ma_sp in df_clean_unified.columns:
+                                    group_detail_dynamic.append(col_ma_sp)
+                                if opt_tap and col_tap_chi and col_tap_chi in df_clean_unified.columns:
+                                    group_detail_dynamic.append(col_tap_chi)
+                                if opt_issn and col_isbn and col_isbn in df_clean_unified.columns:
+                                    group_detail_dynamic.append(col_isbn)
     
-                            safe_agg_dyn_dict = {
-                                k: v for k, v in agg_dyn_dict.items() 
-                                if k not in group_detail_dynamic
-                            }
+                                if not group_detail_dynamic:
+                                    group_detail_dynamic = ["Năm học"]
     
-                            df_nckh_detail = df_clean_unified.groupby(group_detail_dynamic, dropna=False).agg(safe_agg_dyn_dict).reset_index()
+                                agg_dyn_dict = {
+                                    tiet_col_target: ["sum", "count"],
+                                    "_full_name": lambda x: ", ".join(x.dropna().unique()),
+                                }
+                                if name_prod_col and name_prod_col in df_clean_unified.columns:
+                                    agg_dyn_dict[name_prod_col] = lambda x: " / ".join(x.dropna().unique())
+                                if id_col_check and id_col_check in df_clean_unified.columns:
+                                    agg_dyn_dict[id_col_check] = lambda x: " / ".join(x.dropna().unique())
+                                if role_col_check and role_col_check not in group_detail_dynamic:
+                                    agg_dyn_dict[role_col_check] = lambda x: " & ".join(x.dropna().unique())
     
-                            df_nckh_detail.columns = [
-                                col[0] if col[1] == "" else f"{col[0]}_{col[1]}" 
-                                for col in df_nckh_detail.columns
-                            ]
-
-                            rename_nckh_dict = {
-                                f"{tiet_col_target}_sum": "Tổng số tiết",
-                                f"{tiet_col_target}_count": "Số lượng",
-                                "_full_name": "Danh sách thành viên"
-                            }
-                            if role_col_check:
-                                rename_nckh_dict[role_col_check] = "Các vai trò"
-
-                            df_nckh_detail = df_nckh_detail.rename(columns=rename_nckh_dict)
-                             
-                            for col_drop in ["_clean_prod_name", "_clean_id", "_clean_key", "Sản phẩm chuẩn hóa", "_source_table"]:
-                                if col_drop in df_nckh_detail.columns:
-                                    df_nckh_detail = df_nckh_detail.drop(columns=[col_drop])
-
-                            front_cols = [c for c in group_detail_dynamic if c in df_nckh_detail.columns]
-                            middle_cols = [c for c in ["Số lượng", "Tổng số tiết"] if c in df_nckh_detail.columns]
-                            end_cols = [c for c in df_nckh_detail.columns if c not in front_cols + middle_cols]
-                             
-                            cols_order = front_cols + middle_cols + end_cols
-                            df_nckh_detail = df_nckh_detail[cols_order]
-
-                            if not df_nckh_detail.empty:
-                                tot_sl_nckh = df_nckh_detail["Số lượng"].sum() if "Số lượng" in df_nckh_detail.columns else 0
-                                tot_tiet_nckh = df_nckh_detail["Tổng số tiết"].sum() if "Tổng số tiết" in df_nckh_detail.columns else 0
-                                
-                                total_row_nckh = {}
-                                for col_name in df_nckh_detail.columns:
-                                    if col_name == df_nckh_detail.columns[0]:
-                                        total_row_nckh[col_name] = "**Tổng cộng**"
-                                    elif col_name == "Số lượng":
-                                        total_row_nckh[col_name] = tot_sl_nckh
-                                    elif col_name == "Tổng số tiết":
-                                        total_row_nckh[col_name] = tot_tiet_nckh
-                                    else:
-                                        total_row_nckh[col_name] = ""
-                                df_nckh_detail.loc[len(df_nckh_detail)] = total_row_nckh
-
-                            st.dataframe(df_nckh_detail, use_container_width=True)
+                                if tap_chi_col and tap_chi_col in df_clean_unified.columns:
+                                    agg_dyn_dict[tap_chi_col] = lambda x: " / ".join(pd.Series(x).dropna().astype(str).unique())
+                                if col_phan_loai_2 and col_phan_loai_2 in df_clean_unified.columns:
+                                    agg_dyn_dict[col_phan_loai_2] = lambda x: " / ".join(pd.Series(x).dropna().astype(str).unique())
+                                if col_phan_loai_3 and col_phan_loai_3 in df_clean_unified.columns:
+                                    agg_dyn_dict[col_phan_loai_3] = lambda x: " / ".join(pd.Series(x).dropna().astype(str).unique())
+                                if col_isbn and col_isbn in df_clean_unified.columns:
+                                    agg_dyn_dict[col_isbn] = lambda x: " / ".join(pd.Series(x).dropna().astype(str).unique())
+    
+                                # 🌟 Lọc bỏ các cột trùng lặp tên trong danh sách group_detail_dynamic để tránh lỗi duplicate index
+                                group_detail_dynamic = list(dict.fromkeys(group_detail_dynamic))
+        
+                                safe_agg_dyn_dict = {
+                                    k: v for k, v in agg_dyn_dict.items() 
+                                    if k not in group_detail_dynamic
+                                }
+        
+                                df_nckh_detail = df_clean_unified.groupby(group_detail_dynamic, dropna=False).agg(safe_agg_dyn_dict).reset_index()
+        
+                                df_nckh_detail.columns = [
+                                    col[0] if col[1] == "" else f"{col[0]}_{col[1]}" 
+                                    for col in df_nckh_detail.columns
+                                ]
+    
+                                rename_nckh_dict = {
+                                    f"{tiet_col_target}_sum": "Tổng số tiết",
+                                    f"{tiet_col_target}_count": "Số lượng",
+                                    "_full_name": "Danh sách thành viên"
+                                }
+                                if role_col_check:
+                                    rename_nckh_dict[role_col_check] = "Các vai trò"
+    
+                                df_nckh_detail = df_nckh_detail.rename(columns=rename_nckh_dict)
+                                 
+                                for col_drop in ["_clean_prod_name", "_clean_id", "_clean_key", "Sản phẩm chuẩn hóa", "_source_table"]:
+                                    if col_drop in df_nckh_detail.columns:
+                                        df_nckh_detail = df_nckh_detail.drop(columns=[col_drop])
+    
+                                front_cols = [c for c in group_detail_dynamic if c in df_nckh_detail.columns]
+                                middle_cols = [c for c in ["Số lượng", "Tổng số tiết"] if c in df_nckh_detail.columns]
+                                end_cols = [c for c in df_nckh_detail.columns if c not in front_cols + middle_cols]
+                                 
+                                cols_order = front_cols + middle_cols + end_cols
+                                df_nckh_detail = df_nckh_detail[cols_order]
+    
+                                if not df_nckh_detail.empty:
+                                    tot_sl_nckh = df_nckh_detail["Số lượng"].sum() if "Số lượng" in df_nckh_detail.columns else 0
+                                    tot_tiet_nckh = df_nckh_detail["Tổng số tiết"].sum() if "Tổng số tiết" in df_nckh_detail.columns else 0
+                                    
+                                    total_row_nckh = {}
+                                    for col_name in df_nckh_detail.columns:
+                                        if col_name == df_nckh_detail.columns[0]:
+                                            total_row_nckh[col_name] = "**Tổng cộng**"
+                                        elif col_name == "Số lượng":
+                                            total_row_nckh[col_name] = tot_sl_nckh
+                                        elif col_name == "Tổng số tiết":
+                                            total_row_nckh[col_name] = tot_tiet_nckh
+                                        else:
+                                            total_row_nckh[col_name] = ""
+                                    df_nckh_detail.loc[len(df_nckh_detail)] = total_row_nckh
+    
+                                st.dataframe(df_nckh_detail, use_container_width=True)
 
                             # ==========================================
                             # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG CHO NCKH
