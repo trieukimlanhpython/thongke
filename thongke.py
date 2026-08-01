@@ -869,8 +869,7 @@ with tab1:
                                             with st.expander(f"📅 **(Bấm để xem chú thích chi tiết)**", expanded=False):
                                                 note_df_yr = pd.DataFrame(list(label_mapping_yr.items()), columns=["Ký hiệu", "Tên đầy đủ"])
                                                 st.dataframe(note_df_yr, use_container_width=True, hide_index=True)
-                      
-                        else:
+                    
                         else:
                             # ==========================================
                             # 🔬 XỬ LÝ CHUNG CHO KHỐI NCKH (KHỬ TRÙNG LẶP TF-IDF)
