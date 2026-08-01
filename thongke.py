@@ -595,84 +595,84 @@ with tab1:
                                     opt_lecturer = st.checkbox("Theo Giảng viên", value=True, key="chk_gd_lect")
                                     opt_term = st.checkbox("Theo Học kỳ", value=False, key="chk_gd_term")
         
-                            group_detail_keys = []
-                            if opt_year:
-                                group_detail_keys.append("năm học")
-                            if opt_prog and c_program and c_program in df_clean.columns:
-                                group_detail_keys.append(c_program)
-                            if opt_subj:
-                                group_detail_keys.append(c_subject)
-                            if opt_know and c_knowledge and c_knowledge in df_clean.columns:
-                                group_detail_keys.append(c_knowledge)
-                            if opt_sess and c_session and c_session in df_clean.columns:
-                                group_detail_keys.append(c_session)
-                            if opt_loc and c_location and c_location in df_clean.columns:
-                                group_detail_keys.append(c_location)
-                            if opt_term and c_term and c_term in df_clean.columns:
-                                group_detail_keys.append(c_term)
-                            if opt_dot:
-                                group_detail_keys.append(c_dot) 
-                            if opt_faculty and c_faculty and c_faculty in df_clean.columns:
-                                group_detail_keys.append(c_faculty)
-                            if opt_note and c_note and c_note in df_clean.columns:
-                                group_detail_keys.append(c_note)
-                            if opt_lecturer:
-                                group_detail_keys.append("_full_name")
-        
-                            if not group_detail_keys:
-                                group_detail_keys = ["năm học"]
-        
-                            agg_detail_dict = {
-                                tiet_col: "sum",
-                                c_class: "nunique"
-                            }
-        
-                            df_gd_detail = df_clean.groupby(group_detail_keys).agg(agg_detail_dict).reset_index()
-        
-                            rename_detail_dict = {
-                                "năm học": "Năm học",
-                                c_subject: "Tên môn học",
-                                tiet_col: "Tổng số tiết",
-                                c_class: "Số lượng lớp",
-                                "_full_name": "Giảng viên"
-                            }
-                            if c_program:
-                                rename_detail_dict[c_program] = "Chương trình"
-                            if c_knowledge:
-                                rename_detail_dict[c_knowledge] = "Khối kiến thức"
-                            if c_session:
-                                rename_detail_dict[c_session] = "Ca học"
-                            if c_location:
-                                rename_detail_dict[c_location] = "Địa điểm"
-                            if c_term:
-                                rename_detail_dict[c_term] = "Học kỳ"
-                            if c_dot:
-                                rename_detail_dict[c_dot] = "Đợt học" 
-                            if c_faculty:
-                                rename_detail_dict[c_faculty] = "Khoa quản lý"
-                            if c_note:
-                                rename_detail_dict[c_note] = "Kiêm chức"
-        
-                            df_gd_detail = df_gd_detail.rename(columns=rename_detail_dict)
-        
-                            if not df_gd_detail.empty:
-                                total_tiet_val = df_gd_detail["Tổng số tiết"].sum()
-                                total_lop_val = df_gd_detail["Số lượng lớp"].sum()
-                                
-                                total_row = {}
-                                for col_name in df_gd_detail.columns:
-                                    if col_name == df_gd_detail.columns[0]:
-                                        total_row[col_name] = "**Tổng cộng**"
-                                    elif col_name == "Tổng số tiết":
-                                        total_row[col_name] = total_tiet_val
-                                    elif col_name == "Số lượng lớp":
-                                        total_row[col_name] = total_lop_val
-                                    else:
-                                        total_row[col_name] = ""
-                                
-                                df_gd_detail.loc[len(df_gd_detail)] = total_row
-        
-                            st.dataframe(df_gd_detail, use_container_width=True)
+                                group_detail_keys = []
+                                if opt_year:
+                                    group_detail_keys.append("năm học")
+                                if opt_prog and c_program and c_program in df_clean.columns:
+                                    group_detail_keys.append(c_program)
+                                if opt_subj:
+                                    group_detail_keys.append(c_subject)
+                                if opt_know and c_knowledge and c_knowledge in df_clean.columns:
+                                    group_detail_keys.append(c_knowledge)
+                                if opt_sess and c_session and c_session in df_clean.columns:
+                                    group_detail_keys.append(c_session)
+                                if opt_loc and c_location and c_location in df_clean.columns:
+                                    group_detail_keys.append(c_location)
+                                if opt_term and c_term and c_term in df_clean.columns:
+                                    group_detail_keys.append(c_term)
+                                if opt_dot:
+                                    group_detail_keys.append(c_dot) 
+                                if opt_faculty and c_faculty and c_faculty in df_clean.columns:
+                                    group_detail_keys.append(c_faculty)
+                                if opt_note and c_note and c_note in df_clean.columns:
+                                    group_detail_keys.append(c_note)
+                                if opt_lecturer:
+                                    group_detail_keys.append("_full_name")
+            
+                                if not group_detail_keys:
+                                    group_detail_keys = ["năm học"]
+            
+                                agg_detail_dict = {
+                                    tiet_col: "sum",
+                                    c_class: "nunique"
+                                }
+            
+                                df_gd_detail = df_clean.groupby(group_detail_keys).agg(agg_detail_dict).reset_index()
+            
+                                rename_detail_dict = {
+                                    "năm học": "Năm học",
+                                    c_subject: "Tên môn học",
+                                    tiet_col: "Tổng số tiết",
+                                    c_class: "Số lượng lớp",
+                                    "_full_name": "Giảng viên"
+                                }
+                                if c_program:
+                                    rename_detail_dict[c_program] = "Chương trình"
+                                if c_knowledge:
+                                    rename_detail_dict[c_knowledge] = "Khối kiến thức"
+                                if c_session:
+                                    rename_detail_dict[c_session] = "Ca học"
+                                if c_location:
+                                    rename_detail_dict[c_location] = "Địa điểm"
+                                if c_term:
+                                    rename_detail_dict[c_term] = "Học kỳ"
+                                if c_dot:
+                                    rename_detail_dict[c_dot] = "Đợt học" 
+                                if c_faculty:
+                                    rename_detail_dict[c_faculty] = "Khoa quản lý"
+                                if c_note:
+                                    rename_detail_dict[c_note] = "Kiêm chức"
+            
+                                df_gd_detail = df_gd_detail.rename(columns=rename_detail_dict)
+            
+                                if not df_gd_detail.empty:
+                                    total_tiet_val = df_gd_detail["Tổng số tiết"].sum()
+                                    total_lop_val = df_gd_detail["Số lượng lớp"].sum()
+                                    
+                                    total_row = {}
+                                    for col_name in df_gd_detail.columns:
+                                        if col_name == df_gd_detail.columns[0]:
+                                            total_row[col_name] = "**Tổng cộng**"
+                                        elif col_name == "Tổng số tiết":
+                                            total_row[col_name] = total_tiet_val
+                                        elif col_name == "Số lượng lớp":
+                                            total_row[col_name] = total_lop_val
+                                        else:
+                                            total_row[col_name] = ""
+                                    
+                                    df_gd_detail.loc[len(df_gd_detail)] = total_row
+            
+                                st.dataframe(df_gd_detail, use_container_width=True)
         
                             # ==========================================
                             # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG
