@@ -1057,7 +1057,7 @@ with tab1:
                                 tot_bb_vn, 
                                 tot_bb_qt
                             ]
-                            st.dataframe(df_after_disp, use_container_width=True)
+                            st.dataframe(df_after_disp.T, use_container_width=True)
 
                             st.markdown("##### 🔍 2.3 Bảng chi tiết NCKH tùy chỉnh theo tiêu chí")
 
