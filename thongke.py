@@ -1300,6 +1300,25 @@ with tab1:
 # TAB 2: DỮ LIỆU GỐC (GỘP TỪ DỮ LIỆU CÁC NHÓM CÔNG VIỆC & DỮ LIỆU MÔ TẢ)
 # ----------------------------------------------------------
 with tab2:
+    st.markdown("#### 📂 Dữ liệu mô tả (df1 & df2)")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+      if "df1" not in st.session_state or st.session_state["df1"] is None:
+        st.session_state["df1"] = read_gsheet(links["df1"])
+      if st.session_state["df1"] is not None:
+        st.success("✅ Đã tải df1 (Year - Term - Code)!")
+        st.dataframe(st.session_state["df1"], height=400, use_container_width=True)
+    
+    with col2:
+      if "df2" not in st.session_state or st.session_state["df2"] is None:
+        st.session_state["df2"] = read_gsheet(links["df2"])
+      if st.session_state["df2"] is not None:
+        st.success("✅ Đã tải df2 (Category - Description)!")
+        st.dataframe(st.session_state["df2"], height=400, use_container_width=True)
+    
+    st.divider()
+    
     st.markdown("#### 📘 Dữ liệu các nhóm công việc GD, NCKH, Other")
     detail_dfs = st.session_state.get("detail_dfs", {})
 
@@ -1318,26 +1337,9 @@ with tab2:
       chosen_key_view = key_mapping_view[selected_group_view]
       if chosen_key_view in detail_dfs:
         st.success(f"✅ Đang hiển thị dữ liệu nhóm: {selected_group_view}")
-        st.dataframe(detail_dfs[chosen_key_view], height=450, use_container_width=True)
+        with st.expander(f"📅 **(Bấm để mở/đóng)**", expanded=True):
+            st.dataframe(detail_dfs[chosen_key_view], height=450, use_container_width=True)
       else:
         st.warning(f"⚠️ Nhóm {selected_group_view} hiện chưa có dữ liệu.")
     else:
       st.error("❌ Không thể tải dữ liệu chi tiết từ Google Sheets.")
-
-    st.divider()
-    st.markdown("#### 📂 Dữ liệu mô tả (df1 & df2)")
-    col1, col2 = st.columns(2)
-    
-    with col1:
-      if "df1" not in st.session_state or st.session_state["df1"] is None:
-        st.session_state["df1"] = read_gsheet(links["df1"])
-      if st.session_state["df1"] is not None:
-        st.success("✅ Đã tải df1 (Year - Term - Code)!")
-        st.dataframe(st.session_state["df1"], height=400, use_container_width=True)
-    
-    with col2:
-      if "df2" not in st.session_state or st.session_state["df2"] is None:
-        st.session_state["df2"] = read_gsheet(links["df2"])
-      if st.session_state["df2"] is not None:
-        st.success("✅ Đã tải df2 (Category - Description)!")
-        st.dataframe(st.session_state["df2"], height=400, use_container_width=True)
