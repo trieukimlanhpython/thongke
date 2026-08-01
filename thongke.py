@@ -1040,10 +1040,10 @@ with tab1:
                             cols_flag = ["_gt_moi", "_sach_ck", "_sach_tltk", "_bb_vn", "_bb_qt", "_tl_vn", "_tl_qt", "_dt_bo", "_dt_tinh", "_dt_coso", "_de_an"]
                             df_nckh_raw[cols_flag] = df_nckh_raw.apply(phan_loai_chuan_tung_dong, axis=1)
 
-                            # Tổng hợp theo Năm học
+                            # Tổng hợp theo Năm học (Sử dụng tiet_col_k để khớp hoàn toàn với DataFrame chữ thường)
                             df_agg_nckh = df_nckh_raw.groupby("Năm học").agg(**{
-                                "Tổng số sản phẩm": (tiet_col_target, "count"),
-                                "Tổng số tiết thực hiện": (tiet_col_target, "sum"),
+                                "Tổng số sản phẩm": (tiet_col_k, "count"),
+                                "Tổng số tiết thực hiện": (tiet_col_k, "sum"),
                                 "Biên soạn giáo trình mới": ("_gt_moi", "sum"),
                                 "Biên soạn sách chuyên khảo": ("_sach_ck", "sum"),
                                 "Sách tham khảo (TLTK)": ("_sach_tltk", "sum"),
