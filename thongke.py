@@ -1038,8 +1038,8 @@ with tab1:
                                 dt_tinh = 1 if (la_de_tai and any(x in cap_val for x in ["cấp tỉnh", "tỉnh", "thành phố"])) else 0
                                 dt_coso = 1 if (la_de_tai and any(x in cap_val for x in ["cấp cơ sở", "cơ sở", "ngành ngân hàng", "trường", "khoa", "bộ môn"])) else 0
 
-                                # 11. Đề án (đếm hết theo loại hoạt động là đề án)
-                                de_an = 1 if ("đề án" in loai_val or "đề án" in pl1_val) else 0
+                                # 11. Đề án (mở rộng từ khóa để không bị bỏ sót bất kỳ dòng nào)
+                                de_an = 1 if any(x in text_hop_lai for x in ["đề án", "Đề án", "dự án", "de an"]) and not la_de_tai else 0
 
                                 return pd.Series([gt_moi, sach_ck, sach_tltk, bb_vn, bb_qt, tl_vn, tl_qt, dt_bo, dt_tinh, dt_coso, de_an])
 
