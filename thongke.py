@@ -1228,9 +1228,6 @@ with tab1:
 
                                 st.dataframe(df_nckh_detail, use_container_width=True)
 
-                            else:
-                                st.info("ℹ️ Chưa có dữ liệu để tổng hợp bảng thống kê.")
-
                             # ==========================================
                             # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG CHO NCKH
                             # ==========================================
