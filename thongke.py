@@ -159,12 +159,14 @@ with tab1:
 
     keyword_input = (
         st.text_input(
-            "🔎 Nhập từ khóa cần tìm (các điều kiện cách nhau bằng & hoặc ,)\nVí dụ: Quản lý danh mục đầu tư hoặc Toán cao cấp"
+            "🔎 Nhập từ khóa cần tìm (các điều kiện cách nhau bằng & hoặc ,). Ví dụ: Quản lý danh mục đầu tư hoặc Toán cao cấp"
         )
         .strip()
         .lower()
     )
-
+    # 🌟 Bổ sung dòng mô tả thứ hai ở đây
+    st.caption("💡 Mẹo: Để xem thông tin toàn khoa theo từng nội dung, gõ GD hoặc NCKH")
+    
     df1 = st.session_state.get("df1")
     df2 = st.session_state.get("df2")
     detail_dfs = st.session_state.get("detail_dfs", {})
