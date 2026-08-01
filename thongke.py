@@ -984,10 +984,19 @@ with tab1:
                             df_clean_unified = df_temp_detail.groupby(group_keys_final, dropna=False).agg(agg_rules_detail).reset_index()
                             
                             st.markdown("##### 🧹 1. Bảng thống kê SAU KHI trừ trùng lặp")
-                           
+                            
                             # Lấy trực tiếp dữ liệu thô đã lọc theo năm học / từ khóa
                             df_nckh_raw = total_rec_df.copy()
                             df_nckh_raw.columns = [str(c).strip().lower() for c in df_nckh_raw.columns]
+
+                            # 🌟 Đảm bảo luôn có cột "Năm học" chuẩn xác
+                            time_col_actual = next((c for c in df_nckh_raw.columns if any(x in c for x in ["đợt kê khai", "năm học", "year"])), None)
+                            if time_col_actual and "năm học" not in df_nckh_raw.columns:
+                                df_nckh_raw["Năm học"] = df_nckh_raw[time_col_actual].apply(quy_doi_nam_hoc)
+                            elif "năm học" in df_nckh_raw.columns:
+                                df_nckh_raw["Năm học"] = df_nckh_raw["năm học"]
+                            else:
+                                df_nckh_raw["Năm học"] = "Chưa xác định"
 
                             # Nhận diện tên cột linh hoạt (không phân biệt hoa thường)
                             pl1_col_k = next((c for c in df_nckh_raw.columns if "phân loại cấp 1" in c), None)
