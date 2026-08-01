@@ -1011,17 +1011,17 @@ with tab1:
                                 sach_tltk = 1 if any(x in target for x in ["sách tham khảo", "tltk", "hướng dẫn học tập"]) else 0
                                 
                                 la_bb = any(x in l or x in p for x in ["bài báo", "tạp chí", "journal"])
-                                bb_vn = 1 if (la_bb and any(x in c or x in target for x in ["trong nước", "quốc gia", "địa phương", "cơ sở", "bộ", "trường"])) and not any(x in c or x in target for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos", "international"]) else 0
+                                bb_vn = 1 if (la_bb and any(x in c or x in target for x in ["trong nước"])) and not any(x in c or x in target for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos", "international"]) else 0
                                 bb_qt = 1 if (la_bb and any(x in c or x in target for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos", "international"])) else 0
 
                                 la_tl = any(x in l or x in target for x in ["tham luận", "kỷ yếu", "hội nghị", "hội thảo", "proceedings"]) and not bb_vn and not bb_qt
-                                tl_vn = 1 if (la_tl and not any(x in c or x in target for x in ["quốc tế", "international", "isi", "scopus"])) else 0
+                                tl_vn = 1 if (la_tl and not any(x in c or x in target for x in ["trong nước", "cơ sở"])) else 0
                                 tl_qt = 1 if (la_tl and any(x in c or x in target for x in ["quốc tế", "international", "isi", "scopus"])) else 0
 
-                                la_dt = any(x in l or x in p for x in ["đề tài", "nhiệm vụ"])
-                                dt_bo = 1 if (la_dt and any(x in c for x in ["cấp bộ", "bộ"])) else 0
-                                dt_tinh = 1 if (la_dt and any(x in c for x in ["cấp tỉnh", "tỉnh", "thành phố"])) else 0
-                                dt_coso = 1 if (la_dt and any(x in c for x in ["cấp cơ sở", "cơ sở", "ngành ngân hàng", "trường", "khoa"])) else 0
+                                la_dt = any(x in l or x in p for x in ["đề tài"])
+                                dt_bo = 1 if (la_dt and any(x in c for x in ["cấp bộ"])) else 0
+                                dt_tinh = 1 if (la_dt and any(x in c for x in ["cấp tỉnh", "thành phố"])) else 0
+                                dt_coso = 1 if (la_dt and any(x in c for x in ["cấp cơ sở", "cơ sở", "trường", "khoa"])) else 0
                                 de_an = 1 if any(x in target for x in ["đề án", "de an"]) else 0
 
                                 return pd.Series([gt_moi, sach_ck, sach_tltk, bb_vn, bb_qt, tl_vn, tl_qt, dt_bo, dt_tinh, dt_coso, de_an])
@@ -1041,7 +1041,7 @@ with tab1:
                                 "Bài tham luận hội thảo quốc tế": ("_tl_qt", "sum"),
                                 "Đề tài cấp Bộ": ("_dt_bo", "sum"),
                                 "Đề tài cấp Tỉnh": ("_dt_tinh", "sum"),
-                                "Đề tài cấp Cơ sở/Cấp cơ sở (ngành ngân hàng)": ("_dt_coso", "sum"),
+                                "Đề tài cấp Cơ sở": ("_dt_coso", "sum"),
                                 "Đề án": ("_de_an", "sum"),
                             }).reset_index()
 
@@ -1061,7 +1061,7 @@ with tab1:
                                 "Bài tham luận hội thảo quốc tế",
                                 "Đề tài cấp Bộ",
                                 "Đề tài cấp Tỉnh",
-                                "Đề tài cấp Cơ sở/Cấp cơ sở (ngành ngân hàng)",
+                                "Đề tài cấp Cơ sở",
                                 "Đề án"
                             ]
                             
