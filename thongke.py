@@ -1101,7 +1101,7 @@ with tab1:
                             for col in df_final_display.columns:
                                 if col != "Tiêu chí đánh giá":
                                     df_final_display[col] = pd.to_numeric(df_final_display[col], errors="coerce").apply(
-                                        lambda x: f"{x:,.2f}" if pd.notnull(x) else "0.00"
+                                        lambda x: f"{x:,.2f}" if pd.notnull(x) else "0"
                                     )
 
                             st.dataframe(df_final_display, use_container_width=True, hide_index=True)
