@@ -158,7 +158,7 @@ with tab1:
 
     keyword_input = (
         st.text_input(
-            "🔎 Nhập từ khóa cần tìm (các điều kiện cách nhau bằng & hoặc ,). Ví dụ: Quản lý danh mục đầu tư hoặc Toán cao cấp"
+            "🔎 Nhập từ khóa cần tìm (các điều kiện cách nhau bằng & hoặc ,)"
         )
         .strip()
         .lower()
@@ -300,7 +300,7 @@ with tab1:
     # NẾU CHỌN "🌐 TẤT CẢ CÁC BẢNG" -> CHỈ HIỂN THỊ CÁC BẢNG GỐC, KHÔNG VẼ ĐỒ THỊ HAY THỐNG KÊ GÌ KHÁC
     if search_scope == "🌐 Tất cả các bảng":
         if found_records:
-            st.markdown("#### 📂 KẾT QUẢ TÌM KIẾM DỮ LIỆU GỐC TỪ CÁC BẢNG")
+            st.markdown("#### 📂 KẾT QUẢ TÌM KIẾM DỮ LIỆU TỪ CÁC BẢNG")
             for name, rec_df in found_records:
                 st.markdown(f"##### 📘 Nhóm kết quả từ bảng dữ liệu gốc: **{name}** — {len(rec_df)} dòng")
                 with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
@@ -311,7 +311,7 @@ with tab1:
     # NẾU CHỌN TỪNG MỤC RIÊNG LẺ (GD, NCKH, OTHER) -> GIỮ NGUYÊN LUỒNG THỐNG KÊ VÀ ĐỒ THỊ NHƯ CŨ
     else:
         if not total_rec_df.empty:
-            st.markdown("#### 📈 THỐNG KÊ VÀ XỬ LÝ DỮ LIỆU ĐẶC THÙ")
+            st.markdown("#### 📈 THỐNG KÊ VÀ PHÂN TÍCH DỮ LIỆU")
 
             tiet_col_target = next(
                 (
