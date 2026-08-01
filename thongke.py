@@ -1170,10 +1170,15 @@ with tab1:
                             df_nckh_source[cols_flag] = df_nckh_source.apply(
                                 phan_loai_chuan_tung_dong, axis=1
                             )
+                          
+                            # Tổng hợp theo Năm học từ nguồn đã khử trùng lặp (dùng chữ thường 'năm học' cho an toàn)
+                            time_col_nckh = next(
+                                (c for c in df_nckh_source.columns if c.lower() in ["năm học", "nam hoc"]),
+                                "năm học",
+                            )
                             
-                            # Tổng hợp theo Năm học từ nguồn đã khử trùng lặp
                             df_agg_nckh = (
-                                df_nckh_source.groupby("Năm học")
+                                df_nckh_source.groupby(time_col_nckh)
                                 .agg(**{
                                     "Tổng số sản phẩm": (tiet_col_k, "count"),
                                     "Tổng số tiết thực hiện": (tiet_col_k, "sum"),
@@ -1191,6 +1196,10 @@ with tab1:
                                 })
                                 .reset_index()
                             )
+                            
+                            # Đổi tên lại cột thành "Năm học" chữ hoa để đồng bộ với phần lệnh melt/pivot phía dưới
+                            if time_col_nckh in df_agg_nckh.columns:
+                              df_agg_nckh = df_agg_nckh.rename(columns={time_col_nckh: "Năm học"})
 
                             # TRANSPOSE: Đưa "Năm học" thành các cột nằm ngang, các tiêu chí thành dòng
                             df_melted = df_agg_nckh.melt(id_vars=["Năm học"], var_name="Tiêu chí đánh giá", value_name="Số lượng")
