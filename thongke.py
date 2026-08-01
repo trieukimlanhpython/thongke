@@ -1022,23 +1022,23 @@ with tab1:
                             df_clean_unified[["_gt_moi", "_sach_ck", "_sach_tltk", "_bb_vn", "_bb_qt"]] = df_clean_unified.apply(phan_loai_chi_tiet_nckh, axis=1)
 
                             # Tổng hợp Bảng 2.1 dựa trên dữ liệu chuẩn đã trừ trùng lặp
-                            df_after = df_clean_unified.groupby("Năm học hiển thị").agg(**{
-                                "Số lượng sản phẩm độc lập": (tiet_col_target, "count"),
-                                "Tổng số tiết thực hiện": (tiet_col_target, "sum"),
-                                "Biên soạn giáo trình mới": ("_gt_moi", "sum"),
-                                "Biên soạn sách chuyên khảo": ("_sach_ck", "sum"),
-                                "Sách tham khảo (TLTK) / HD học tập": ("_sach_tltk", "sum"),
-                                "Bài báo khoa học trong nước": ("_bb_vn", "sum"),
-                                "Bài báo khoa học quốc tế": ("_bb_qt", "sum"),
-                            }).reset_index().sort_values("Năm học hiển thị")
+                            df_after = df_clean_unified.groupby("Năm học").agg(**{
+                                "Số lượng sản phẩm": (tiet_col_target, "count"),
+                                "Tổng số tiết": (tiet_col_target, "sum"),
+                                "Giáo trình mới": ("_gt_moi", "sum"),
+                                "Sách chuyên khảo": ("_sach_ck", "sum"),
+                                "Sách tham khảo": ("_sach_tltk", "sum"),
+                                "Bài báo trong nước": ("_bb_vn", "sum"),
+                                "Bài báo quốc tế": ("_bb_qt", "sum"),
+                            }).reset_index().sort_values("Năm học")
 
-                            tot_sp_a = df_after["Số lượng sản phẩm độc lập"].sum()
-                            tot_t_a = df_after["Tổng số tiết thực hiện"].sum()
-                            tot_gt_moi = df_after["Biên soạn giáo trình mới"].sum()
-                            tot_sach_ck = df_after["Biên soạn sách chuyên khảo"].sum()
-                            tot_sach_tltk = df_after["Sách tham khảo (TLTK) / HD học tập"].sum()
-                            tot_bb_vn = df_after["Bài báo khoa học trong nước"].sum()
-                            tot_bb_qt = df_after["Bài báo khoa học quốc tế"].sum()
+                            tot_sp_a = df_after["Số lượng sản phẩm"].sum()
+                            tot_t_a = df_after["Tổng số tiết"].sum()
+                            tot_gt_moi = df_after["Giáo trình mới"].sum()
+                            tot_sach_ck = df_after["Sách chuyên khảo"].sum()
+                            tot_sach_tltk = df_after["Sách tham khảo"].sum()
+                            tot_bb_vn = df_after["Bài báo trong nước"].sum()
+                            tot_bb_qt = df_after["Bài báo quốc tế"].sum()
 
                             df_after_disp = df_after.copy()
                             df_after_disp.loc[len(df_after_disp)] = [
@@ -1053,7 +1053,7 @@ with tab1:
                             ]
                             st.dataframe(df_after_disp, use_container_width=True)
 
-                            st.markdown("##### 🔍 2.3 Bảng chi tiết kèm Tên sản phẩm & Danh sách thành viên (Tùy chỉnh tiêu chí)")
+                            st.markdown("##### 🔍 2.3 Bảng chi tiết NCKH tùy chỉnh theo tiêu chí")
 
                             cols_lower_all = {str(c).strip().lower(): c for c in df_clean_unified.columns}
                             col_ma_sp = next((cols_lower_all[c] for c in cols_lower_all if any(x in c for x in ["mã sản phẩm", "ma san pham", "code"])), None)
@@ -1101,7 +1101,7 @@ with tab1:
 
                             group_detail_dynamic = []
                             if opt_y:
-                                group_detail_dynamic.append("Năm học hiển thị")
+                                group_detail_dynamic.append("Năm học")
                             if opt_loai and loai_hd_col and loai_hd_col in df_clean_unified.columns:
                                 group_detail_dynamic.append(loai_hd_col)
                             if opt_cap and cap_do_col and cap_do_col in df_clean_unified.columns:
@@ -1124,7 +1124,7 @@ with tab1:
                                 group_detail_dynamic.append(col_isbn)
 
                             if not group_detail_dynamic:
-                                group_detail_dynamic = ["Năm học hiển thị"]
+                                group_detail_dynamic = ["Năm học"]
 
                             agg_dyn_dict = {
                                 tiet_col_target: ["sum", "count"],
