@@ -1097,6 +1097,13 @@ with tab1:
                             # Reset index để hiển thị lên giao diện Streamlit
                             df_final_display = df_pivot.reset_index()
 
+                            # 🌟 Định dạng cột số liệu: phân cách phần nghìn và làm tròn 2 chữ số thập phân
+                            for col in df_final_display.columns:
+                                if col != "Tiêu chí đánh giá":
+                                    df_final_display[col] = pd.to_numeric(df_final_display[col], errors="coerce").apply(
+                                        lambda x: f"{x:,.2f}" if pd.notnull(x) else "0.00"
+                                    )
+
                             st.dataframe(df_final_display, use_container_width=True, hide_index=True)
 
                             st.markdown("##### 🔍 2.3 Bảng chi tiết NCKH tùy chỉnh theo tiêu chí")
