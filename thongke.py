@@ -997,7 +997,6 @@ with tab1:
                                 st.dataframe(df_before_disp, use_container_width=True)
 
                             st.markdown("##### 🧹 2.1 Bảng thống kê SAU KHI trừ trùng lặp")
-                            st.markdown("##### 🧹 2.1 Bảng thống kê SAU KHI trừ trùng lặp")
                             
                             # Nhận diện các cột phân loại cấp 1, loại hoạt động và cấp độ từ df_clean_unified
                             pl1_col = next((c for c in df_clean_unified.columns if "phân loại cấp 1" in c.lower()), None)
