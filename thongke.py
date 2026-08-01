@@ -984,61 +984,90 @@ with tab1:
                             df_clean_unified = df_temp_detail.groupby(group_keys_final, dropna=False).agg(agg_rules_detail).reset_index()
 
                             # ==========================================
-                            # 📊 1. BẢNG THỐNG KÊ TỔNG HỢP CỐ ĐỊNH (ĐỒNG BỘ 100% VỚI BẢNG CHI TIẾT)
+                            # 📊 1. BẢNG THỐNG KÊ TỔNG HỢP (LẤY TRỰC TIẾP TỪ KẾT QUẢ GÓM NHÓM CHUẨN)
                             # ==========================================
                             st.markdown("##### 📊 1. Bảng thống kê tổng hợp các tiêu chí NCKH")
 
                             # Lấy trực tiếp từ df_clean_unified (dữ liệu đã khử trùng lặp)
-                            df_b2_source = df_clean_unified.copy()
-                            df_b2_source.columns = [str(c).strip().lower() for c in df_b2_source.columns]
+                            df_b1_source = df_clean_unified.copy()
+                            df_b1_source.columns = [str(c).strip().lower() for c in df_b1_source.columns]
 
-                            # Nhận diện các cột chuẩn
-                            c_nam_hoc = next((c for c in df_b2_source.columns if any(x in c for x in ["năm học", "year"])), "năm học")
-                            c_loai = next((c for c in df_b2_source.columns if any(x in c for x in ["loại hoạt động", "loại"])), None)
-                            c_cap = next((c for c in df_b2_source.columns if any(x in c for x in ["cấp độ", "cấp"])), None)
-                            c_pl1 = next((c for c in df_b2_source.columns if "phân loại cấp 1" in c), None)
-                            c_tiet = next((c for c in df_b2_source.columns if any(x in c for x in ["tiết", "period"])), list(df_b2_source.columns)[-1])
+                            # Nhận diện các cột chuẩn xác từ dữ liệu gốc
+                            c_nam_hoc = next((c for c in df_b1_source.columns if any(x in c for x in ["năm học", "year"])), "năm học")
+                            c_loai = next((c for c in df_b1_source.columns if any(x in c for x in ["loại hoạt động", "loại"])), None)
+                            c_cap = next((c for c in df_b1_source.columns if any(x in c for x in ["cấp độ", "cấp"])), None)
+                            c_pl1 = next((c for c in df_b1_source.columns if "phân loại cấp 1" in c), None)
+                            c_tiet = next((c for c in df_b1_source.columns if any(x in c for x in ["tiết", "period"])), list(df_b1_source.columns)[-1])
 
-                            df_b2_source[c_tiet] = pd.to_numeric(df_b2_source[c_tiet], errors="coerce").fillna(0)
+                            df_b1_source[c_tiet] = pd.to_numeric(df_b1_source[c_tiet], errors="coerce").fillna(0)
 
-                            # Chuẩn hóa tên cột thời gian và các tiêu chí về dạng chuẩn để code không bị trùng lặp
-                            df_b2_source["_Nam_Hoc_Chuan"] = df_b2_source[c_nam_hoc] if c_nam_hoc in df_b2_source.columns else "Chưa xác định"
-                            df_b2_source["_Loai_Chuan"] = df_b2_source[c_loai].astype(str) if (c_loai and c_loai in df_b2_source.columns) else ""
-                            df_b2_source["_Cap_Chuan"] = df_b2_source[c_cap].astype(str) if (c_cap and c_cap in df_b2_source.columns) else ""
-                            df_b2_source["_Pl1_Chuan"] = df_b2_source[c_pl1].astype(str) if (c_pl1 and c_pl1 in df_b2_source.columns) else ""
+                            # Chuẩn hóa tên cột để gom nhóm
+                            df_b1_source["_Nam_Hoc"] = df_b1_source[c_nam_hoc] if c_nam_hoc in df_b1_source.columns else "Chưa xác định"
+                            df_b1_source["_Loai_HD"] = df_b1_source[c_loai].astype(str).str.strip() if (c_loai and c_loai in df_b1_source.columns) else "Khác"
+                            df_b1_source["_Cap_Do"] = df_b1_source[c_cap].astype(str).str.strip() if (c_cap and c_cap in df_b1_source.columns) else "Khác"
+                            df_b1_source["_Pl_Cap1"] = df_b1_source[c_pl1].astype(str).str.strip() if (c_pl1 and c_pl1 in df_b1_source.columns) else "Khác"
 
-                            # Bước 1: Gom nhóm chi tiết theo các trục chuẩn
-                            group_cols_b2 = ["_Nam_Hoc_Chuan", "_Loai_Chuan", "_Cap_Chuan", "_Pl1_Chuan"]
+                            # Bước 1: Gom nhóm dữ liệu theo đúng bản chất (Năm học, Loại HĐ, Cấp độ, Phân loại cấp 1) giống Bảng 2
+                            group_cols_b1 = ["_Nam_Hoc", "_Loai_HD", "_Cap_Do", "_Pl_Cap1"]
                             
-                            df_grouped_base = df_b2_source.groupby(group_cols_b2, dropna=False).agg(
-                                Số_lượng=("Sản phẩm chuẩn hóa", "count") if "Sản phẩm chuẩn hóa" in df_b2_source.columns else (c_tiet, "count"),
+                            df_grouped_b1 = df_b1_source.groupby(group_cols_b1, dropna=False).agg(
+                                Số_lượng=("Sản phẩm chuẩn hóa", "count") if "Sản phẩm chuẩn hóa" in df_b1_source.columns else (c_tiet, "count"),
                                 Tổng_số_tiết=(c_tiet, "sum")
                             ).reset_index()
 
-                            # Bước 2: Hàm ánh xạ (Mapping) từ từng dòng chi tiết vào đúng Danh mục tiêu chí của Bảng 1
-                            def anh_xa_tieu_chi(row):
-                                loai = str(row.get("_Loai_Chuan", "")).lower()
-                                cap = str(row.get("_Cap_Chuan", "")).lower()
-                                pl1 = str(row.get("_Pl1_Chuan", "")).lower()
-                                target = f"{pl1} | {loai} | {cap}"
+                            # Bước 2: Phân loại trực tiếp dựa trên giá trị cột (giống hệt logic hiển thị của Bảng 2, không đoán mò chuỗi)
+                            def map_tieu_chi_chinh_xac(row):
+                                loai = row["_Loai_HD"].lower()
+                                cap = row["_Cap_Do"].lower()
+                                pl1 = row["_Pl_Cap1"].lower()
 
-                                gt_moi = 1 if ("giáo trình" in target and "mới" in target) else 0
-                                sach_ck = 1 if ("chuyên khảo" in target) else 0
-                                sach_tltk = 1 if any(x in target for x in ["sách tham khảo", "tltk", "hướng dẫn học tập"]) else 0
-                                
-                                la_bb = any(x in loai or x in pl1 for x in ["bài báo", "tạp chí", "journal"])
-                                bb_vn = 1 if (la_bb and any(x in cap or x in target for x in ["trong nước", "quốc gia", "địa phương", "cơ sở", "bộ", "trường"])) and not any(x in cap or x in target for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos", "international"]) else 0
-                                bb_qt = 1 if (la_bb and any(x in cap or x in target for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos", "international"])) else 0
+                                # Khởi tạo các biến đếm cờ
+                                gt_moi = 0
+                                sach_ck = 0
+                                sach_tltk = 0
+                                bb_vn = 0
+                                bb_qt = 0
+                                tl_vn = 0
+                                tl_qt = 0
+                                dt_bo = 0
+                                dt_tinh = 0
+                                dt_coso = 0
+                                de_an = 0
 
-                                la_tl = any(x in loai or x in target for x in ["tham luận", "kỷ yếu", "hội nghị", "hội thảo", "proceedings"]) and not bb_vn and not bb_qt
-                                tl_vn = 1 if (la_tl and not any(x in cap or x in target for x in ["quốc tế", "international", "isi", "scopus"])) else 0
-                                tl_qt = 1 if (la_tl and any(x in cap or x in target for x in ["quốc tế", "international", "isi", "scopus"])) else 0
+                                # Phân loại theo giáo trình / sách
+                                if "giáo trình" in pl1 and "mới" in pl1:
+                                    gt_moi = 1
+                                elif "chuyên khảo" in pl1 or "chuyên khảo" in loai:
+                                    sach_ck = 1
+                                elif any(x in pl1 or x in loai for x in ["sách tham khảo", "tltk", "hướng dẫn học tập"]):
+                                    sach_tltk = 1
 
-                                la_dt = any(x in loai or x in pl1 for x in ["đề tài", "nhiệm vụ"])
-                                dt_bo = 1 if (la_dt and any(x in cap for x in ["cấp bộ", "bộ"])) else 0
-                                dt_tinh = 1 if (la_dt and any(x in cap for x in ["cấp tỉnh", "tỉnh", "thành phố"])) else 0
-                                dt_coso = 1 if (la_dt and any(x in cap for x in ["cấp cơ sở", "cơ sở", "ngành ngân hàng", "trường", "khoa"])) else 0
-                                de_an = 1 if any(x in target for x in ["đề án", "de an"]) else 0
+                                # Phân loại Bài báo / Tạp chí
+                                elif any(x in loai or x in pl1 for x in ["bài báo", "tạp chí", "journal"]):
+                                    if any(x in cap for x in ["quốc tế", "international", "isi", "scopus", "scie", "ssci", "wos"]):
+                                        bb_qt = 1
+                                    else:
+                                        bb_vn = 1
+
+                                # Phân loại Tham luận / Hội thảo
+                                elif any(x in loai or x in pl1 for x in ["tham luận", "kỷ yếu", "hội nghị", "hội thảo", "proceedings"]):
+                                    if any(x in cap for x in ["quốc tế", "international", "isi", "scopus"]):
+                                        tl_qt = 1
+                                    else:
+                                        tl_vn = 1
+
+                                # Phân loại Đề tài / Nhiệm vụ (ĐÚNG LOGIC BẢNG 2)
+                                elif any(x in loai or x in pl1 for x in ["đề tài", "nhiệm vụ"]):
+                                    if any(x in cap for x in ["cấp bộ", "bộ"]):
+                                        dt_bo = 1
+                                    elif any(x in cap for x in ["cấp tỉnh", "tỉnh", "thành phố"]):
+                                        dt_tinh = 1
+                                    elif any(x in cap for x in ["cấp cơ sở", "cơ sở", "ngành ngân hàng", "trường", "khoa"]):
+                                        dt_coso = 1
+
+                                # Phân loại Đề án
+                                if "đề án" in loai or "đề án" in pl1 or "đề án" in cap:
+                                    de_an = 1
 
                                 sl = row["Số_lượng"]
                                 return pd.Series({
@@ -1061,17 +1090,17 @@ with tab1:
                                 "Bài tham luận hội thảo quốc tế", "Đề tài cấp Bộ", "Đề tài cấp Tỉnh",
                                 "Đề tài cấp Cơ sở/Cấp cơ sở (ngành ngân hàng)", "Đề án"
                             ]
-                            
-                            df_grouped_base[tieu_chi_Cols] = df_grouped_base.apply(anh_xa_tieu_chi, axis=1)
 
-                            # Bước 3: Tổng hợp theo Năm học chuẩn
-                            df_agg_bang1 = df_grouped_base.groupby("_Nam_Hoc_Chuan").agg(
+                            df_grouped_b1[tieu_chi_Cols] = df_grouped_b1.apply(map_tieu_chi_chinh_xac, axis=1)
+
+                            # Bước 3: Tổng hợp (sum) theo Năm học
+                            df_agg_bang1 = df_grouped_b1.groupby("_Nam_Hoc").agg(
                                 **{
                                     "Tổng số sản phẩm": ("Số_lượng", "sum"),
                                     "Tổng số tiết thực hiện": ("Tổng_số_tiết", "sum"),
                                     **{col: (col, "sum") for col in tieu_chi_Cols}
                                 }
-                            ).reset_index().rename(columns={"_Nam_Hoc_Chuan": "Năm học"})
+                            ).reset_index().rename(columns={"_Nam_Hoc": "Năm học"})
 
                             # Pivot thành bảng tổng hợp ngang
                             df_melted_b1 = df_agg_bang1.melt(id_vars=["Năm học"], var_name="Tiêu chí đánh giá", value_name="Số lượng")
@@ -1098,7 +1127,7 @@ with tab1:
                                     )
 
                             st.dataframe(df_final_b1, use_container_width=True, hide_index=True)
-                          
+                        
                             # ==========================================
                             # 🔍 2. BẢNG CHI TIẾT NCKH TÙY CHỈNH (BẢNG 2)
                             # ==========================================
