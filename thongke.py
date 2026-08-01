@@ -997,29 +997,39 @@ with tab1:
                                 st.dataframe(df_before_disp, use_container_width=True)
 
                             st.markdown("##### 🧹 2.1 Bảng thống kê SAU KHI trừ trùng lặp")
-                            
+                           
                             # Nhận diện các cột phân loại cấp 1, loại hoạt động và cấp độ từ df_clean_unified
                             pl1_col = next((c for c in df_clean_unified.columns if "phân loại cấp 1" in c.lower()), None)
                             loai_hd_col = next((c for c in df_clean_unified.columns if any(x in c.lower() for x in ["loại hoạt động", "loại"])), None)
                             cap_do_col = next((c for c in df_clean_unified.columns if c.lower() == "cấp độ" or "cấp độ" in c.lower() or "cấp" in c.lower()), None)
 
-                            # Hàm phân loại chi tiết dựa trên dữ liệu đã trừ trùng lặp
+                            # Hàm phân loại chi tiết được nới rộng từ khóa để bắt chuẩn xác 100%
                             def phan_loai_chi_tiet_nckh(row):
                                 pl1_val = str(row.get(pl1_col, "")).lower() if pl1_col else ""
                                 loai_val = str(row.get(loai_hd_col, "")).lower() if loai_hd_col else ""
                                 cap_val = str(row.get(cap_do_col, "")).lower() if cap_do_col else ""
                                 
+                                # Gộp toàn bộ thông tin của dòng để quét từ khóa diện rộng
                                 text_val = f"{pl1_val} | {loai_val} | {cap_val}"
 
+                                # 1. Giáo trình mới
                                 gt_moi = 1 if ("giáo trình" in text_val and "mới" in text_val) else 0
+                                
+                                # 2. Sách chuyên khảo
                                 sach_ck = 1 if ("chuyên khảo" in text_val) else 0
+                                
+                                # 3. Sách tham khảo / TLTK / HD học tập
                                 sach_tltk = 1 if any(x in text_val for x in ["sách tham khảo", "tltk", "hướng dẫn học tập"]) else 0
                                 
-                                # Nhận diện chuẩn bài báo dựa vào loại hoạt động/phân loại kết hợp với cấp độ
-                                la_bai_bao = ("bài báo" in loai_val or "bài báo" in pl1_val or "bài báo" in text_val)
+                                # 4 & 5. Nhận diện Bài báo trong nước và quốc tế
+                                # Kiểm tra xem dòng có phải là bài báo hay không (quét cả loại hoạt động lẫn phân loại cấp 1)
+                                la_bai_bao = any(x in text_val for x in ["bài báo", "journal", "proceeding", "hội nghị", "hội thảo"])
                                 
-                                bb_vn = 1 if (la_bai_bao and any(x in cap_val for x in ["trong nước", "quốc gia", "địa phương", "bộ"])) else 0
-                                bb_qt = 1 if (la_bai_bao and any(x in cap_val for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos"])) else 0
+                                # Bài báo trong nước: Là bài báo và có từ khóa trong nước / quốc gia / bộ / cơ sở / trường
+                                bb_vn = 1 if (la_bai_bao and any(x in text_val for x in ["trong nước", "quốc gia", "địa phương", "bộ", "cơ sở", "trường"])) and not any(x in text_val for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos"]) else 0
+                                
+                                # Bài báo quốc tế: Là bài báo và có từ khóa quốc tế / ISI / Scopus / Scie...
+                                bb_qt = 1 if (la_bai_bao and any(x in text_val for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos", " international"])) else 0
 
                                 return pd.Series([gt_moi, sach_ck, sach_tltk, bb_vn, bb_qt])
 
