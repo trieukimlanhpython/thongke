@@ -1146,13 +1146,16 @@ with tab1:
                             if col_isbn and col_isbn in df_clean_unified.columns:
                                 agg_dyn_dict[col_isbn] = lambda x: " / ".join(pd.Series(x).dropna().astype(str).unique())
 
-                            # 🌟 LỌC TRÁNH TRÙNG LẶP CỘT GIỮA GROUPBY VÀ AGGREGATION ĐỂ KHÔNG BỊ LỖI
+                            # 🌟 Lọc bỏ các cột trùng lặp tên trong danh sách group_detail_dynamic để tránh lỗi duplicate index
+                            group_detail_dynamic = list(dict.fromkeys(group_detail_dynamic))
+    
                             safe_agg_dyn_dict = {
                                 k: v for k, v in agg_dyn_dict.items() 
                                 if k not in group_detail_dynamic
                             }
     
                             df_nckh_detail = df_clean_unified.groupby(group_detail_dynamic, dropna=False).agg(safe_agg_dyn_dict).reset_index()
+    
                             df_nckh_detail.columns = [
                                 col[0] if col[1] == "" else f"{col[0]}_{col[1]}" 
                                 for col in df_nckh_detail.columns
