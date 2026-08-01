@@ -1049,7 +1049,7 @@ with tab1:
                             df_clean_unified[["_gt_moi", "_sach_ck", "_sach_tltk", "_bb_vn", "_bb_qt", "_tl_coso", "_tl_botinh", "_tl_nhanuoc", "_tl_khac", "_dt_coso", "_dt_botinh", "_dt_nhanuoc"]] = df_clean_unified.apply(phan_loai_chi_tiet_nckh_chuan_hoa, axis=1)
 
                             # Tổng hợp theo Năm học hiển thị
-                            df_agg_nckh = df_clean_unified.groupby("Năm học hiển thị").agg(**{
+                            df_agg_nckh = df_clean_unified.groupby("Năm học").agg(**{
                                 "Tổng số sản phẩm độc lập": (tiet_col_target, "count"),
                                 "Tổng số tiết thực hiện": (tiet_col_target, "sum"),
                                 "Biên soạn giáo trình mới": ("_gt_moi", "sum"),
@@ -1067,8 +1067,8 @@ with tab1:
                             }).reset_index()
 
                             # 🌟 TRANSPOSE: Đưa "Năm học" thành các cột nằm ngang, các tiêu chí thành dòng
-                            df_melted = df_agg_nckh.melt(id_vars=["Năm học hiển thị"], var_name="Tiêu chí đánh giá", value_name="Số lượng")
-                            df_pivot = df_melted.pivot(index="Tiêu chí đánh giá", columns="Năm học hiển thị", values="Số lượng").fillna(0)
+                            df_melted = df_agg_nckh.melt(id_vars=["Năm học"], var_name="Tiêu chí đánh giá", value_name="Số lượng")
+                            df_pivot = df_melted.pivot(index="Tiêu chí đánh giá", columns="Năm học", values="Số lượng").fillna(0)
 
                             # Sắp xếp thứ tự các dòng tiêu chí hiển thị cho trực quan và chuyên nghiệp
                             danh_sach_thu_tu = [
