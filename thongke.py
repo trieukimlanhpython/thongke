@@ -462,6 +462,74 @@ with tab1:
                         st.dataframe(df_after_disp, use_container_width=True)
                         
                         # ==========================================
+                        # 📚 THỐNG KÊ TỔNG HỢP THEO GIẢNG VIÊN (CÓ LỌC NĂM HỌC & DÒNG TỔNG CỘNG)
+                        # ==========================================
+                        st.markdown("##### 👥 Bảng tổng hợp khối lượng giảng dạy theo từng Giảng viên")
+
+                        # Lấy danh sách các năm học có trong dữ liệu giảng dạy
+                        available_years_gd = sorted(df_clean["năm học hiển thị"].dropna().unique().tolist(), reverse=True)
+
+                        # Cho phép người dùng chọn một hoặc nhiều năm học
+                        selected_years_gv = st.multiselect(
+                            "📅 Chọn năm học hiển thị cho bảng giảng viên (Bỏ trống = Chọn tất cả):",
+                            options=available_years_gd,
+                            default=available_years_gd,
+                            key="multiselect_gv_years"
+                        )
+
+                        # Lọc DataFrame theo các năm được chọn
+                        df_gv_filtered = df_clean.copy()
+                        if selected_years_gv:
+                            df_gv_filtered = df_gv_filtered[df_gv_filtered["năm học hiển thị"].isin(selected_years_gv)]
+
+                        if not df_gv_filtered.empty:
+                            # 1. Gom nhóm theo Giảng viên và Năm học để tính toán chi tiết
+                            df_gv_summary = df_gv_filtered.groupby(["_full_name", "năm học hiển thị"]).agg(
+                                Số_lượng_môn=(c_subject, "nunique"),
+                                Tổng_số_lớp=(c_class, "nunique"),
+                                Tổng_số_tiết=(tiet_col, "sum")
+                            ).reset_index()
+
+                            # Đổi tên cột hiển thị
+                            df_gv_summary = df_gv_summary.rename(columns={
+                                "_full_name": "Giảng viên",
+                                "năm học hiển thị": "Năm học",
+                                "Số_lượng_môn": "Số lượng môn đã giảng",
+                                "Tổng_số_lớp": "Tổng số lớp",
+                                "Tổng_số_tiết": "Tổng số tiết"
+                            })
+
+                            # 2. Nếu chọn từ 2 năm trở lên, tiến hành tính và chèn dòng "Tổng cộng" cho từng giảng viên
+                            if len(selected_years_gv) > 1 or not selected_years_gv:
+                                list_gv_final = []
+                                for gv, group in df_gv_summary.groupby("Giảng viên"):
+                                    # Thêm các dòng chi tiết theo năm của giảng viên
+                                    list_gv_final.append(group)
+                                    
+                                    # Nếu giảng viên đó có dữ liệu từ 2 dòng (2 năm) trở lên, thêm dòng tổng cộng riêng cho họ
+                                    if len(group) > 1:
+                                        total_row_gv = pd.DataFrame({
+                                            "Giảng viên": [f"**Tổng cộng ({gv})**"],
+                                            "Năm học": [""],
+                                            "Số lượng môn đã giảng": [group["Số lượng môn đã giảng"].sum()], # Hoặc dùng nunique tùy logic gộp môn độc lập qua các năm
+                                            "Tổng số lớp": [group["Tổng số lớp"].sum()],
+                                            "Tổng số tiết": [group["Tổng số tiết"].sum()]
+                                        })
+                                        list_gv_final.append(total_row_gv)
+
+                                df_gv_display = pd.concat(list_gv_final, ignore_index=True)
+                            else:
+                                df_gv_display = df_gv_summary.copy()
+
+                            # Sắp xếp lại hiển thị
+                            df_gv_display = df_gv_display.sort_values(["Giảng viên", "Năm học"])
+
+                            with st.expander("📅 **(Bấm để mở/đóng xem tổng hợp khối lượng giảng viên)**", expanded=True):
+                                st.dataframe(df_gv_display, use_container_width=True, hide_index=True)
+                        else:
+                            st.warning("⚠️ Không có dữ liệu giảng viên cho năm học đã chọn.")
+                        
+                        # ==========================================
                         # 📚 THỐNG KÊ CHI TIẾT: MỖI GIẢNG VIÊN GIẢNG MÔN NÀO & SỐ LỚP
                         # ==========================================
                         st.markdown("##### 👥 Thống kê chi tiết môn học & số lượng lớp theo từng Giảng viên")
