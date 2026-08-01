@@ -984,58 +984,56 @@ with tab1:
                             df_clean_unified = df_temp_detail.groupby(group_keys_final, dropna=False).agg(agg_rules_detail).reset_index()
                             
                             st.markdown("##### 🧹 1. Bảng thống kê SAU KHI trừ trùng lặp")
-                            
-                            # Nhận diện chính xác các cột phân loại
-                            pl1_col_chk = next((c for c in df_clean_unified.columns if "phân loại cấp 1" in c.lower()), None)
-                            loai_hd_col_chk = next((c for c in df_clean_unified.columns if any(x in c.lower() for x in ["loại hoạt động", "loại"])), None)
-                            cap_do_col_chk = next((c for c in df_clean_unified.columns if c.lower() == "cấp độ" or "cấp độ" in c.lower() or "cấp" in c.lower()), None)
-                            name_prod_col_chk = next((c for c in df_clean_unified.columns if c.lower() in ["tên sản phẩm"]), None)
-                            role_col_chk = next((c for c in df_clean_unified.columns if any(x in c.lower() for x in ["vai trò", "role"])), None)
+                           
+                            # Lấy trực tiếp dữ liệu thô đã lọc theo năm học / từ khóa
+                            df_nckh_raw = total_rec_df.copy()
+                            df_nckh_raw.columns = [str(c).strip().lower() for c in df_nckh_raw.columns]
 
-                            # Hàm phân loại chi tiết bám sát yêu cầu mới
-                            def phan_loai_chi_tiet_nckh_chuan_hoa_moi(row):
-                                pl1_val = str(row.get(pl1_col_chk, "")).lower() if pl1_col_chk else ""
-                                loai_val = str(row.get(loai_hd_col_chk, "")).lower() if loai_hd_col_chk else ""
-                                cap_val = str(row.get(cap_do_col_chk, "")).lower() if cap_do_col_chk else ""
-                                prod_val = str(row.get(name_prod_col_chk, "")).lower() if name_prod_col_chk else ""
-                                role_val = str(row.get(role_col_chk, "")).lower() if role_col_chk else ""
+                            # Nhận diện tên cột linh hoạt (không phân biệt hoa thường)
+                            pl1_col_k = next((c for c in df_nckh_raw.columns if "phân loại cấp 1" in c), None)
+                            loai_col_k = next((c for c in df_nckh_raw.columns if any(x in c for x in ["loại hoạt động", "loại"])), None)
+                            cap_col_k = next((c for c in df_nckh_raw.columns if "cấp độ" in c or "cấp" in c), None)
+                            tiet_col_k = next((c for c in df_nckh_raw.columns if any(x in c for x in ["tiết", "period"])), list(df_nckh_raw.columns)[-1])
+
+                            df_nckh_raw[tiet_col_k] = pd.to_numeric(df_nckh_raw[tiet_col_k], errors="coerce").fillna(0)
+
+                            # Hàm gán nhãn phân loại chi tiết cho từng dòng dữ liệu
+                            def phan_loai_chuan_tung_dong(row):
+                                pl1 = str(row.get(pl1_col_k, "")).lower() if pl1_col_k else ""
+                                loai = str(row.get(loai_col_k, "")).lower() if loai_col_k else ""
+                                cap = str(row.get(cap_col_k, "")).lower() if cap_col_k else ""
                                 
-                                text_hop_lai = f"{pl1_val} | {loai_val} | {cap_val} | {prod_val} | {role_val}"
+                                target = f"{pl1} | {loai} | {cap}"
 
-                                # 1. Giáo trình mới
-                                gt_moi = 1 if ("giáo trình" in text_hop_lai and "mới" in text_hop_lai) else 0
-                                # 2. Sách chuyên khảo
-                                sach_ck = 1 if ("chuyên khảo" in text_hop_lai) else 0
-                                # 3. Sách tham khảo / TLTK / HD học tập
-                                sach_tltk = 1 if any(x in text_hop_lai for x in ["sách tham khảo", "tltk", "hướng dẫn học tập"]) else 0
+                                gt_moi = 1 if ("giáo trình" in target and "mới" in target) else 0
+                                sach_ck = 1 if ("chuyên khảo" in target) else 0
+                                sach_tltk = 1 if any(x in target for x in ["sách tham khảo", "tltk", "hướng dẫn học tập"]) else 0
                                 
-                                # 4 & 5. Bài báo khoa học
-                                la_bai_bao = any(x in loai_val or x in pl1_val for x in ["bài báo", "tạp chí", "journal"])
-                                bb_vn = 1 if (la_bai_bao and any(x in cap_val or x in text_hop_lai for x in ["trong nước", "quốc gia", "địa phương", "cơ sở", "bộ", "trường"])) and not any(x in cap_val or x in text_hop_lai for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos", "international"]) else 0
-                                bb_qt = 1 if (la_bai_bao and any(x in cap_val or x in text_hop_lai for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos", "international"])) else 0
+                                la_bai_bao = any(x in loai or x in pl1 for x in ["bài báo", "tạp chí", "journal"])
+                                bb_vn = 1 if (la_bai_bao and any(x in cap or x in target for x in ["trong nước", "quốc gia", "địa phương", "cơ sở", "bộ", "trường"])) and not any(x in cap or x in target for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos", "international"]) else 0
+                                bb_qt = 1 if (la_bai_bao and any(x in cap or x in target for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos", "international"])) else 0
 
-                                # 6 & 7. Bài tham luận hội thảo khoa học (phân biệt trong nước và quốc tế theo cấp độ)
-                                la_tham_luan = any(x in loai_val or x in text_hop_lai for x in ["tham luận", "kỷ yếu", "hội nghị", "hội thảo", "proceedings"]) and not bb_vn and not bb_qt
-                                tl_vn = 1 if (la_tham_luan and not any(x in cap_val or x in text_hop_lai for x in ["quốc tế", "international", "isi", "scopus"])) else 0
-                                tl_qt = 1 if (la_tham_luan and any(x in cap_val or x in text_hop_lai for x in ["quốc tế", "international", "isi", "scopus"])) else 0
+                                la_tham_luan = any(x in loai or x in target for x in ["tham luận", "kỷ yếu", "hội nghị", "hội thảo", "proceedings"]) and not bb_vn and not bb_qt
+                                tl_vn = 1 if (la_tham_luan and not any(x in cap or x in target for x in ["quốc tế", "international", "isi", "scopus"])) else 0
+                                tl_qt = 1 if (la_tham_luan and any(x in cap or x in target for x in ["quốc tế", "international", "isi", "scopus"])) else 0
 
-                                # 8, 9, 10. Đề tài (phân theo cấp độ: bộ, tỉnh, cơ sở / ngân hàng)
-                                la_de_tai = "đề tài" in loai_val or "đề tài" in pl1_val
-                                dt_bo = 1 if (la_de_tai and any(x in cap_val for x in ["Cấp bộ", "bộ"])) else 0
-                                dt_tinh = 1 if (la_de_tai and any(x in cap_val for x in ["Cấp tỉnh", "tỉnh", "thành phố"])) else 0
-                                dt_coso = 1 if (la_de_tai and any(x in cap_val for x in ["Cấp cơ sở", "cơ sở", "Cấp cơ sở (ngành ngân hàng)", "trường", "khoa", "bộ môn"])) else 0
+                                la_de_tai = any(x in loai or x in pl1 for x in ["đề tài", "nhiệm vụ"])
+                                dt_bo = 1 if (la_de_tai and any(x in cap for x in ["cấp bộ", "bộ"])) else 0
+                                dt_tinh = 1 if (la_de_tai and any(x in cap for x in ["cấp tỉnh", "tỉnh", "thành phố"])) else 0
+                                dt_coso = 1 if (la_de_tai and any(x in cap for x in ["cấp cơ sở", "cơ sở", "ngành ngân hàng", "trường", "khoa"])) else 0
 
-                                # 11. Đề án (mở rộng từ khóa để không bị bỏ sót bất kỳ dòng nào)
-                                de_an = 1 if any(x in text_hop_lai for x in ["đề án", "Đề án", "de an"]) and not la_de_tai else 0
+                                # Mở rộng quét từ khóa "đề án" để không bị sót
+                                de_an = 1 if any(x in target for x in ["đề án", "de an"]) else 0
 
                                 return pd.Series([gt_moi, sach_ck, sach_tltk, bb_vn, bb_qt, tl_vn, tl_qt, dt_bo, dt_tinh, dt_coso, de_an])
 
-                            # Áp dụng hàm phân loại vào DataFrame đã qua trừ trùng lặp
-                            df_clean_unified[["_gt_moi", "_sach_ck", "_sach_tltk", "_bb_vn", "_bb_qt", "_tl_vn", "_tl_qt", "_dt_bo", "_dt_tinh", "_dt_coso", "_de_an"]] = df_clean_unified.apply(phan_loai_chi_tiet_nckh_chuan_hoa_moi, axis=1)
+                            # Gán các cột đánh dấu
+                            cols_flag = ["_gt_moi", "_sach_ck", "_sach_tltk", "_bb_vn", "_bb_qt", "_tl_vn", "_tl_qt", "_dt_bo", "_dt_tinh", "_dt_coso", "_de_an"]
+                            df_nckh_raw[cols_flag] = df_nckh_raw.apply(phan_loai_chuan_tung_dong, axis=1)
 
                             # Tổng hợp theo Năm học
-                            df_agg_nckh = df_clean_unified.groupby("Năm học").agg(**{
-                                "Tổng số sản phẩm độc lập": (tiet_col_target, "count"),
+                            df_agg_nckh = df_nckh_raw.groupby("Năm học").agg(**{
+                                "Tổng số sản phẩm": (tiet_col_target, "count"),
                                 "Tổng số tiết thực hiện": (tiet_col_target, "sum"),
                                 "Biên soạn giáo trình mới": ("_gt_moi", "sum"),
                                 "Biên soạn sách chuyên khảo": ("_sach_ck", "sum"),
@@ -1050,13 +1048,13 @@ with tab1:
                                 "Đề án": ("_de_an", "sum"),
                             }).reset_index()
 
-                            # TRANSPOSE: Đưa "Năm học" thành các cột nằm ngang, các tiêu chí đánh giá thành dòng
+                            # TRANSPOSE: Đưa "Năm học" thành các cột nằm ngang, các tiêu chí thành dòng
                             df_melted = df_agg_nckh.melt(id_vars=["Năm học"], var_name="Tiêu chí đánh giá", value_name="Số lượng")
                             df_pivot = df_melted.pivot(index="Tiêu chí đánh giá", columns="Năm học", values="Số lượng").fillna(0)
 
-                            # Sắp xếp thứ tự các dòng tiêu chí hiển thị khoa học
+                            # Sắp xếp thứ tự các dòng tiêu chí hiển thị
                             danh_sach_thu_tu = [
-                                "Tổng số sản phẩm độc lập",
+                                "Tổng số sản phẩm",
                                 "Tổng số tiết thực hiện",
                                 "Biên soạn giáo trình mới",
                                 "Biên soạn sách chuyên khảo",
@@ -1080,17 +1078,12 @@ with tab1:
                             # Reset index để hiển thị lên Streamlit
                             df_final_display = df_pivot.reset_index()
 
-                            # Định dạng riêng cột "Tổng số tiết thực hiện" thành số nguyên có phân cách hàng nghìn
-                            if "Tổng số tiết thực hiện" in df_final_display.columns:
-                                for col in df_final_display.columns:
-                                    if col != "Tiêu chí đánh giá":
-                                        mask_tiet = df_final_display["Tiêu chí đánh giá"] == "Tổng số tiết thực hiện"
-                                        df_final_display.loc[mask_tiet, col] = pd.to_numeric(df_final_display.loc[mask_tiet, col], errors="coerce").apply(
-                                            lambda x: f"{int(round(x)):,}" if pd.notnull(x) else "0"
-                                        )
-                                        df_final_display.loc[~mask_tiet, col] = pd.to_numeric(df_final_display.loc[~mask_tiet, col], errors="coerce").apply(
-                                            lambda x: f"{int(round(x)):,}" if pd.notnull(x) else "0"
-                                        )
+                            # Định dạng số nguyên có dấu phẩy phân cách
+                            for col in df_final_display.columns:
+                                if col != "Tiêu chí đánh giá":
+                                    df_final_display[col] = pd.to_numeric(df_final_display[col], errors="coerce").apply(
+                                        lambda x: f"{int(round(x)):,}" if pd.notnull(x) else "0"
+                                    )
 
                             st.dataframe(df_final_display, use_container_width=True, hide_index=True)
 
