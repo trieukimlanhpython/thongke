@@ -530,7 +530,7 @@ with tab1:
                             tot_tiet_all = df_gv_filtered[tiet_col].sum()
 
                             total_row_all = pd.DataFrame({
-                                "Giảng viên": ["**Tổng cộng toàn trường**"],
+                                "Giảng viên": ["**Tổng cộng toàn khoa**"],
                                 "Năm học": [""],
                                 "Số lượng môn đã giảng": [tot_unique_mon_all],
                                 "Tổng số lớp": [tot_lop_all],
