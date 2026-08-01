@@ -460,7 +460,33 @@ with tab1:
                         df_after_disp.loc[len(df_after_disp)] = ["**Tổng cộng**", tot_tiet, tot_lop, float('nan')]
                         df_after_disp = df_after_disp[["Năm học hiển thị", "Số lượng lớp", "Số lượng môn học", "Tổng số tiết thực hiện"]]
                         st.dataframe(df_after_disp, use_container_width=True)
-    
+                        
+                        # ==========================================
+                        # 📚 THỐNG KÊ CHI TIẾT: MỖI GIẢNG VIÊN GIẢNG MÔN NÀO & SỐ LỚP
+                        # ==========================================
+                        st.markdown("##### 👥 Thống kê chi tiết môn học & số lượng lớp theo từng Giảng viên")
+                        
+                        # Gom nhóm theo Giảng viên, Năm học và Môn học để đếm số lớp (nunique)
+                        df_gv_mon = df_clean.groupby(["_full_name", "năm học hiển thị", c_subject]).agg(
+                            Số_lượng_lớp=(c_class, "nunique"),
+                            Tổng_số_tiết=(tiet_col, "sum")
+                        ).reset_index()
+
+                        # Đổi tên các cột hiển thị tiếng Việt thân thiện
+                        df_gv_mon = df_gv_mon.rename(columns={
+                            "_full_name": "Giảng viên",
+                            "năm học hiển thị": "Năm học",
+                            c_subject: "Tên môn học",
+                            "Số_lượng_lớp": "Số lượng lớp",
+                            "Tổng_số_tiết": "Tổng số tiết"
+                        })
+
+                        # Sắp xếp theo Giảng viên và Năm học
+                        df_gv_mon = df_gv_mon.sort_values(["Giảng viên", "Năm học", "Tên môn học"])
+
+                        with st.expander("📅 **(Bấm để mở/đóng xem chi tiết giảng viên dạy môn nào)**", expanded=True):
+                            st.dataframe(df_gv_mon, use_container_width=True)
+                        
                         # ==========================================
                         # 🔍 2. BẢNG CHI TIẾT GIẢNG DẠY (BỔ SUNG TIÊU CHÍ ĐỢT)
                         # ==========================================
