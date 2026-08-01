@@ -997,45 +997,37 @@ with tab1:
                                 st.dataframe(df_before_disp, use_container_width=True)
 
                             st.markdown("##### 🧹 2.1 Bảng thống kê SAU KHI trừ trùng lặp")
-                           
-                            # Nhận diện các cột phân loại cấp 1, loại hoạt động và cấp độ từ df_clean_unified
-                            pl1_col = next((c for c in df_clean_unified.columns if "phân loại cấp 1" in c.lower()), None)
-                            loai_hd_col = next((c for c in df_clean_unified.columns if any(x in c.lower() for x in ["loại hoạt động", "loại"])), None)
-                            cap_do_col = next((c for c in df_clean_unified.columns if c.lower() == "cấp độ" or "cấp độ" in c.lower() or "cấp" in c.lower()), None)
+                            
+                            # Tận dụng chính xác các biến cột động giống như cách Bảng 2.3 đang cấu hình
+                            pl1_col_chk = next((c for c in df_clean_unified.columns if "phân loại cấp 1" in c.lower()), None)
+                            loai_hd_col_chk = next((c for c in df_clean_unified.columns if any(x in c.lower() for x in ["loại hoạt động", "loại"])), None)
+                            cap_do_col_chk = next((c for c in df_clean_unified.columns if c.lower() == "cấp độ" or "cấp độ" in c.lower() or "cấp" in c.lower()), None)
 
-                            # Hàm phân loại chi tiết được nới rộng từ khóa để bắt chuẩn xác 100%
+                            # Hàm phân loại chi tiết bám sát vào đúng giá trị thực tế của cột Loại HĐ và Cấp độ
                             def phan_loai_chi_tiet_nckh(row):
-                                pl1_val = str(row.get(pl1_col, "")).lower() if pl1_col else ""
-                                loai_val = str(row.get(loai_hd_col, "")).lower() if loai_hd_col else ""
-                                cap_val = str(row.get(cap_do_col, "")).lower() if cap_do_col else ""
+                                pl1_val = str(row.get(pl1_col_chk, "")).lower() if pl1_col_chk else ""
+                                loai_val = str(row.get(loai_hd_col_chk, "")).lower() if loai_hd_col_chk else ""
+                                cap_val = str(row.get(cap_do_col_chk, "")).lower() if cap_do_col_chk else ""
                                 
-                                # Gộp toàn bộ thông tin của dòng để quét từ khóa diện rộng
-                                text_val = f"{pl1_val} | {loai_val} | {cap_val}"
+                                # Kết hợp dữ liệu từ Loại hoạt động và Cấp độ
+                                target_text = f"{pl1_val} | {loai_val} | {cap_val}"
 
-                                # 1. Giáo trình mới
-                                gt_moi = 1 if ("giáo trình" in text_val and "mới" in text_val) else 0
+                                gt_moi = 1 if ("giáo trình" in target_text and "mới" in target_text) else 0
+                                sach_ck = 1 if ("chuyên khảo" in target_text) else 0
+                                sach_tltk = 1 if any(x in target_text for x in ["sách tham khảo", "tltk", "hướng dẫn học tập"]) else 0
                                 
-                                # 2. Sách chuyên khảo
-                                sach_ck = 1 if ("chuyên khảo" in text_val) else 0
+                                # Kiểm tra xem dòng này có phải là sản phẩm dạng bài báo khoa học hay không
+                                la_bai_bao = any(x in loai_val or x in pl1_val for x in ["bài báo", "tạp chí", "hội nghị", "hội thảo", "proceeding"])
                                 
-                                # 3. Sách tham khảo / TLTK / HD học tập
-                                sach_tltk = 1 if any(x in text_val for x in ["sách tham khảo", "tltk", "hướng dẫn học tập"]) else 0
-                                
-                                # 4 & 5. Nhận diện Bài báo trong nước và quốc tế
-                                # Kiểm tra xem dòng có phải là bài báo hay không (quét cả loại hoạt động lẫn phân loại cấp 1)
-                                la_bai_bao = any(x in text_val for x in ["bài báo", "journal", "proceeding", "hội nghị", "hội thảo"])
-                                
-                                # Bài báo trong nước: Là bài báo và có từ khóa trong nước / quốc gia / bộ / cơ sở / trường
-                                bb_vn = 1 if (la_bai_bao and any(x in text_val for x in ["trong nước", "quốc gia", "địa phương", "bộ", "cơ sở", "trường"])) and not any(x in text_val for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos"]) else 0
-                                
-                                # Bài báo quốc tế: Là bài báo và có từ khóa quốc tế / ISI / Scopus / Scie...
-                                bb_qt = 1 if (la_bai_bao and any(x in text_val for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos", " international"])) else 0
+                                # Phân tách trong nước hay quốc tế dựa vào Cấp độ hoặc thông tin kèm theo
+                                bb_vn = 1 if (la_bai_bao and any(x in cap_val or x in target_text for x in ["trong nước", "quốc gia", "địa phương", "cơ sở", "bộ", "trường"])) and not any(x in cap_val or x in target_text for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos", "international"]) else 0
+                                bb_qt = 1 if (la_bai_bao and any(x in cap_val or x in target_text for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos", "international"])) else 0
 
                                 return pd.Series([gt_moi, sach_ck, sach_tltk, bb_vn, bb_qt])
 
                             df_clean_unified[["_gt_moi", "_sach_ck", "_sach_tltk", "_bb_vn", "_bb_qt"]] = df_clean_unified.apply(phan_loai_chi_tiet_nckh, axis=1)
 
-                            # Tổng hợp Bảng 2.1 dựa trên dữ liệu chuẩn đã trừ trùng lặp (Dùng "Năm học hiển thị" chuẩn của app)
+                            # Tổng hợp Bảng 2.1 sau khi trừ trùng lặp an toàn
                             df_after = df_clean_unified.groupby("Năm học").agg(**{
                                 "Số lượng sản phẩm": (tiet_col_target, "count"),
                                 "Tổng số tiết": (tiet_col_target, "sum"),
