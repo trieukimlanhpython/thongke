@@ -983,20 +983,7 @@ with tab1:
 
                             df_clean_unified = df_temp_detail.groupby(group_keys_final, dropna=False).agg(agg_rules_detail).reset_index()
                             
-                            st.markdown("##### 📋 1. Bảng thống kê TRƯỚC khi trừ trùng lặp")
-                            with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
-                                df_before = total_rec_df.groupby("Năm học").agg(**{
-                                    "Tổng số dòng kê khai": (tiet_col_target, "count"),
-                                    "Tổng số tiết": (tiet_col_target, "sum")
-                                }).reset_index().sort_values("Năm học")
-            
-                                tot_d_b = df_before["Tổng số dòng kê khai"].sum()
-                                tot_t_b = df_before["Tổng số tiết"].sum()
-                                df_before_disp = df_before.copy()
-                                df_before_disp.loc[len(df_before_disp)] = ["**Tổng cộng**", tot_d_b, tot_t_b]
-                                st.dataframe(df_before_disp, use_container_width=True)
-
-                            st.markdown("##### 🧹 2.1 Bảng thống kê SAU KHI trừ trùng lặp")
+                            st.markdown("##### 🧹 1. Bảng thống kê SAU KHI trừ trùng lặp")
                             
                             # Nhận diện chính xác các cột phân loại
                             pl1_col_chk = next((c for c in df_clean_unified.columns if "phân loại cấp 1" in c.lower()), None)
@@ -1107,7 +1094,7 @@ with tab1:
 
                             st.dataframe(df_final_display, use_container_width=True, hide_index=True)
 
-                            st.markdown("##### 🔍 2.3 Bảng chi tiết NCKH tùy chỉnh theo tiêu chí")
+                            st.markdown("##### 🔍 2. Bảng chi tiết NCKH tùy chỉnh theo tiêu chí")
 
                             cols_lower_all = {str(c).strip().lower(): c for c in df_clean_unified.columns}
                             col_ma_sp = next((cols_lower_all[c] for c in cols_lower_all if any(x in c for x in ["mã sản phẩm", "ma san pham", "code"])), None)
