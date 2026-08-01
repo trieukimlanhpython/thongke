@@ -1308,14 +1308,16 @@ with tab2:
         st.session_state["df1"] = read_gsheet(links["df1"])
       if st.session_state["df1"] is not None:
         st.success("✅ Đã tải df1 (Year - Term - Code)!")
-        st.dataframe(st.session_state["df1"], height=400, use_container_width=True)
+        with st.expander(f"📅 **(Bấm để mở/đóng)**", expanded=True):
+            st.dataframe(st.session_state["df1"], height=400, use_container_width=True)
     
     with col2:
       if "df2" not in st.session_state or st.session_state["df2"] is None:
         st.session_state["df2"] = read_gsheet(links["df2"])
       if st.session_state["df2"] is not None:
         st.success("✅ Đã tải df2 (Category - Description)!")
-        st.dataframe(st.session_state["df2"], height=400, use_container_width=True)
+        with st.expander(f"📅 **(Bấm để mở/đóng)**", expanded=True):
+            st.dataframe(st.session_state["df2"], height=400, use_container_width=True)
     
     st.divider()
     
