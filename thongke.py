@@ -1097,12 +1097,19 @@ with tab1:
                             # Reset index để hiển thị lên giao diện Streamlit
                             df_final_display = df_pivot.reset_index()
 
-                            # 🌟 Định dạng cột số liệu: phân cách phần nghìn và làm tròn 2 chữ số thập phân
-                            for col in df_final_display.columns:
-                                if col != "Tiêu chí đánh giá":
-                                    df_final_display[col] = pd.to_numeric(df_final_display[col], errors="coerce").apply(
-                                        lambda x: f"{x:,.2f}" if pd.notnull(x) else "0"
-                                    )
+                            # 🌟 Định dạng riêng cột "Tổng số tiết thực hiện" thành số nguyên có dấu phân cách hàng nghìn
+                            if "Tổng số tiết thực hiện" in df_final_display.columns:
+                                for col in df_final_display.columns:
+                                    if col != "Tiêu chí đánh giá":
+                                        # Nếu là hàng Tổng số tiết thực hiện, làm tròn 0 chữ số thập phân (số nguyên)
+                                        mask_tiet = df_final_display["Tiêu chí đánh giá"] == "Tổng số tiết thực hiện"
+                                        df_final_display.loc[mask_tiet, col] = pd.to_numeric(df_final_display.loc[mask_tiet, col], errors="coerce").apply(
+                                            lambda x: f"{x:,.1f}" if pd.notnull(x) else "0"
+                                        )
+                                        # Các hàng khác giữ nguyên dạng số đếm chuẩn
+                                        df_final_display.loc[~mask_tiet, col] = pd.to_numeric(df_final_display.loc[~mask_tiet, col], errors="coerce").apply(
+                                            lambda x: f"{x:,.1f}" if pd.notnull(x) else "0"
+                                        )
 
                             st.dataframe(df_final_display, use_container_width=True, hide_index=True)
 
