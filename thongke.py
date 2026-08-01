@@ -1001,30 +1001,27 @@ with tab1:
 
                             df_b2_source[c_tiet] = pd.to_numeric(df_b2_source[c_tiet], errors="coerce").fillna(0)
 
-                            # Bước 1: Gom nhóm chi tiết theo đúng các trục cốt lõi (Năm học, Loại hoạt động, Cấp độ, Phân loại cấp 1)
-                            group_cols_b2 = [c for c in [c_nam_hoc, c_loai, c_cap, c_pl1] if c and c in df_b2_source.columns]
+                            # Chuẩn hóa tên cột thời gian và các tiêu chí về dạng chuẩn để code không bị trùng lặp
+                            df_b2_source["_Nam_Hoc_Chuan"] = df_b2_source[c_nam_hoc] if c_nam_hoc in df_b2_source.columns else "Chưa xác định"
+                            df_b2_source["_Loai_Chuan"] = df_b2_source[c_loai].astype(str) if (c_loai and c_loai in df_b2_source.columns) else ""
+                            df_b2_source["_Cap_Chuan"] = df_b2_source[c_cap].astype(str) if (c_cap and c_cap in df_b2_source.columns) else ""
+                            df_b2_source["_Pl1_Chuan"] = df_b2_source[c_pl1].astype(str) if (c_pl1 and c_pl1 in df_b2_source.columns) else ""
+
+                            # Bước 1: Gom nhóm chi tiết theo các trục chuẩn
+                            group_cols_b2 = ["_Nam_Hoc_Chuan", "_Loai_Chuan", "_Cap_Chuan", "_Pl1_Chuan"]
                             
                             df_grouped_base = df_b2_source.groupby(group_cols_b2, dropna=False).agg(
                                 Số_lượng=("Sản phẩm chuẩn hóa", "count") if "Sản phẩm chuẩn hóa" in df_b2_source.columns else (c_tiet, "count"),
                                 Tổng_số_tiết=(c_tiet, "sum")
                             ).reset_index()
 
-                            # Chuẩn hóa tên cột để dễ mapping
-                            df_grouped_base = df_grouped_base.rename(columns={
-                                c_nam_hoc: "Năm học",
-                                c_loai if c_loai else "": "Loại hoạt động",
-                                c_cap if c_cap else "": "Cấp độ",
-                                c_pl1 if c_pl1 else "": "Phân loại cấp 1"
-                            })
-
                             # Bước 2: Hàm ánh xạ (Mapping) từ từng dòng chi tiết vào đúng Danh mục tiêu chí của Bảng 1
                             def anh_xa_tieu_chi(row):
-                                loai = str(row.get("Loại hoạt động", "")).lower()
-                                cap = str(row.get("Cấp độ", "")).lower()
-                                pl1 = str(row.get("Phân loại cấp 1", "")).lower()
+                                loai = str(row.get("_Loai_Chuan", "")).lower()
+                                cap = str(row.get("_Cap_Chuan", "")).lower()
+                                pl1 = str(row.get("_Pl1_Chuan", "")).lower()
                                 target = f"{pl1} | {loai} | {cap}"
 
-                                # Khởi tạo các cờ đếm tiêu chí
                                 gt_moi = 1 if ("giáo trình" in target and "mới" in target) else 0
                                 sach_ck = 1 if ("chuyên khảo" in target) else 0
                                 sach_tltk = 1 if any(x in target for x in ["sách tham khảo", "tltk", "hướng dẫn học tập"]) else 0
@@ -1043,21 +1040,21 @@ with tab1:
                                 dt_coso = 1 if (la_dt and any(x in cap for x in ["cấp cơ sở", "cơ sở", "ngành ngân hàng", "trường", "khoa"])) else 0
                                 de_an = 1 if any(x in target for x in ["đề án", "de an"]) else 0
 
+                                sl = row["Số_lượng"]
                                 return pd.Series({
-                                    "Biên soạn giáo trình mới": gt_moi * row["Số_lượng"],
-                                    "Biên soạn sách chuyên khảo": sach_ck * row["Số_lượng"],
-                                    "Sách tham khảo (TLTK)": sach_tltk * row["Số_lượng"],
-                                    "Bài báo trong nước": bb_vn * row["Số_lượng"],
-                                    "Bài báo quốc tế": bb_qt * row["Số_lượng"],
-                                    "Bài tham luận hội thảo trong nước": tl_vn * row["Số_lượng"],
-                                    "Bài tham luận hội thảo quốc tế": tl_qt * row["Số_lượng"],
-                                    "Đề tài cấp Bộ": dt_bo * row["Số_lượng"],
-                                    "Đề tài cấp Tỉnh": dt_tinh * row["Số_lượng"],
-                                    "Đề tài cấp Cơ sở/Cấp cơ sở (ngành ngân hàng)": dt_coso * row["Số_lượng"],
-                                    "Đề án": de_an * row["Số_lượng"]
+                                    "Biên soạn giáo trình mới": gt_moi * sl,
+                                    "Biên soạn sách chuyên khảo": sach_ck * sl,
+                                    "Sách tham khảo (TLTK)": sach_tltk * sl,
+                                    "Bài báo trong nước": bb_vn * sl,
+                                    "Bài báo quốc tế": bb_qt * sl,
+                                    "Bài tham luận hội thảo trong nước": tl_vn * sl,
+                                    "Bài tham luận hội thảo quốc tế": tl_qt * sl,
+                                    "Đề tài cấp Bộ": dt_bo * sl,
+                                    "Đề tài cấp Tỉnh": dt_tinh * sl,
+                                    "Đề tài cấp Cơ sở/Cấp cơ sở (ngành ngân hàng)": dt_coso * sl,
+                                    "Đề án": de_an * sl
                                 })
 
-                            # Áp dụng hàm ánh xạ theo từng dòng nhóm
                             tieu_chi_Cols = [
                                 "Biên soạn giáo trình mới", "Biên soạn sách chuyên khảo", "Sách tham khảo (TLTK)",
                                 "Bài báo trong nước", "Bài báo quốc tế", "Bài tham luận hội thảo trong nước",
@@ -1067,14 +1064,14 @@ with tab1:
                             
                             df_grouped_base[tieu_chi_Cols] = df_grouped_base.apply(anh_xa_tieu_chi, axis=1)
 
-                            # Bước 3: Tổng hợp theo Năm học
-                            df_agg_bang1 = df_grouped_base.groupby("Năm học").agg(
+                            # Bước 3: Tổng hợp theo Năm học chuẩn
+                            df_agg_bang1 = df_grouped_base.groupby("_Nam_Hoc_Chuan").agg(
                                 **{
                                     "Tổng số sản phẩm": ("Số_lượng", "sum"),
                                     "Tổng số tiết thực hiện": ("Tổng_số_tiết", "sum"),
                                     **{col: (col, "sum") for col in tieu_chi_Cols}
                                 }
-                            ).reset_index()
+                            ).reset_index().rename(columns={"_Nam_Hoc_Chuan": "Năm học"})
 
                             # Pivot thành bảng tổng hợp ngang
                             df_melted_b1 = df_agg_bang1.melt(id_vars=["Năm học"], var_name="Tiêu chí đánh giá", value_name="Số lượng")
@@ -1101,8 +1098,7 @@ with tab1:
                                     )
 
                             st.dataframe(df_final_b1, use_container_width=True, hide_index=True)
-                            st.divider()
-
+                          
                             # ==========================================
                             # 🔍 2. BẢNG CHI TIẾT NCKH TÙY CHỈNH (BẢNG 2)
                             # ==========================================
