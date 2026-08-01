@@ -334,12 +334,12 @@ with tab1:
                 total_rec_df[tiet_col_target] = pd.to_numeric(
                     total_rec_df[tiet_col_target], errors="coerce"
                 ).fillna(0)
-                total_rec_df["Năm học hiển thị"] = total_rec_df[time_col_target].apply(
+                total_rec_df["Năm học"] = total_rec_df[time_col_target].apply(
                     quy_doi_nam_hoc
                 )
 
                 all_years = sorted(
-                    total_rec_df["Năm học hiển thị"].dropna().unique().tolist(),
+                    total_rec_df["Năm học"].dropna().unique().tolist(),
                     reverse=True
                 )
             
@@ -400,7 +400,7 @@ with tab1:
                     st.warning("⚠️ Vui lòng tích chọn ít nhất một năm học để hiển thị dữ liệu.")
                 else:
                     total_rec_df = total_rec_df[
-                        total_rec_df["Năm học hiển thị"].isin(selected_years)
+                        total_rec_df["Năm học"].isin(selected_years)
                     ]
 
                     if total_rec_df.empty:
@@ -430,10 +430,10 @@ with tab1:
                                 df_clean["_dot_hoc"] = "Không rõ"
         
                             time_col_actual = next((c for c in df_clean.columns if any(x in c for x in ["năm học", "year", "đợt", "term"])), None)
-                            if "năm học hiển thị" not in df_clean.columns and time_col_actual:
-                                df_clean["năm học hiển thị"] = df_clean[time_col_actual].apply(quy_doi_nam_hoc)
-                            elif "năm học hiển thị" not in df_clean.columns:
-                                df_clean["năm học hiển thị"] = "Chưa xác định"
+                            if "năm học" not in df_clean.columns and time_col_actual:
+                                df_clean["năm học"] = df_clean[time_col_actual].apply(quy_doi_nam_hoc)
+                            elif "năm học" not in df_clean.columns:
+                                df_clean["năm học"] = "Chưa xác định"
         
                             tiet_col = next((c for c in df_clean.columns if any(x in c for x in ["tiết", "period"])), list(df_clean.columns)[-1])
                             df_clean[tiet_col] = pd.to_numeric(df_clean[tiet_col], errors="coerce").fillna(0)
@@ -461,13 +461,13 @@ with tab1:
                                 df_clean["_full_name"] = "Không rõ"
         
                             # 1. Bảng tổng hợp Giảng dạy theo Năm học
-                            df_after = df_clean.groupby("năm học hiển thị").agg(**{
+                            df_after = df_clean.groupby("năm học").agg(**{
                                 "Tổng số tiết thực hiện": (tiet_col, "sum"),
                                 "Số lượng lớp": (c_class, "nunique"),
                                 "Số lượng môn học": (c_subject, "nunique")
-                            }).reset_index().sort_values("năm học hiển thị")
+                            }).reset_index().sort_values("năm học")
                             
-                            df_after = df_after.rename(columns={"năm học hiển thị": "Năm học hiển thị"})
+                            df_after = df_after.rename(columns={"năm học": "Năm học"})
         
                             st.markdown("##### 🧹 1. Bảng tổng hợp Giảng dạy theo Năm học")
                             tot_lop = df_after["Số lượng lớp"].sum()
@@ -475,7 +475,7 @@ with tab1:
         
                             df_after_disp = df_after.copy()
                             df_after_disp.loc[len(df_after_disp)] = ["**Tổng cộng**", tot_tiet, tot_lop, float('nan')]
-                            df_after_disp = df_after_disp[["Năm học hiển thị", "Số lượng lớp", "Số lượng môn học", "Tổng số tiết thực hiện"]]
+                            df_after_disp = df_after_disp[["Năm học", "Số lượng lớp", "Số lượng môn học", "Tổng số tiết thực hiện"]]
                             st.dataframe(df_after_disp, use_container_width=True)
                             
                             # ==========================================
@@ -483,7 +483,7 @@ with tab1:
                             # ==========================================
                             st.markdown("##### 👥 Bảng tổng hợp khối lượng giảng dạy theo từng Giảng viên")
 
-                            available_years_gd = sorted(df_clean["năm học hiển thị"].dropna().unique().tolist(), reverse=True)
+                            available_years_gd = sorted(df_clean["năm học"].dropna().unique().tolist(), reverse=True)
 
                             selected_years_gv = st.multiselect(
                                 "📅 Chọn năm học hiển thị cho bảng giảng viên (Bỏ trống = Chọn tất cả):",
@@ -494,10 +494,10 @@ with tab1:
 
                             df_gv_filtered = df_clean.copy()
                             if selected_years_gv:
-                                df_gv_filtered = df_gv_filtered[df_gv_filtered["năm học hiển thị"].isin(selected_years_gv)]
+                                df_gv_filtered = df_gv_filtered[df_gv_filtered["năm học"].isin(selected_years_gv)]
 
                             if not df_gv_filtered.empty:
-                                df_gv_summary = df_gv_filtered.groupby(["_full_name", "năm học hiển thị"]).agg(
+                                df_gv_summary = df_gv_filtered.groupby(["_full_name", "năm học"]).agg(
                                     Số_lượng_môn=(c_subject, "nunique"),
                                     Tổng_số_lớp=(c_class, "nunique"),
                                     Tổng_số_tiết=(tiet_col, "sum")
@@ -505,7 +505,7 @@ with tab1:
 
                                 df_gv_summary = df_gv_summary.rename(columns={
                                     "_full_name": "Giảng viên",
-                                    "năm học hiển thị": "Năm học",
+                                    "năm học": "Năm học",
                                     "Số_lượng_môn": "Số lượng môn đã giảng",
                                     "Tổng_số_lớp": "Tổng số lớp",
                                     "Tổng_số_tiết": "Tổng số tiết"
@@ -555,14 +555,14 @@ with tab1:
                             # ==========================================
                             st.markdown("##### 👥 Thống kê chi tiết môn học & số lượng lớp theo từng Giảng viên")
                             
-                            df_gv_mon = df_clean.groupby(["_full_name", "năm học hiển thị", c_subject]).agg(
+                            df_gv_mon = df_clean.groupby(["_full_name", "năm học", c_subject]).agg(
                                 Số_lượng_lớp=(c_class, "nunique"),
                                 Tổng_số_tiết=(tiet_col, "sum")
                             ).reset_index()
 
                             df_gv_mon = df_gv_mon.rename(columns={
                                 "_full_name": "Giảng viên",
-                                "năm học hiển thị": "Năm học",
+                                "năm học": "Năm học",
                                 c_subject: "Tên môn học",
                                 "Số_lượng_lớp": "Số lượng lớp",
                                 "Tổng_số_tiết": "Tổng số tiết"
@@ -597,7 +597,7 @@ with tab1:
         
                             group_detail_keys = []
                             if opt_year:
-                                group_detail_keys.append("năm học hiển thị")
+                                group_detail_keys.append("năm học")
                             if opt_prog and c_program and c_program in df_clean.columns:
                                 group_detail_keys.append(c_program)
                             if opt_subj:
@@ -620,7 +620,7 @@ with tab1:
                                 group_detail_keys.append("_full_name")
         
                             if not group_detail_keys:
-                                group_detail_keys = ["năm học hiển thị"]
+                                group_detail_keys = ["năm học"]
         
                             agg_detail_dict = {
                                 tiet_col: "sum",
@@ -630,7 +630,7 @@ with tab1:
                             df_gd_detail = df_clean.groupby(group_detail_keys).agg(agg_detail_dict).reset_index()
         
                             rename_detail_dict = {
-                                "năm học hiển thị": "Năm học",
+                                "năm học": "Năm học",
                                 c_subject: "Tên môn học",
                                 tiet_col: "Tổng số tiết",
                                 c_class: "Số lượng lớp",
@@ -953,7 +953,7 @@ with tab1:
                             loai_hd_col = next((c for c in df_temp_detail.columns if any(x in c.lower() for x in ["loại hoạt động", "loại"])), None)
                             cap_do_col = next((c for c in df_temp_detail.columns if c.lower() == "cấp độ" or "cấp độ" in c.lower()), None)
 
-                            group_keys_final = ["Năm học hiển thị", "Sản phẩm chuẩn hóa"]
+                            group_keys_final = ["Năm học", "Sản phẩm chuẩn hóa"]
                             if phan_loai_col:
                                 group_keys_final.insert(0, phan_loai_col)
                             if loai_hd_col and loai_hd_col not in group_keys_final:
@@ -985,10 +985,10 @@ with tab1:
                             
                             st.markdown("##### 📋 1. Bảng thống kê TRƯỚC khi trừ trùng lặp")
                             with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
-                                df_before = total_rec_df.groupby("Năm học hiển thị").agg(**{
+                                df_before = total_rec_df.groupby("Năm học").agg(**{
                                     "Tổng số dòng kê khai": (tiet_col_target, "count"),
                                     "Tổng số tiết": (tiet_col_target, "sum")
-                                }).reset_index().sort_values("Năm học hiển thị")
+                                }).reset_index().sort_values("Năm học")
             
                                 tot_d_b = df_before["Tổng số dòng kê khai"].sum()
                                 tot_t_b = df_before["Tổng số tiết"].sum()
@@ -1209,11 +1209,11 @@ with tab1:
                             if not df_plot_nckh.empty:
                                 st.markdown("##### 📊 3. Biểu đồ trực quan theo các tiêu chí đã chọn (Dựa trên dữ liệu đã trừ trùng lặp)")
                                 
-                                has_year_nckh = "Năm học hiển thị" in df_nckh_detail.columns
+                                has_year_nckh = "Năm học" in df_nckh_detail.columns
                                 
                                 allowed_mapping = []
                                 if opt_y and has_year_nckh:
-                                    allowed_mapping.append(("Năm học hiển thị", "Năm học"))
+                                    allowed_mapping.append(("Năm học", "Năm học"))
                                 if opt_cap and cap_do_col and cap_do_col in df_nckh_detail.columns:
                                     allowed_mapping.append((cap_do_col, "Cấp độ"))
                                 if opt_loai and loai_hd_col and loai_hd_col in df_nckh_detail.columns:
@@ -1245,9 +1245,9 @@ with tab1:
                                      
                                     col_chart1, col_chart2 = st.columns(2)
                                      
-                                    if col_name != "Năm học hiển thị" and has_year_nckh:
-                                        df_pivot_qty = df_nckh_filtered.pivot_table(index=col_name, columns="Năm học hiển thị", values="Số lượng", aggfunc="sum").fillna(0)
-                                        df_pivot_tiet = df_nckh_filtered.pivot_table(index=col_name, columns="Năm học hiển thị", values="Tổng số tiết", aggfunc="sum").fillna(0)
+                                    if col_name != "Năm học" and has_year_nckh:
+                                        df_pivot_qty = df_nckh_filtered.pivot_table(index=col_name, columns="Năm học", values="Số lượng", aggfunc="sum").fillna(0)
+                                        df_pivot_tiet = df_nckh_filtered.pivot_table(index=col_name, columns="Năm học", values="Tổng số tiết", aggfunc="sum").fillna(0)
                                         is_grouped_years = True
                                     else:
                                         df_pivot_qty = df_nckh_filtered.groupby(col_name)[["Số lượng"]].sum()
