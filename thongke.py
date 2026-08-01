@@ -264,14 +264,6 @@ with tab1:
                 st.success(
                     f"✅ Tìm thấy kết quả phù hợp từ {len(found_records)} nhóm bảng"
                 )
-
-                for name, rec_df in found_records:
-                    st.markdown(
-                        f"#### 📘 Nhóm kết quả tìm thấy từ bảng dữ liệu gốc: **{name}** —"
-                        f" {len(rec_df)} dòng"
-                    )
-                    with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
-                        st.dataframe(rec_df, use_container_width=True)
             else:
                 st.warning("❌ Không tìm thấy dữ liệu phù hợp trong phạm vi đã chọn.")
     else:
@@ -280,8 +272,6 @@ with tab1:
     # ==========================================================
     # 📊 THỐNG KÊ, TRỪ TRÙNG LẶP VẼ ĐỒ THỊ
     # ==========================================================
-    st.divider()
-
     if found_records:
         valid_dfs = [df for name, df in found_records if not df.empty]
         total_rec_df = (
