@@ -997,15 +997,58 @@ with tab1:
                                 st.dataframe(df_before_disp, use_container_width=True)
 
                             st.markdown("##### 🧹 2.1 Bảng thống kê SAU KHI trừ trùng lặp")
+                            # Nhận diện các cột phân loại để bóc tách cột chi tiết
+                            phan_loai_col = next((c for c in df_clean_unified.columns if "phân loại cấp 1" in c.lower()), None)
+                            loai_hd_col = next((c for c in df_clean_unified.columns if any(x in c.lower() for x in ["loại hoạt động", "loại"])), None)
+                            cap_do_col = next((c for c in df_clean_unified.columns if c.lower() == "cấp độ" or "cấp độ" in c.lower()), None)
+    
+                            # Tạo hàm phân loại chi tiết cho từng dòng sản phẩm dựa trên yêu cầu
+                            def xac_dinh_nhieu_cot_nckh(row):
+                                pl1 = str(row.get(phan_loai_col, "")).lower() if phan_loai_col else ""
+                                loai = str(row.get(loai_hd_col, "")).lower() if loai_hd_col else ""
+                                cap = str(row.get(cap_do_col, "")).lower() if cap_do_col else ""
+                                text_hop_lai = f"{pl1} | {loai} | {cap}"
+    
+                                is_giao_trinh = 1 if ("giáo trình" in text_hop_lai and "mới" in text_hop_lai) else 0
+                                is_sach_ck = 1 if ("chuyên khảo" in text_hop_lai) else 0
+                                is_sach_tltk = 1 if (any(x in text_hop_lai for x in ["sách tham khảo", "tltk", "hướng dẫn học tập"])) else 0
+                                is_bb_trong_nuoc = 1 if ("bài báo" in text_hop_lai and any(x in text_hop_lai for x in ["trong nước", "quốc gia", "tạp chí trong nước"])) else 0
+                                is_bb_quoc_te = 1 if ("bài báo" in text_hop_lai and any(x in text_hop_lai for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos"])) else 0
+    
+                                return pd.Series([is_giao_trinh, is_sach_ck, is_sach_tltk, is_bb_trong_nuoc, is_bb_quoc_te])
+    
+                            df_clean_unified[["_gt_moi", "_sach_ck", "_sach_tltk", "_bb_vn", "_bb_qt"]] = df_clean_unified.apply(xac_dinh_nhieu_cot_nckh, axis=1)
+    
+                            # 🧹 Bảng 2.1 Bổ sung các cột chi tiết theo yêu cầu
                             df_after = df_clean_unified.groupby("Năm học hiển thị").agg(**{
                                 "Số lượng sản phẩm độc lập": (tiet_col_target, "count"),
-                                "Tổng số tiết thực hiện": (tiet_col_target, "sum")
+                                "Tổng số tiết thực hiện": (tiet_col_target, "sum"),
+                                "Biên soạn giáo trình mới": ("_gt_moi", "sum"),
+                                "Biên soạn sách chuyên khảo": ("_sach_ck", "sum"),
+                                "Sách tham khảo (TLTK) / HD học tập": ("_sach_tltk", "sum"),
+                                "Bài báo khoa học trong nước": ("_bb_vn", "sum"),
+                                "Bài báo khoa học quốc tế": ("_bb_qt", "sum"),
                             }).reset_index().sort_values("Năm học hiển thị")
-
+    
                             tot_sp_a = df_after["Số lượng sản phẩm độc lập"].sum()
                             tot_t_a = df_after["Tổng số tiết thực hiện"].sum()
+                            tot_gt_moi = df_after["Biên soạn giáo trình mới"].sum()
+                            tot_sach_ck = df_after["Biên soạn sách chuyên khảo"].sum()
+                            tot_sach_tltk = df_after["Sách tham khảo (TLTK) / HD học tập"].sum()
+                            tot_bb_vn = df_after["Bài báo khoa học trong nước"].sum()
+                            tot_bb_qt = df_after["Bài báo khoa học quốc tế"].sum()
+    
                             df_after_disp = df_after.copy()
-                            df_after_disp.loc[len(df_after_disp)] = ["**Tổng cộng**", tot_sp_a, tot_t_a]
+                            df_after_disp.loc[len(df_after_disp)] = [
+                                "**Tổng cộng**", 
+                                tot_sp_a, 
+                                tot_t_a, 
+                                tot_gt_moi, 
+                                tot_sach_ck, 
+                                tot_sach_tltk, 
+                                tot_bb_vn, 
+                                tot_bb_qt
+                            ]
                             st.dataframe(df_after_disp, use_container_width=True)
 
                             st.markdown("##### 🔍 2.3 Bảng chi tiết kèm Tên sản phẩm & Danh sách thành viên (Tùy chỉnh tiêu chí)")
