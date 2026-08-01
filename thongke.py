@@ -491,23 +491,23 @@ with tab1:
                         # 🔍 2. BẢNG CHI TIẾT GIẢNG DẠY (BỔ SUNG TIÊU CHÍ ĐỢT)
                         # ==========================================
                         st.markdown("##### 🔍 2. Bảng chi tiết Giảng dạy (Tùy chỉnh theo tiêu chí)")
-    
-                        col_opt1, col_opt2, col_opt3, col_opt4 = st.columns(4)
-                        with col_opt1:
-                            opt_year = st.checkbox("Theo Năm học", value=True, key="chk_gd_year")
-                            opt_know = st.checkbox("Theo Khối kiến thức", value=False, key="chk_gd_know")
-                            opt_faculty = st.checkbox("Theo Khoa quản lý", value=False, key="chk_gd_fac")
-                        with col_opt2:
-                            opt_prog = st.checkbox("Theo Chương trình", value=True, key="chk_gd_prog")
-                            opt_sess = st.checkbox("Theo Ca học", value=False, key="chk_gd_sess")
-                            opt_note = st.checkbox("Theo Kiêm chức", value=False, key="chk_gd_note")
-                        with col_opt3:
-                            opt_subj = st.checkbox("Theo Môn học", value=True, key="chk_gd_subj")
-                            opt_loc = st.checkbox("Theo Địa điểm", value=False, key="chk_gd_loc")
-                            opt_dot = st.checkbox("Theo Đợt học", value=False, key="chk_gd_dot")  # 🌟 Checkbox Đợt học
-                        with col_opt4:
-                            opt_lecturer = st.checkbox("Theo Giảng viên", value=True, key="chk_gd_lect")
-                            opt_term = st.checkbox("Theo Học kỳ", value=False, key="chk_gd_term")
+                        with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
+                            col_opt1, col_opt2, col_opt3, col_opt4 = st.columns(4)
+                            with col_opt1:
+                                opt_year = st.checkbox("Theo Năm học", value=True, key="chk_gd_year")
+                                opt_know = st.checkbox("Theo Khối kiến thức", value=False, key="chk_gd_know")
+                                opt_faculty = st.checkbox("Theo Khoa quản lý", value=False, key="chk_gd_fac")
+                            with col_opt2:
+                                opt_prog = st.checkbox("Theo Chương trình", value=True, key="chk_gd_prog")
+                                opt_sess = st.checkbox("Theo Ca học", value=False, key="chk_gd_sess")
+                                opt_note = st.checkbox("Theo Kiêm chức", value=False, key="chk_gd_note")
+                            with col_opt3:
+                                opt_subj = st.checkbox("Theo Môn học", value=True, key="chk_gd_subj")
+                                opt_loc = st.checkbox("Theo Địa điểm", value=False, key="chk_gd_loc")
+                                opt_dot = st.checkbox("Theo Đợt học", value=False, key="chk_gd_dot")  # 🌟 Checkbox Đợt học
+                            with col_opt4:
+                                opt_lecturer = st.checkbox("Theo Giảng viên", value=True, key="chk_gd_lect")
+                                opt_term = st.checkbox("Theo Học kỳ", value=False, key="chk_gd_term")
     
                         group_detail_keys = []
                         if opt_year:
