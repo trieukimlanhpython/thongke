@@ -984,103 +984,127 @@ with tab1:
                             df_clean_unified = df_temp_detail.groupby(group_keys_final, dropna=False).agg(agg_rules_detail).reset_index()
 
                             # ==========================================
-                            # 📊 BẢNG 2: BẢNG THỐNG KÊ TỔNG HỢP CỐ ĐỊNH (TĨNH)
+                            # 📊 1. BẢNG THỐNG KÊ TỔNG HỢP CỐ ĐỊNH (ĐỒNG BỘ 100% VỚI BẢNG CHI TIẾT)
                             # ==========================================
                             st.markdown("##### 📊 1. Bảng thống kê tổng hợp các tiêu chí NCKH")
 
-                            # Sử dụng tập dữ liệu đã khử trùng lặp (df_clean_unified) làm nguồn chuẩn
-                            df_bang2_source = df_clean_unified.copy()
-                            df_bang2_source.columns = [str(c).strip().lower() for c in df_bang2_source.columns]
+                            # Lấy trực tiếp từ df_clean_unified (dữ liệu đã khử trùng lặp)
+                            df_b2_source = df_clean_unified.copy()
+                            df_b2_source.columns = [str(c).strip().lower() for c in df_b2_source.columns]
 
-                            time_col_b2 = next((c for c in df_bang2_source.columns if any(x in c for x in ["năm học", "year"])), "năm học")
-                            pl1_b2 = next((c for c in df_bang2_source.columns if "phân loại cấp 1" in c), None)
-                            loai_b2 = next((c for c in df_bang2_source.columns if any(x in c for x in ["loại hoạt động", "loại"])), None)
-                            cap_b2 = next((c for c in df_bang2_source.columns if "cấp độ" in c or "cấp" in c), None)
-                            tiet_b2 = next((c for c in df_bang2_source.columns if any(x in c for x in ["tiết", "period"])), list(df_bang2_source.columns)[-1])
+                            # Nhận diện các cột chuẩn
+                            c_nam_hoc = next((c for c in df_b2_source.columns if any(x in c for x in ["năm học", "year"])), "năm học")
+                            c_loai = next((c for c in df_b2_source.columns if any(x in c for x in ["loại hoạt động", "loại"])), None)
+                            c_cap = next((c for c in df_b2_source.columns if any(x in c for x in ["cấp độ", "cấp"])), None)
+                            c_pl1 = next((c for c in df_b2_source.columns if "phân loại cấp 1" in c), None)
+                            c_tiet = next((c for c in df_b2_source.columns if any(x in c for x in ["tiết", "period"])), list(df_b2_source.columns)[-1])
 
-                            df_bang2_source[tiet_b2] = pd.to_numeric(df_bang2_source[tiet_b2], errors="coerce").fillna(0)
+                            df_b2_source[c_tiet] = pd.to_numeric(df_b2_source[c_tiet], errors="coerce").fillna(0)
 
-                            def phan_loai_chuan_bang2(row):
-                                p = str(row.get(pl1_b2, "")).lower() if pl1_b2 else ""
-                                l = str(row.get(loai_b2, "")).lower() if loai_b2 else ""
-                                c = str(row.get(cap_b2, "")).lower() if cap_b2 else ""
-                                target = f"{p} | {l} | {c}"
+                            # Bước 1: Gom nhóm chi tiết theo đúng các trục cốt lõi (Năm học, Loại hoạt động, Cấp độ, Phân loại cấp 1)
+                            group_cols_b2 = [c for c in [c_nam_hoc, c_loai, c_cap, c_pl1] if c and c in df_b2_source.columns]
+                            
+                            df_grouped_base = df_b2_source.groupby(group_cols_b2, dropna=False).agg(
+                                Số_lượng=("Sản phẩm chuẩn hóa", "count") if "Sản phẩm chuẩn hóa" in df_b2_source.columns else (c_tiet, "count"),
+                                Tổng_số_tiết=(c_tiet, "sum")
+                            ).reset_index()
 
+                            # Chuẩn hóa tên cột để dễ mapping
+                            df_grouped_base = df_grouped_base.rename(columns={
+                                c_nam_hoc: "Năm học",
+                                c_loai if c_loai else "": "Loại hoạt động",
+                                c_cap if c_cap else "": "Cấp độ",
+                                c_pl1 if c_pl1 else "": "Phân loại cấp 1"
+                            })
+
+                            # Bước 2: Hàm ánh xạ (Mapping) từ từng dòng chi tiết vào đúng Danh mục tiêu chí của Bảng 1
+                            def anh_xa_tieu_chi(row):
+                                loai = str(row.get("Loại hoạt động", "")).lower()
+                                cap = str(row.get("Cấp độ", "")).lower()
+                                pl1 = str(row.get("Phân loại cấp 1", "")).lower()
+                                target = f"{pl1} | {loai} | {cap}"
+
+                                # Khởi tạo các cờ đếm tiêu chí
                                 gt_moi = 1 if ("giáo trình" in target and "mới" in target) else 0
                                 sach_ck = 1 if ("chuyên khảo" in target) else 0
                                 sach_tltk = 1 if any(x in target for x in ["sách tham khảo", "tltk", "hướng dẫn học tập"]) else 0
                                 
-                                la_bb = any(x in l or x in p for x in ["bài báo", "tạp chí", "journal"])
-                                bb_vn = 1 if (la_bb and any(x in c or x in target for x in ["trong nước"])) and not any(x in c or x in target for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos", "international"]) else 0
-                                bb_qt = 1 if (la_bb and any(x in c or x in target for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos", "international"])) else 0
+                                la_bb = any(x in loai or x in pl1 for x in ["bài báo", "tạp chí", "journal"])
+                                bb_vn = 1 if (la_bb and any(x in cap or x in target for x in ["trong nước", "quốc gia", "địa phương", "cơ sở", "bộ", "trường"])) and not any(x in cap or x in target for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos", "international"]) else 0
+                                bb_qt = 1 if (la_bb and any(x in cap or x in target for x in ["quốc tế", "isi", "scopus", "scie", "ssci", "wos", "international"])) else 0
 
-                                la_tl = any(x in l or x in target for x in ["tham luận", "kỷ yếu", "hội nghị", "hội thảo", "proceedings"]) and not bb_vn and not bb_qt
-                                tl_vn = 1 if (la_tl and not any(x in c or x in target for x in ["trong nước", "cơ sở"])) else 0
-                                tl_qt = 1 if (la_tl and any(x in c or x in target for x in ["quốc tế", "international", "isi", "scopus"])) else 0
+                                la_tl = any(x in loai or x in target for x in ["tham luận", "kỷ yếu", "hội nghị", "hội thảo", "proceedings"]) and not bb_vn and not bb_qt
+                                tl_vn = 1 if (la_tl and not any(x in cap or x in target for x in ["quốc tế", "international", "isi", "scopus"])) else 0
+                                tl_qt = 1 if (la_tl and any(x in cap or x in target for x in ["quốc tế", "international", "isi", "scopus"])) else 0
 
-                                la_dt = any(x in l or x in p for x in ["đề tài"])
-                                dt_bo = 1 if (la_dt and any(x in c for x in ["cấp bộ"])) else 0
-                                dt_tinh = 1 if (la_dt and any(x in c for x in ["cấp tỉnh", "thành phố"])) else 0
-                                dt_coso = 1 if (la_dt and any(x in c for x in ["cấp cơ sở", "cơ sở", "trường", "khoa"])) else 0
+                                la_dt = any(x in loai or x in pl1 for x in ["đề tài", "nhiệm vụ"])
+                                dt_bo = 1 if (la_dt and any(x in cap for x in ["cấp bộ", "bộ"])) else 0
+                                dt_tinh = 1 if (la_dt and any(x in cap for x in ["cấp tỉnh", "tỉnh", "thành phố"])) else 0
+                                dt_coso = 1 if (la_dt and any(x in cap for x in ["cấp cơ sở", "cơ sở", "ngành ngân hàng", "trường", "khoa"])) else 0
                                 de_an = 1 if any(x in target for x in ["đề án", "de an"]) else 0
 
-                                return pd.Series([gt_moi, sach_ck, sach_tltk, bb_vn, bb_qt, tl_vn, tl_qt, dt_bo, dt_tinh, dt_coso, de_an])
+                                return pd.Series({
+                                    "Biên soạn giáo trình mới": gt_moi * row["Số_lượng"],
+                                    "Biên soạn sách chuyên khảo": sach_ck * row["Số_lượng"],
+                                    "Sách tham khảo (TLTK)": sach_tltk * row["Số_lượng"],
+                                    "Bài báo trong nước": bb_vn * row["Số_lượng"],
+                                    "Bài báo quốc tế": bb_qt * row["Số_lượng"],
+                                    "Bài tham luận hội thảo trong nước": tl_vn * row["Số_lượng"],
+                                    "Bài tham luận hội thảo quốc tế": tl_qt * row["Số_lượng"],
+                                    "Đề tài cấp Bộ": dt_bo * row["Số_lượng"],
+                                    "Đề tài cấp Tỉnh": dt_tinh * row["Số_lượng"],
+                                    "Đề tài cấp Cơ sở/Cấp cơ sở (ngành ngân hàng)": dt_coso * row["Số_lượng"],
+                                    "Đề án": de_an * row["Số_lượng"]
+                                })
 
-                            cols_flag_b2 = ["_gt_moi", "_sach_ck", "_sach_tltk", "_bb_vn", "_bb_qt", "_tl_vn", "_tl_qt", "_dt_bo", "_dt_tinh", "_dt_coso", "_de_an"]
-                            df_bang2_source[cols_flag_b2] = df_bang2_source.apply(phan_loai_chuan_bang2, axis=1)
-
-                            df_agg_b2 = df_bang2_source.groupby(time_col_b2).agg(**{
-                                "Tổng số sản phẩm": (tiet_b2, "count"),
-                                "Tổng số tiết thực hiện": (tiet_b2, "sum"),
-                                "Biên soạn giáo trình mới": ("_gt_moi", "sum"),
-                                "Biên soạn sách chuyên khảo": ("_sach_ck", "sum"),
-                                "Sách tham khảo (TLTK)": ("_sach_tltk", "sum"),
-                                "Bài báo trong nước": ("_bb_vn", "sum"),
-                                "Bài báo quốc tế": ("_bb_qt", "sum"),
-                                "Bài tham luận hội thảo trong nước": ("_tl_vn", "sum"),
-                                "Bài tham luận hội thảo quốc tế": ("_tl_qt", "sum"),
-                                "Đề tài cấp Bộ": ("_dt_bo", "sum"),
-                                "Đề tài cấp Tỉnh": ("_dt_tinh", "sum"),
-                                "Đề tài cấp Cơ sở": ("_dt_coso", "sum"),
-                                "Đề án": ("_de_an", "sum"),
-                            }).reset_index()
-
-                            df_agg_b2 = df_agg_b2.rename(columns={time_col_b2: "Năm học"})
-                            df_melted_b2 = df_agg_b2.melt(id_vars=["Năm học"], var_name="Tiêu chí đánh giá", value_name="Số lượng")
-                            df_pivot_b2 = df_melted_b2.pivot(index="Tiêu chí đánh giá", columns="Năm học", values="Số lượng").fillna(0)
-
-                            danh_sach_thu_tu_b2 = [
-                                "Tổng số sản phẩm",
-                                "Tổng số tiết thực hiện",
-                                "Biên soạn giáo trình mới",
-                                "Biên soạn sách chuyên khảo",
-                                "Sách tham khảo (TLTK)",
-                                "Bài báo trong nước",
-                                "Bài báo quốc tế",
-                                "Bài tham luận hội thảo trong nước",
-                                "Bài tham luận hội thảo quốc tế",
-                                "Đề tài cấp Bộ",
-                                "Đề tài cấp Tỉnh",
-                                "Đề tài cấp Cơ sở",
-                                "Đề án"
+                            # Áp dụng hàm ánh xạ theo từng dòng nhóm
+                            tieu_chi_Cols = [
+                                "Biên soạn giáo trình mới", "Biên soạn sách chuyên khảo", "Sách tham khảo (TLTK)",
+                                "Bài báo trong nước", "Bài báo quốc tế", "Bài tham luận hội thảo trong nước",
+                                "Bài tham luận hội thảo quốc tế", "Đề tài cấp Bộ", "Đề tài cấp Tỉnh",
+                                "Đề tài cấp Cơ sở/Cấp cơ sở (ngành ngân hàng)", "Đề án"
                             ]
                             
-                            danh_sach_hien_thi_b2 = [c for c in danh_sach_thu_tu_b2 if c in df_pivot_b2.index]
-                            df_pivot_b2 = df_pivot_b2.reindex(danh_sach_hien_thi_b2)
-                            df_pivot_b2["Tổng cộng"] = df_pivot_b2.sum(axis=1)
+                            df_grouped_base[tieu_chi_Cols] = df_grouped_base.apply(anh_xa_tieu_chi, axis=1)
 
-                            df_final_b2 = df_pivot_b2.reset_index()
+                            # Bước 3: Tổng hợp theo Năm học
+                            df_agg_bang1 = df_grouped_base.groupby("Năm học").agg(
+                                **{
+                                    "Tổng số sản phẩm": ("Số_lượng", "sum"),
+                                    "Tổng số tiết thực hiện": ("Tổng_số_tiết", "sum"),
+                                    **{col: (col, "sum") for col in tieu_chi_Cols}
+                                }
+                            ).reset_index()
 
-                            for col in df_final_b2.columns:
+                            # Pivot thành bảng tổng hợp ngang
+                            df_melted_b1 = df_agg_bang1.melt(id_vars=["Năm học"], var_name="Tiêu chí đánh giá", value_name="Số lượng")
+                            df_pivot_b1 = df_melted_b1.pivot(index="Tiêu chí đánh giá", columns="Năm học", values="Số lượng").fillna(0)
+
+                            danh_sach_thu_tu_b1 = [
+                                "Tổng số sản phẩm", "Tổng số tiết thực hiện",
+                                "Biên soạn giáo trình mới", "Biên soạn sách chuyên khảo", "Sách tham khảo (TLTK)",
+                                "Bài báo trong nước", "Bài báo quốc tế", "Bài tham luận hội thảo trong nước",
+                                "Bài tham luận hội thảo quốc tế", "Đề tài cấp Bộ", "Đề tài cấp Tỉnh",
+                                "Đề tài cấp Cơ sở/Cấp cơ sở (ngành ngân hàng)", "Đề án"
+                            ]
+                            
+                            danh_sach_hien_thi_b1 = [c for c in danh_sach_thu_tu_b1 if c in df_pivot_b1.index]
+                            df_pivot_b1 = df_pivot_b1.reindex(danh_sach_hien_thi_b1)
+                            df_pivot_b1["Tổng cộng"] = df_pivot_b1.sum(axis=1)
+
+                            df_final_b1 = df_pivot_b1.reset_index()
+
+                            for col in df_final_b1.columns:
                                 if col != "Tiêu chí đánh giá":
-                                    df_final_b2[col] = pd.to_numeric(df_final_b2[col], errors="coerce").apply(
+                                    df_final_b1[col] = pd.to_numeric(df_final_b1[col], errors="coerce").apply(
                                         lambda x: f"{int(round(x)):,}" if pd.notnull(x) else "0"
                                     )
 
-                            st.dataframe(df_final_b2, use_container_width=True, hide_index=True)
-                            
+                            st.dataframe(df_final_b1, use_container_width=True, hide_index=True)
+                            st.divider()
+
                             # ==========================================
-                            # 🔍 1. BẢNG CHI TIẾT NCKH TÙY CHỈNH (HIỂN THỊ TRƯỚC)
+                            # 🔍 2. BẢNG CHI TIẾT NCKH TÙY CHỈNH (BẢNG 2)
                             # ==========================================
                             st.markdown("##### 🔍 2. Bảng chi tiết NCKH tùy chỉnh theo tiêu chí")
 
@@ -1093,12 +1117,7 @@ with tab1:
                                     if any(
                                         x in c.lower()
                                         for x in [
-                                            "tạp chí",
-                                            "tap chi",
-                                            "hội thảo",
-                                            "hoi thao",
-                                            "sách",
-                                            "sach",
+                                            "tạp chí", "tap chi", "hội thảo", "hoi thao", "sách", "sach",
                                         ]
                                     )
                                 ),
@@ -1228,126 +1247,130 @@ with tab1:
 
                                 st.dataframe(df_nckh_detail, use_container_width=True)
 
+                            else:
+                                st.info("ℹ️ Chưa có dữ liệu để tổng hợp bảng thống kê.")
+
                             # ==========================================
                             # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG CHO NCKH
                             # ==========================================
-                            first_col_nckh = df_nckh_detail.columns[0]
-                            df_plot_nckh = df_nckh_detail[df_nckh_detail[first_col_nckh] != "**Tổng cộng**"].copy()
-                             
-                            if not df_plot_nckh.empty:
-                                st.markdown("##### 📊 3. Biểu đồ trực quan theo các tiêu chí đã chọn (Dựa trên dữ liệu đã trừ trùng lặp)")
-                                
-                                has_year_nckh = "Năm học" in df_nckh_detail.columns
-                                
-                                allowed_mapping = []
-                                if opt_y and has_year_nckh:
-                                    allowed_mapping.append(("Năm học", "Năm học"))
-                                if opt_cap and cap_do_col and cap_do_col in df_nckh_detail.columns:
-                                    allowed_mapping.append((cap_do_col, "Cấp độ"))
-                                if opt_loai and loai_hd_col and loai_hd_col in df_nckh_detail.columns:
-                                    allowed_mapping.append((loai_hd_col, "Loại HĐ"))
-                                if opt_role and role_col_check and role_col_check in df_nckh_detail.columns:
-                                    allowed_mapping.append((role_col_check, "Vai trò"))
-                                if opt_pl1 and phan_loai_col and phan_loai_col in df_nckh_detail.columns:
-                                    allowed_mapping.append((phan_loai_col, "PL Cấp 1"))
-                                
-                                for col_name, display_name in allowed_mapping:
-                                    if col_name not in df_plot_nckh.columns:
-                                        continue
-                                     
-                                    st.markdown(f"###### 📌 Phân tích theo tiêu chí: **{display_name}**")
-                                     
-                                    df_nckh_filtered = df_plot_nckh.copy()
-                                    unique_vals_nckh = sorted(df_plot_nckh[col_name].astype(str).unique())
-                                    selected_vals_nckh = st.multiselect(
-                                        f"🎯 Lọc {display_name} hiển thị trên biểu đồ (Bỏ trống = Hiện toàn bộ):",
-                                        options=unique_vals_nckh,
-                                        key=f"filter_nckh_{col_name}"
-                                    )
-                                    if selected_vals_nckh:
-                                        df_nckh_filtered = df_nckh_filtered[df_nckh_filtered[col_name].astype(str).isin(selected_vals_nckh)]
-                                     
-                                    if df_nckh_filtered.empty:
-                                        st.warning(f"⚠️ Không có dữ liệu phù hợp với bộ lọc cho tiêu chí **{display_name}**.")
-                                        continue
-                                     
-                                    col_chart1, col_chart2 = st.columns(2)
-                                     
-                                    if col_name != "Năm học" and has_year_nckh:
-                                        df_pivot_qty = df_nckh_filtered.pivot_table(index=col_name, columns="Năm học", values="Số lượng", aggfunc="sum").fillna(0)
-                                        df_pivot_tiet = df_nckh_filtered.pivot_table(index=col_name, columns="Năm học", values="Tổng số tiết", aggfunc="sum").fillna(0)
-                                        is_grouped_years = True
-                                    else:
-                                        df_pivot_qty = df_nckh_filtered.groupby(col_name)[["Số lượng"]].sum()
-                                        df_pivot_tiet = df_nckh_filtered.groupby(col_name)[["Tổng số tiết"]].sum()
-                                        is_grouped_years = False
-                                     
-                                    unique_labels = df_pivot_qty.index.astype(str).tolist()
-                                    needs_mapping = any(len(lbl) > 15 for lbl in unique_labels)
-                                     
-                                    label_mapping = {}
-                                    if needs_mapping:
-                                        label_mapping = {lbl: f"K{i+1}" for i, lbl in enumerate(unique_labels)}
-                                        df_pivot_qty.index = df_pivot_qty.index.map(label_mapping)
-                                        df_pivot_tiet.index = df_pivot_tiet.index.map(label_mapping)
-                                     
-                                    num_bars_nckh = len(df_pivot_qty)
-                                    dynamic_width_nckh = max(7.0, num_bars_nckh * 0.6)
-                                    val_font_size_nckh = 6 if num_bars_nckh > 15 else (7 if num_bars_nckh > 10 else 8)
-                                     
-                                    with col_chart1:
-                                        fig1, ax1 = plt.subplots(figsize=(dynamic_width_nckh, 4.0))
-                                        df_pivot_qty.plot(kind="bar", stacked=False, ax=ax1, width=0.8, colormap="tab20")
+                            if 'df_nckh_detail' in locals() and not df_nckh_detail.empty:
+                                first_col_nckh = df_nckh_detail.columns[0]
+                                df_plot_nckh = df_nckh_detail[df_nckh_detail[first_col_nckh] != "**Tổng cộng**"].copy()
+                                 
+                                if not df_plot_nckh.empty:
+                                    st.markdown("##### 📊 3. Biểu đồ trực quan theo các tiêu chí đã chọn (Dựa trên dữ liệu đã trừ trùng lặp)")
+                                    
+                                    has_year_nckh = "Năm học" in df_nckh_detail.columns
+                                    
+                                    allowed_mapping = []
+                                    if opt_y and has_year_nckh:
+                                        allowed_mapping.append(("Năm học", "Năm học"))
+                                    if opt_cap and cap_do_col and cap_do_col in df_nckh_detail.columns:
+                                        allowed_mapping.append((cap_do_col, "Cấp độ"))
+                                    if opt_loai and loai_hd_col and loai_hd_col in df_nckh_detail.columns:
+                                        allowed_mapping.append((loai_hd_col, "Loại HĐ"))
+                                    if opt_role and role_col_check and role_col_check in df_nckh_detail.columns:
+                                        allowed_mapping.append((role_col_check, "Vai trò"))
+                                    if opt_pl1 and phan_loai_col and phan_loai_col in df_nckh_detail.columns:
+                                        allowed_mapping.append((phan_loai_col, "PL Cấp 1"))
+                                    
+                                    for col_name, display_name in allowed_mapping:
+                                        if col_name not in df_plot_nckh.columns:
+                                            continue
                                          
-                                        for p in ax1.patches:
-                                            h = p.get_height()
-                                            if h > 0:
-                                                ax1.annotate(f"{int(h):,}",
-                                                           (p.get_x() + p.get_width() / 2., h),
-                                                           ha='center', va='bottom',
-                                                           fontsize=val_font_size_nckh, fontweight='bold',
-                                                           rotation=45 if num_bars_nckh > 8 else 0,
-                                                           xytext=(0, 2),
-                                                           textcoords='offset points')
+                                        st.markdown(f"###### 📌 Phân tích theo tiêu chí: **{display_name}**")
                                          
-                                        ax1.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=9)
-                                        ax1.set_ylabel("Số lượng sản phẩm", fontsize=9)
-                                        ax1.set_title(f"So sánh Số lượng theo {display_name} qua các Năm", fontsize=10, fontweight="bold")
-                                        ax1.tick_params(axis="x", rotation=45 if num_bars_nckh > 8 else 0)
-                                        if is_grouped_years:
-                                            ax1.legend(title="Năm học", fontsize=8, title_fontsize=8)
-                                        ax1.grid(axis="y", linestyle="--", alpha=0.5)
-                                        st.pyplot(fig1, bbox_inches="tight")
-                                     
-                                    with col_chart2:
-                                        fig2, ax2 = plt.subplots(figsize=(dynamic_width_nckh, 4.0))
-                                        df_pivot_tiet.plot(kind="bar", stacked=False, ax=ax2, width=0.8, colormap="Accent")
+                                        df_nckh_filtered = df_plot_nckh.copy()
+                                        unique_vals_nckh = sorted(df_plot_nckh[col_name].astype(str).unique())
+                                        selected_vals_nckh = st.multiselect(
+                                            f"🎯 Lọc {display_name} hiển thị trên biểu đồ (Bỏ trống = Hiện toàn bộ):",
+                                            options=unique_vals_nckh,
+                                            key=f"filter_nckh_{col_name}"
+                                        )
+                                        if selected_vals_nckh:
+                                            df_nckh_filtered = df_nckh_filtered[df_nckh_filtered[col_name].astype(str).isin(selected_vals_nckh)]
                                          
-                                        for p in ax2.patches:
-                                            h = p.get_height()
-                                            if h > 0:
-                                                ax2.annotate(f"{int(h):,}",
-                                                           (p.get_x() + p.get_width() / 2., h),
-                                                           ha='center', va='bottom',
-                                                           fontsize=val_font_size_nckh, fontweight='bold',
-                                                           rotation=45 if num_bars_nckh > 2 else 0,
-                                                           xytext=(0, 2),
-                                                           textcoords='offset points')
+                                        if df_nckh_filtered.empty:
+                                            st.warning(f"⚠️ Không có dữ liệu phù hợp với bộ lọc cho tiêu chí **{display_name}**.")
+                                            continue
                                          
-                                        ax2.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=9)
-                                        ax2.set_ylabel("Tổng số tiết thực hiện", fontsize=9)
-                                        ax2.set_title(f"So sánh Tổng số tiết theo {display_name} qua các Năm", fontsize=10, fontweight="bold")
-                                        ax2.tick_params(axis="x", rotation=45 if num_bars_nckh > 8 else 0)
-                                        if is_grouped_years:
-                                            ax2.legend(title="Năm học", fontsize=8, title_fontsize=8)
-                                        ax2.grid(axis="y", linestyle="--", alpha=0.5)
-                                        st.pyplot(fig2, bbox_inches="tight")
-                                     
-                                    if needs_mapping:
-                                        st.markdown(f"**📝 Chú thích ký hiệu trục hoành cho ({display_name}):**")
-                                        with st.expander(f"📅 **(Bấm để mở/đóng)**", expanded=True):
-                                            note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
-                                            st.dataframe(note_df, use_container_width=True, hide_index=True)
+                                        col_chart1, col_chart2 = st.columns(2)
+                                         
+                                        if col_name != "Năm học" and has_year_nckh:
+                                            df_pivot_qty = df_nckh_filtered.pivot_table(index=col_name, columns="Năm học", values="Số lượng", aggfunc="sum").fillna(0)
+                                            df_pivot_tiet = df_nckh_filtered.pivot_table(index=col_name, columns="Năm học", values="Tổng số tiết", aggfunc="sum").fillna(0)
+                                            is_grouped_years = True
+                                        else:
+                                            df_pivot_qty = df_nckh_filtered.groupby(col_name)[["Số lượng"]].sum()
+                                            df_pivot_tiet = df_nckh_filtered.groupby(col_name)[["Tổng số tiết"]].sum()
+                                            is_grouped_years = False
+                                         
+                                        unique_labels = df_pivot_qty.index.astype(str).tolist()
+                                        needs_mapping = any(len(lbl) > 15 for lbl in unique_labels)
+                                         
+                                        label_mapping = {}
+                                        if needs_mapping:
+                                            label_mapping = {lbl: f"K{i+1}" for i, lbl in enumerate(unique_labels)}
+                                            df_pivot_qty.index = df_pivot_qty.index.map(label_mapping)
+                                            df_pivot_tiet.index = df_pivot_tiet.index.map(label_mapping)
+                                         
+                                        num_bars_nckh = len(df_pivot_qty)
+                                        dynamic_width_nckh = max(7.0, num_bars_nckh * 0.6)
+                                        val_font_size_nckh = 6 if num_bars_nckh > 15 else (7 if num_bars_nckh > 10 else 8)
+                                         
+                                        with col_chart1:
+                                            fig1, ax1 = plt.subplots(figsize=(dynamic_width_nckh, 4.0))
+                                            df_pivot_qty.plot(kind="bar", stacked=False, ax=ax1, width=0.8, colormap="tab20")
+                                             
+                                            for p in ax1.patches:
+                                                h = p.get_height()
+                                                if h > 0:
+                                                    ax1.annotate(f"{int(h):,}",
+                                                               (p.get_x() + p.get_width() / 2., h),
+                                                               ha='center', va='bottom',
+                                                               fontsize=val_font_size_nckh, fontweight='bold',
+                                                               rotation=45 if num_bars_nckh > 8 else 0,
+                                                               xytext=(0, 2),
+                                                               textcoords='offset points')
+                                             
+                                            ax1.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=9)
+                                            ax1.set_ylabel("Số lượng sản phẩm", fontsize=9)
+                                            ax1.set_title(f"So sánh Số lượng theo {display_name} qua các Năm", fontsize=10, fontweight="bold")
+                                            ax1.tick_params(axis="x", rotation=45 if num_bars_nckh > 8 else 0)
+                                            if is_grouped_years:
+                                                ax1.legend(title="Năm học", fontsize=8, title_fontsize=8)
+                                            ax1.grid(axis="y", linestyle="--", alpha=0.5)
+                                            st.pyplot(fig1, bbox_inches="tight")
+                                         
+                                        with col_chart2:
+                                            fig2, ax2 = plt.subplots(figsize=(dynamic_width_nckh, 4.0))
+                                            df_pivot_tiet.plot(kind="bar", stacked=False, ax=ax2, width=0.8, colormap="Accent")
+                                             
+                                            for p in ax2.patches:
+                                                h = p.get_height()
+                                                if h > 0:
+                                                    ax2.annotate(f"{int(h):,}",
+                                                               (p.get_x() + p.get_width() / 2., h),
+                                                               ha='center', va='bottom',
+                                                               fontsize=val_font_size_nckh, fontweight='bold',
+                                                               rotation=45 if num_bars_nckh > 2 else 0,
+                                                               xytext=(0, 2),
+                                                               textcoords='offset points')
+                                             
+                                            ax2.set_xlabel("Ký hiệu" if needs_mapping else display_name, fontsize=9)
+                                            ax2.set_ylabel("Tổng số tiết thực hiện", fontsize=9)
+                                            ax2.set_title(f"So sánh Tổng số tiết theo {display_name} qua các Năm", fontsize=10, fontweight="bold")
+                                            ax2.tick_params(axis="x", rotation=45 if num_bars_nckh > 8 else 0)
+                                            if is_grouped_years:
+                                                ax2.legend(title="Năm học", fontsize=8, title_fontsize=8)
+                                            ax2.grid(axis="y", linestyle="--", alpha=0.5)
+                                            st.pyplot(fig2, bbox_inches="tight")
+                                         
+                                        if needs_mapping:
+                                            st.markdown(f"**📝 Chú thích ký hiệu trục hoành cho ({display_name}):**")
+                                            with st.expander(f"📅 **(Bấm để mở/đóng)**", expanded=True):
+                                                note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
+                                                st.dataframe(note_df, use_container_width=True, hide_index=True)
             else:
                 st.info("ℹ️ Không tìm thấy cột 'SỐ TIẾT KÊ KHAI' hoặc cột thời gian phù hợp để vẽ biểu đồ.")
         else:
