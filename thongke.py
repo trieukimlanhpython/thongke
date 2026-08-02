@@ -731,7 +731,7 @@ with tab1:
                                         
                                         df_chart_gv["Ký hiệu GV"] = df_chart_gv["Giảng viên"].map(gv_label_mapping)
         
-                                        fig_gv, ax_gv = plt.subplots(figsize=(max(6, len(df_chart_gv) * 0.5), 4.5))
+                                        fig_gv, ax_gv = plt.subplots(figsize=(max(5, len(df_chart_gv) * 0.5), 3.5))
                                         bars_gv = ax_gv.bar(df_chart_gv["Ký hiệu GV"].astype(str), df_chart_gv["Tổng_số_môn"], color="#59a14f", width=0.6)
                                         
                                         for bar in bars_gv:
@@ -745,7 +745,7 @@ with tab1:
                                         ax_gv.set_xlabel("Ký hiệu Giảng viên", fontsize=9)
                                         ax_gv.set_ylabel("Số lượng môn đã giảng", fontsize=9)
                                         ax_gv.set_title("Tổng số môn học theo từng Giảng viên", fontsize=10, fontweight="bold")
-                                        ax_gv.tick_params(axis="x", rotation=0)
+                                        ax_gv.tick_params(axis="x", rotation=45)
                                         ax_gv.grid(axis="y", linestyle="--", alpha=0.5)
                                         st.pyplot(fig_gv, bbox_inches="tight")
         
