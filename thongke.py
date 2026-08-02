@@ -24,26 +24,6 @@ st.title("📋 Ứng dụng Quản lý Công việc")
 st.write(
     "Đây là ứng dụng nhằm tổng hợp thông tin công việc từ giảng dạy, nghiên cứu khoa học và công tác khác."
 )
-
-# ==========================================================
-# 🔄 NÚT CẬP NHẬT / LÀM MỚI DỮ LIỆU (REFRESH CACHE)
-# ==========================================================
-col_refresh1, col_refresh2 = st.columns([4, 1])
-with col_refresh2:
-  if st.button("🔄 Cập nhật dữ liệu", use_container_width=True):
-    st.cache_data.clear()
-
-    keys_to_reset = ["df1", "df2", "detail_dfs", "selected_years_stat"]
-    for k in keys_to_reset:
-      if k in st.session_state:
-        del st.session_state[k]
-
-    status_placeholder = st.empty()
-    status_placeholder.success("✅ Updated!")
-    time.sleep(2)
-    status_placeholder.empty()
-    st.rerun()
-
 # ==========================================================
 # 🛠️ HÀM BỔ TRỢ: CHUYỂN ĐỢT KÊ KHAI SANG NĂM HỌC
 # ==========================================================
@@ -143,7 +123,12 @@ tab1, tab2 = st.tabs([
 # TAB 1: TRA CỨU CÔNG VIỆC NÂNG CAO & THỐNG KÊ
 # ----------------------------------------------------------
 with tab1:
-    st.header("🔍 Tra cứu công việc nâng cao")
+    # ==========================================================
+    # 🔄 NÚT CẬP NHẬT / LÀM MỚI DỮ LIỆU (REFRESH CACHE)
+    # ==========================================================
+    col_refresh1, col_refresh2 = st.columns([4, 1])
+    with col_refresh1:
+        st.header("🔍 Tra cứu công việc nâng cao")
 
     search_scope = st.radio(
         "📂 Chọn phạm vi / hạng mục cần tìm kiếm:",
@@ -268,7 +253,20 @@ with tab1:
                 st.warning("❌ Không tìm thấy dữ liệu phù hợp trong phạm vi đã chọn.")
     else:
         st.info("👆 Chọn phạm vi và nhập từ khóa để bắt đầu tìm kiếm và thống kê.")
-
+    with col_refresh2:
+      if st.button("🔄 Cập nhật dữ liệu", use_container_width=True):
+        st.cache_data.clear()
+    
+        keys_to_reset = ["df1", "df2", "detail_dfs", "selected_years_stat"]
+        for k in keys_to_reset:
+          if k in st.session_state:
+            del st.session_state[k]
+    
+        status_placeholder = st.empty()
+        status_placeholder.success("✅ Updated!")
+        time.sleep(2)
+        status_placeholder.empty()
+        st.rerun()
     # ==========================================================
     # 📊 THỐNG KÊ, TRỪ TRÙNG LẶP VẼ ĐỒ THỊ
     # ==========================================================
