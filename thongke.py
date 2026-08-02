@@ -1221,11 +1221,62 @@ with tab1:
                                     st.dataframe(df_final_stat_display, use_container_width=True, hide_index=True)
                             else:
                                 st.warning("⚠️ Vui lòng chọn ít nhất một tiêu chí gom nhóm ở phần cấu hình phía trên.")
-                          
+                         
                             # ==========================================
-                            # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG CHO NCKH (GIỮ NGUYÊN LOGIC CŨ)
+                            # 📊 3.1. BIỂU ĐỒ TRỰC QUAN THEO NĂM HỌC
                             # ==========================================
+                            if 'df_grouped_stat' in locals() and not df_grouped_stat.empty and "Năm học" in df_grouped_stat.columns and opt_y:
+                                st.markdown("##### 📊 3.1. Phân tích tổng quan theo Năm học")
+                                
+                                # Gom nhóm theo Năm học để vẽ biểu đồ tổng hợp toàn bộ các tiêu chí qua các năm
+                                df_plot_year = df_grouped_stat.copy()
+                                df_plot_year = df_plot_year[~df_plot_year["Năm học"].astype(str).str.contains("Tổng cộng", na=False)]
+                                
+                                df_year_summary = df_plot_year.groupby("Năm học")[["Số lượng", "Số tiết"]].sum().reset_index()
+                                
+                                if not df_year_summary.empty:
+                                    col_y1, col_y2 = st.columns(2)
+                                    
+                                    # --- BIỂU ĐỒ SỐ LƯỢNG THEO NĂM ---
+                                    with col_y1:
+                                        fig_y1, ax_y1 = plt.subplots(figsize=(6, 3.5))
+                                        bars1 = ax_y1.bar(df_year_summary["Năm học"].astype(str), df_year_summary["Số lượng"], color="cornflowerblue", width=0.6)
+                                        
+                                        for bar in bars1:
+                                            h = bar.get_height()
+                                            if h > 0:
+                                                ax_y1.annotate(f"{int(h):,}",
+                                                             (bar.get_x() + bar.get_width() / 2., h),
+                                                             ha='center', va='bottom', fontsize=8, fontweight='bold',
+                                                             xytext=(0, 2), textcoords='offset points')
+                                                
+                                        ax_y1.set_xlabel("Năm học", fontsize=9)
+                                        ax_y1.set_ylabel("Tổng số lượng", fontsize=9)
+                                        ax_y1.set_title("Tổng số lượng sản phẩm theo Năm học", fontsize=10, fontweight="bold")
+                                        ax_y1.grid(axis="y", linestyle="--", alpha=0.5)
+                                        st.pyplot(fig_y1, bbox_inches="tight")
+                                    
+                                    # --- BIỂU ĐỒ SỐ TIẾT THEO NĂM ---
+                                    with col_y2:
+                                        fig_y2, ax_y2 = plt.subplots(figsize=(6, 3.5))
+                                        bars2 = ax_y2.bar(df_year_summary["Năm học"].astype(str), df_year_summary["Số tiết"], color="lightcoral", width=0.6)
+                                        
+                                        for bar in bars2:
+                                            h = bar.get_height()
+                                            if h > 0:
+                                                ax_y2.annotate(f"{int(h):,}",
+                                                             (bar.get_x() + bar.get_width() / 2., h),
+                                                             ha='center', va='bottom', fontsize=8, fontweight='bold',
+                                                             xytext=(0, 2), textcoords='offset points')
+                                                
+                                        ax_y2.set_xlabel("Năm học", fontsize=9)
+                                        ax_y2.set_ylabel("Tổng số tiết", fontsize=9)
+                                        ax_y2.set_title("Tổng số tiết thực hiện theo Năm học", fontsize=10, fontweight="bold")
+                                        ax_y2.grid(axis="y", linestyle="--", alpha=0.5)
+                                        st.pyplot(fig_y2, bbox_inches="tight")
+                                        
                             if 'df_grouped_stat' in locals() and not df_grouped_stat.empty:
+                                st.markdown("##### 📊 3.2. Phân tích tổng quan theo tiêu chí")
                                 # Lọc bỏ các dòng tổng cộng để đưa vào vẽ biểu đồ
                                 df_plot_nckh = df_grouped_stat.copy()
                                 if "Năm học" in df_plot_nckh.columns:
@@ -1236,8 +1287,7 @@ with tab1:
                                 display_name_chart = "Tổ hợp tiêu chí" if not active_stat_names else " + ".join(active_stat_names)
     
                                 if not df_plot_nckh.empty:
-                                    st.markdown(f"##### 📊 3. Biểu đồ trực quan theo các tiêu chí đã chọn (Dựa trên bảng thống kê)")
-                                    
+                                  
                                     # Tạo danh sách cho phép lọc trên biểu đồ theo cột nội dung chính
                                     unique_vals_nckh = sorted(df_plot_nckh[col_tinh_chi_name].astype(str).unique())
                                     selected_vals_nckh = st.multiselect(
