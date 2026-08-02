@@ -1420,6 +1420,7 @@ with tab1:
                                             ax_y1.set_xlabel("Năm học", fontsize=9)
                                             ax_y1.set_ylabel("Tổng số lượng", fontsize=9)
                                             ax_y1.set_title("Tổng số lượng sản phẩm theo Năm học", fontsize=10, fontweight="bold")
+                                            ax_y1.tick_params(axis="x", rotation=45 if num_bars_nckh > 4 else 0)
                                             ax_y1.grid(axis="y", linestyle="--", alpha=0.5)
                                             st.pyplot(fig_y1, bbox_inches="tight")
                                         
@@ -1439,6 +1440,7 @@ with tab1:
                                             ax_y2.set_xlabel("Năm học", fontsize=9)
                                             ax_y2.set_ylabel("Tổng số tiết", fontsize=9)
                                             ax_y2.set_title("Tổng số tiết thực hiện theo Năm học", fontsize=10, fontweight="bold")
+                                            ax_y2.tick_params(axis="x", rotation=45 if num_bars_nckh > 4 else 0)
                                             ax_y2.grid(axis="y", linestyle="--", alpha=0.5)
                                             st.pyplot(fig_y2, bbox_inches="tight")
                                             
