@@ -23,7 +23,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 st.set_page_config(page_title="📋 Ứng dụng QLCV - Phân quyền", layout="wide")
 
 # Link bảng User chứa thông tin phân quyền (id, faculty, surname, name, password, must_change, position)
-LINK_USER = "LINK_USER = "https://docs.google.com/spreadsheets/d/1F_w2yXvD66m0DeSmUrn-mFYcHwr2VKL6JYS6-bdATtQ/export?format=csv&gid=1406726171""
+LINK_USER = "https://docs.google.com/spreadsheets/d/1F_w2yXvD66m0DeSmUrn-mFYcHwr2VKL6JYS6-bdATtQ/export?format=csv&gid=1406726171"
 
 # ==========================================================
 # 🔗 CÁC LINK DỮ LIỆU ĐÃ CHUẨN HÓA EXPORT CSV
