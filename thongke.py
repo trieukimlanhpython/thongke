@@ -203,7 +203,7 @@ pos = current_user["position"]
 u_id = current_user["id"]
 u_faculty = current_user["faculty"]
 
-st.sidebar.title("👤 Thông tin tài khoản")
+st.sidebar.title("👤 Tài khoản")
 st.sidebar.success(f"**{current_user['fullname']}**\n\n📌 Chức vụ: **{pos.title()}**\n\n🏫 Đơn vị: **{u_faculty if u_faculty else 'Khoa'}**")
 if st.sidebar.button("🚪 Đăng xuất", use_container_width=True):
     st.session_state.logged_in = False
@@ -211,6 +211,15 @@ if st.sidebar.button("🚪 Đăng xuất", use_container_width=True):
     st.session_state.must_change = "0"
     st.rerun()
 
+# Nút làm mới dữ liệu chung trên sidebar
+st.sidebar.markdown("---")
+if st.sidebar.button("🔄 Làm mới bộ nhớ cache", use_container_width=True):
+    st.cache_data.clear()
+    for k in ["df1", "df2", "detail_dfs", "filtered_detail_dfs"]:
+        if k in st.session_state:
+            del st.session_state[k]
+    st.success("Đã làm mới dữ liệu thành công!")
+    st.rerun()
 # ==========================================================
 # ⚙️ CẤU HÌNH APPS (GỐC)
 # ==========================================================
@@ -298,7 +307,7 @@ st.session_state["filtered_detail_dfs"] = filtered_detail_dfs
 # 📑 TẠO GIAO DIỆN 2 TAB CHÍNH
 # ==========================================================
 tab1, tab2 = st.tabs([
-    "🔍 1. Tra cứu công việc nâng cao", 
+    "🔍 1. Tra cứu", 
     "📂 2. Dữ liệu gốc"
 ])
 
@@ -311,7 +320,7 @@ with tab1:
     # ==========================================================
     col_refresh1, col_refresh2 = st.columns([4, 1])
     with col_refresh1:
-        st.header("🔍 Tra cứu công việc nâng cao")
+        st.header("🔍 Tra cứu")
 
     search_scope = st.radio(
         "📂 Chọn phạm vi / hạng mục cần tìm kiếm:",
