@@ -253,6 +253,23 @@ if st.sidebar.button("🔄 Làm mới bộ nhớ cache", use_container_width=Tru
     st.success("Đã làm mới dữ liệu thành công!")
     st.rerun()
 
+# ==========================================================
+# ⚙️ KHỞI TẠO SESSION STATE MẶC ĐỊNH AN TOÀN
+# ==========================================================
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = True  # Hoặc False tùy cơ chế hiện tại của bạn
+
+if "must_change" not in st.session_state:
+    st.session_state.must_change = "0"  # Đảm bảo luôn có giá trị mặc định để tránh lỗi
+
+if "user_info" not in st.session_state:
+    st.session_state["user_info"] = {
+        "id": "default", 
+        "position": "giảng viên", 
+        "faculty": "", 
+        "fullname": "Khách"
+    }
+
 # Xử lý bắt buộc đổi mật khẩu nếu must_change == "1"
 if str(st.session_state.must_change) == "1":
     st.warning("⚠️ Bạn phải đổi mật khẩu trong lần đăng nhập đầu tiên.")
