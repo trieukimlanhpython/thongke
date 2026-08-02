@@ -148,26 +148,25 @@ def quy_doi_nam_hoc(dot_str):
     return "Khác / Chưa xác định"
 
 # ==========================================================
-# 🔐 QUẢN LÝ PHÂN QUYỀN ĐĂNG NHẬP GIAO DIỆN
-# ==========================================================
-# ==========================================================
-# 🔐 GIAO DIỆN SIDEBAR & PHÂN QUYỀN ĐĂNG NHẬP
+# 🔐 GIAO DIỆN SIDEBAR & PHÂN QUYỀN ĐĂNG NHẬP ĐỘNG
 # ==========================================================
 st.sidebar.title("🔐 Hệ thống Phân quyền")
 
-# Chọn vai trò giả lập hoặc đăng nhập hệ thống
 role_options = ["👨‍🏫 Giảng viên", "🔍 Lãnh đạo bộ môn", "⭐ Lãnh đạo khoa", "🛠️ Admin"]
 selected_role_ui = st.sidebar.radio("Chọn vai trò truy cập:", role_options)
 
 st.sidebar.markdown("---")
 
-# Mô phỏng thông tin user tương ứng với vai trò được chọn trên sidebar để test nhanh, 
-# hoặc bạn có thể kết hợp với bảng user_db từ Google Sheets.
 user_db = read_gsheet(LINK_USER)
+if user_db is not None and not user_db.empty:
+    # Chuẩn hóa tên cột thành chữ thường để dễ truy vấn
+    user_db.columns = [str(c).strip().lower() for c in user_db.columns]
+
+# Khởi tạo an toàn
+current_user = {"id": "default", "position": "giảng viên", "faculty": "", "fullname": "Khách"}
 
 if "Admin" in selected_role_ui:
     current_user = {"id": "admin", "position": "admin", "faculty": "Tất cả", "fullname": "Quản trị viên hệ thống"}
-    # Yêu cầu nhập mật khẩu bảo vệ cho Admin/Giảng viên quản lý
     pwd = st.sidebar.text_input("Nhập mật khẩu quản lý:", type="password")
     if pwd != "010626@#Lanh@#":
         if pwd != "": 
@@ -178,37 +177,71 @@ if "Admin" in selected_role_ui:
     st.sidebar.success("✅ Đã xác thực Admin")
 
 elif "Lãnh đạo khoa" in selected_role_ui:
-    current_user = {"id": "ldk01", "position": "lãnh đạo khoa", "faculty": "Tất cả", "fullname": "Lãnh đạo Khoa"}
-    st.sidebar.success("✅ Đã xác thực Lãnh đạo Khoa")
+    # Lấy danh sách Lãnh đạo khoa từ user_db
+    ldk_list = ["Lãnh đạo Khoa"]
+    if user_db is not None and not user_db.empty and "position" in user_db.columns:
+        ldk_df = user_db[user_db["position"].str.lower().str.contains("lãnh đạo khoa", na=False)]
+        if not ldk_df.empty:
+            ldk_list = (ldk_df["surname"].astype(str) + " " + ldk_df["name"].astype(str)).tolist()
+    
+    chosen_ldk = st.sidebar.selectbox("Chọn Lãnh đạo khoa:", ldk_list)
+    
+    matched_id = "ldk_default"
+    matched_fac = "Tất cả"
+    if user_db is not None and not user_db.empty:
+        found_row = user_db[(user_db["surname"] + " " + user_db["name"]).str.contains(chosen_ldk, na=False)]
+        if not found_row.empty:
+            matched_id = str(found_row.iloc[0].get("id", "ldk_default"))
+            matched_fac = str(found_row.iloc[0].get("faculty", "Tất cả"))
+
+    current_user = {"id": matched_id, "position": "lãnh đạo khoa", "faculty": matched_fac, "fullname": chosen_ldk}
+    st.sidebar.success(f"✅ Đã xác thực Lãnh đạo Khoa: {chosen_ldk}")
 
 elif "Lãnh đạo bộ môn" in selected_role_ui:
-    # Cho phép chọn bộ môn quản lý nếu cần
-    dept = st.sidebar.selectbox("Chọn bộ môn:", ["Tài chính", "Ngân hàng", "Kế toán - Kiểm toán"])
-    current_user = {"id": "ldbm01", "position": "lãnh đạo bộ môn", "faculty": dept, "fullname": f"Trưởng bộ môn {dept}"}
-    st.sidebar.success(f"✅ Đã xác thực Lãnh đạo BM ({dept})")
+    # Lấy danh sách Lãnh đạo bộ môn từ user_db
+    ldbm_list = ["BM QFRM", "BM TCDN", "BM ĐTTC"]
+    if user_db is not None and not user_db.empty and "position" in user_db.columns:
+        ldbm_df = user_db[user_db["position"].str.lower().str.contains("lãnh đạo bộ môn", na=False)]
+        if not ldbm_df.empty:
+            ldbm_list = (ldbm_df["surname"].astype(str) + " " + ldbm_df["name"].astype(str)).tolist()
+    
+    chosen_ldbm = st.sidebar.selectbox("Chọn Lãnh đạo bộ môn:", ldbm_list)
+    
+    matched_id = "ldbm_default"
+    matched_fac = "Tài chính"
+    if user_db is not None and not user_db.empty:
+        found_row = user_db[(user_db["surname"] + " " + user_db["name"]).str.contains(chosen_ldbm, na=False)]
+        if not found_row.empty:
+            matched_id = str(found_row.iloc[0].get("id", "ldbm_default"))
+            matched_fac = str(found_row.iloc[0].get("faculty", "Tài chính"))
+
+    current_user = {"id": matched_id, "position": "lãnh đạo bộ môn", "faculty": matched_fac, "fullname": chosen_ldbm}
+    st.sidebar.success(f"✅ Đã xác thực Lãnh đạo BM: {chosen_ldbm} ({matched_fac})")
 
 else:  # Giảng viên
-    # Lấy danh sách giảng viên từ user_db nếu có để chọn nhanh
-    gv_list = []
-    if user_db is not None and not user_db.empty:
-        # Lọc các dòng có position là giảng viên
+    gv_list = ["Triệu Kim Lanh"]
+    if user_db is not None and not user_db.empty and "position" in user_db.columns:
         gv_df = user_db[user_db["position"].str.lower().str.contains("giảng viên", na=False)]
-        gv_list = (gv_df["surname"].astype(str) + " " + gv_df["name"].astype(str)).tolist()
-    
-    if not gv_list:
-        gv_list = ["Triệu Kim Lanh"] # Giá trị mặc định nếu chưa load được sheet user
+        if not gv_df.empty:
+            gv_list = (gv_df["surname"].astype(str) + " " + gv_df["name"].astype(str)).tolist()
+        else:
+            gv_list = (user_db["surname"].astype(str) + " " + user_db["name"].astype(str)).tolist()
         
     chosen_gv = st.sidebar.selectbox("Chọn Giảng viên:", gv_list)
     
-    # Tìm ID tương ứng của giảng viên trong user_db
     matched_id = "gv_default"
+    matched_fac = ""
     if user_db is not None and not user_db.empty:
         found_row = user_db[(user_db["surname"] + " " + user_db["name"]).str.contains(chosen_gv, na=False)]
         if not found_row.empty:
-            matched_id = found_row.iloc[0].get("id", "gv_default")
+            matched_id = str(found_row.iloc[0].get("id", "gv_default"))
+            matched_fac = str(found_row.iloc[0].get("faculty", ""))
 
-    current_user = {"id": matched_id, "position": "giảng viên", "faculty": "", "fullname": chosen_gv}
+    current_user = {"id": matched_id, "position": "giảng viên", "faculty": matched_fac, "fullname": chosen_gv}
     st.sidebar.success(f"✅ Đang xem với tư cách: {chosen_gv}")
+
+# Lưu thông tin user vào session_state
+st.session_state.user_info = current_user
 
 # Nút làm mới dữ liệu chung trên sidebar
 st.sidebar.markdown("---")
