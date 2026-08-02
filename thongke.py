@@ -151,35 +151,75 @@ def quy_doi_nam_hoc(dot_str):
 # ==========================================================
 # 🔐 QUẢN LÝ PHÂN QUYỀN ĐĂNG NHẬP GIAO DIỆN
 # ==========================================================
-st.sidebar.title("🔐 Xác thực Người dùng")
+# ==========================================================
+# 🔐 GIAO DIỆN SIDEBAR & PHÂN QUYỀN ĐĂNG NHẬP
+# ==========================================================
+st.sidebar.title("🔐 Hệ thống Phân quyền")
 
+# Chọn vai trò giả lập hoặc đăng nhập hệ thống
+role_options = ["👨‍🏫 Giảng viên", "🔍 Lãnh đạo bộ môn", "⭐ Lãnh đạo khoa", "🛠️ Admin"]
+selected_role_ui = st.sidebar.radio("Chọn vai trò truy cập:", role_options)
+
+st.sidebar.markdown("---")
+
+# Mô phỏng thông tin user tương ứng với vai trò được chọn trên sidebar để test nhanh, 
+# hoặc bạn có thể kết hợp với bảng user_db từ Google Sheets.
 user_db = read_gsheet(LINK_USER)
 
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-    st.session_state.user_info = None
-    st.session_state.must_change = "0"
+if "Admin" in selected_role_ui:
+    current_user = {"id": "admin", "position": "admin", "faculty": "Tất cả", "fullname": "Quản trị viên hệ thống"}
+    # Yêu cầu nhập mật khẩu bảo vệ cho Admin/Giảng viên quản lý
+    pwd = st.sidebar.text_input("Nhập mật khẩu quản lý:", type="password")
+    if pwd != "010626@#Lanh@#":
+        if pwd != "": 
+            st.sidebar.error("❌ Sai mật khẩu")
+        else: 
+            st.info("🔑 Vui lòng nhập mật khẩu quản lý ở menu bên trái.")
+        st.stop()
+    st.sidebar.success("✅ Đã xác thực Admin")
 
-if not st.session_state.logged_in:
-    st.title("📋 Đăng nhập hệ thống Quản lý Công việc")
+elif "Lãnh đạo khoa" in selected_role_ui:
+    current_user = {"id": "ldk01", "position": "lãnh đạo khoa", "faculty": "Tất cả", "fullname": "Lãnh đạo Khoa"}
+    st.sidebar.success("✅ Đã xác thực Lãnh đạo Khoa")
+
+elif "Lãnh đạo bộ môn" in selected_role_ui:
+    # Cho phép chọn bộ môn quản lý nếu cần
+    dept = st.sidebar.selectbox("Chọn bộ môn:", ["Tài chính", "Ngân hàng", "Kế toán - Kiểm toán"])
+    current_user = {"id": "ldbm01", "position": "lãnh đạo bộ môn", "faculty": dept, "fullname": f"Trưởng bộ môn {dept}"}
+    st.sidebar.success(f"✅ Đã xác thực Lãnh đạo BM ({dept})")
+
+else:  # Giảng viên
+    # Lấy danh sách giảng viên từ user_db nếu có để chọn nhanh
+    gv_list = []
+    if user_db is not None and not user_db.empty:
+        # Lọc các dòng có position là giảng viên
+        gv_df = user_db[user_db["position"].str.lower().str.contains("giảng viên", na=False)]
+        gv_list = (gv_df["surname"].astype(str) + " " + gv_df["name"].astype(str)).tolist()
     
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        with st.form("login_form"):
-            uid_input = st.text_input("Mã định danh (ID / MSSV / Email):").strip()
-            pwd_input = st.text_input("Mật khẩu:", type="password")
-            submit = st.form_submit_button("Đăng nhập")
-            
-            if submit:
-                ok, must_change, u_info = check_login(user_db, uid_input, pwd_input)
-                if ok:
-                    st.session_state.logged_in = True
-                    st.session_state.user_info = u_info
-                    st.session_state.must_change = must_change
-                    st.rerun()
-                else:
-                    st.error("❌ Sai mã định danh hoặc mật khẩu!")
-    st.stop()
+    if not gv_list:
+        gv_list = ["Triệu Kim Lanh"] # Giá trị mặc định nếu chưa load được sheet user
+        
+    chosen_gv = st.sidebar.selectbox("Chọn Giảng viên:", gv_list)
+    
+    # Tìm ID tương ứng của giảng viên trong user_db
+    matched_id = "gv_default"
+    if user_db is not None and not user_db.empty:
+        found_row = user_db[(user_db["surname"] + " " + user_db["name"]).str.contains(chosen_gv, na=False)]
+        if not found_row.empty:
+            matched_id = found_row.iloc[0].get("id", "gv_default")
+
+    current_user = {"id": matched_id, "position": "giảng viên", "faculty": "", "fullname": chosen_gv}
+    st.sidebar.success(f"✅ Đang xem với tư cách: {chosen_gv}")
+
+# Nút làm mới dữ liệu chung trên sidebar
+st.sidebar.markdown("---")
+if st.sidebar.button("🔄 Làm mới bộ nhớ cache", use_container_width=True):
+    st.cache_data.clear()
+    for k in ["df1", "df2", "detail_dfs", "filtered_detail_dfs"]:
+        if k in st.session_state:
+            del st.session_state[k]
+    st.success("Đã làm mới dữ liệu thành công!")
+    st.rerun()
 
 # Xử lý bắt buộc đổi mật khẩu nếu must_change == "1"
 if str(st.session_state.must_change) == "1":
