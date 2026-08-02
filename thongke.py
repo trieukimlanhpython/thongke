@@ -1224,7 +1224,7 @@ with tab1:
                             # 📊 3.1. BIỂU ĐỒ TRỰC QUAN THEO NĂM HỌC
                             # ==========================================
                             if 'df_grouped_stat' in locals() and not df_grouped_stat.empty and "Năm học" in df_grouped_stat.columns and opt_y:
-                                st.markdown("##### 📊 3.1. Phân tích tổng quan theo Năm học")
+                                st.markdown("##### 📊 3.1. Phân tích tổng quan theo năm học")
                                 
                                 # Gom nhóm theo Năm học để vẽ biểu đồ tổng hợp toàn bộ các tiêu chí qua các năm
                                 df_plot_year = df_grouped_stat.copy()
