@@ -148,6 +148,50 @@ def quy_doi_nam_hoc(dot_str):
     return "Khác / Chưa xác định"
 
 # ==========================================================
+# 🛡️ HÀM LỌC DỮ LIỆU THEO PHÂN QUYỀN CHUYÊN SÂU
+# ==========================================================
+def filter_dataframe_by_permission(df, user_info):
+    if df is None or df.empty:
+        return df
+    
+    position = str(user_info.get("position", "")).strip().lower()
+    uid = str(user_info.get("id", "")).strip()
+    fac = str(user_info.get("faculty", "")).strip()
+    
+    df_filtered = df.copy()
+    
+    # Chuẩn hóa tên cột để dễ dàng quét tìm kiếm các trường dữ liệu định danh
+    df_filtered.columns = [str(c).strip() for c in df_filtered.columns]
+    
+    # Tìm các cột tương ứng trong bảng dữ liệu công việc (GD, NCKH, Other)
+    id_col = next((c for c in df_filtered.columns if c.lower() in ["id", "mã", "mssv", "code_gv", "gv", "code"]), None)
+    fac_col = next((c for c in df_filtered.columns if any(x in c.lower() for x in ["faculty", "khoa", "bộ môn", "department"])), None)
+    
+    # 1. QUYỀN ADMIN & LÃNH ĐẠO KHOA: Được xem toàn bộ dữ liệu của khoa/hệ thống
+    if "admin" in position or "lãnh đạo khoa" in position:
+        return df_filtered.copy()
+    
+    # 2. QUYỀN LÃNH ĐẠO BỘ MÔN: Xem dữ liệu của cá nhân hoặc toàn bộ bộ môn/faculty khớp với quản lý
+    if "lãnh đạo bộ môn" in position:
+        mask = pd.Series(False, index=df_filtered.index)
+        if id_col:
+            mask |= df_filtered[id_col].astype(str).str.strip() == uid
+        if fac_col and fac and fac != "Tất cả":
+            mask |= df_filtered[fac_col].astype(str).str.lower().str.contains(fac.lower(), na=False)
+        
+        if mask.any():
+            return df_filtered[mask].copy()
+        # Nếu không khớp bộ lọc, mặc định fallback về ID cá nhân
+        
+    # 3. QUYỀN GIẢNG VIÊN: Chỉ được xem đúng dữ liệu có ID khớp với cá nhân
+    if id_col:
+        matched_df = df_filtered[df_filtered[id_col].astype(str).str.strip() == uid].copy()
+        return matched_df
+    
+    # Trường hợp không dò được cột ID, trả về rỗng để bảo mật dữ liệu
+    return df_filtered.head(0)
+
+# ==========================================================
 # 🔐 GIAO DIỆN SIDEBAR & PHÂN QUYỀN ĐĂNG NHẬP ĐỘNG
 # ==========================================================
 st.sidebar.title("🔐 Hệ thống Phân quyền")
@@ -356,7 +400,10 @@ def filter_dataframe_by_permission(df, user_info):
     
     return df_filtered.head(0) # Trả về rỗng nếu không khớp quyền bảo mật
 
-# Áp dụng bộ lọc phân quyền vào các bảng chi tiết
+# Lấy thông tin user hiện tại từ session state
+current_user = st.session_state.get("user_info", {"id": "default", "position": "giảng viên", "faculty": "", "fullname": "Khách"})
+
+# Thực hiện lọc toàn bộ detail_dfs theo quyền hạn hiện tại
 raw_detail_dfs = st.session_state.get("detail_dfs", {})
 filtered_detail_dfs = {}
 for k, df in raw_detail_dfs.items():
