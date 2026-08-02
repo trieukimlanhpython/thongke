@@ -714,19 +714,25 @@ with tab1:
                                     with st.expander("📅 **(Bấm để mở/đóng xem tổng hợp khối lượng giảng viên)**", expanded=True):
                                         st.dataframe(df_gv_display, use_container_width=True, hide_index=True)
                                     # ==========================================
-                                    # 📊 BIỂU ĐỒ TRỰC QUAN TỔNG SỐ MÔN THEO TỪNG GIẢNG VIÊN
+                                    # 📊 BIỂU ĐỒ TRỰC QUAN TỔNG SỐ MÔN THEO TỪNG GIẢNG VIÊN (CÓ RÚT GỌN KÝ HIỆU)
                                     # ==========================================
                                     st.markdown("##### 📊 Biểu đồ trực quan: Tổng số môn đã giảng theo từng Giảng viên")
                                     
-                                    # Lọc ra các dòng tổng cộng của từng giảng viên hoặc gom nhóm trực tiếp từ df_gv_filtered
                                     df_chart_gv = df_gv_filtered.groupby("_full_name").agg(
                                         Tổng_số_môn=(c_subject, "nunique"),
                                         Tổng_số_tiết=(tiet_col, "sum")
                                     ).reset_index().rename(columns={"_full_name": "Giảng viên"}).sort_values("Tổng_số_môn", ascending=False)
         
                                     if not df_chart_gv.empty:
-                                        fig_gv, ax_gv = plt.subplots(figsize=(max(8, len(df_chart_gv) * 0.4), 4.5))
-                                        bars_gv = ax_gv.bar(df_chart_gv["Giảng viên"].astype(str), df_chart_gv["Tổng_số_môn"], color="#59a14f", width=0.6)
+                                        unique_gv_labels = df_chart_gv["Giảng viên"].astype(str).tolist()
+                                        
+                                        # Tạo từ điển ánh xạ tên dài sang ký hiệu ngắn (GV1, GV2, ...) nếu có nhiều hơn 1 giảng viên hoặc tên dài
+                                        gv_label_mapping = {lbl: f"GV{i+1}" for i, lbl in enumerate(unique_gv_labels)}
+                                        
+                                        df_chart_gv["Ký hiệu GV"] = df_chart_gv["Giảng viên"].map(gv_label_mapping)
+        
+                                        fig_gv, ax_gv = plt.subplots(figsize=(max(6, len(df_chart_gv) * 0.5), 4.5))
+                                        bars_gv = ax_gv.bar(df_chart_gv["Ký hiệu GV"].astype(str), df_chart_gv["Tổng_số_môn"], color="#59a14f", width=0.6)
                                         
                                         for bar in bars_gv:
                                             h = bar.get_height()
@@ -736,12 +742,18 @@ with tab1:
                                                                ha='center', va='bottom', fontsize=8, fontweight='bold',
                                                                xytext=(0, 2), textcoords='offset points')
                                                 
-                                        ax_gv.set_xlabel("Giảng viên", fontsize=9)
+                                        ax_gv.set_xlabel("Ký hiệu Giảng viên", fontsize=9)
                                         ax_gv.set_ylabel("Số lượng môn đã giảng", fontsize=9)
                                         ax_gv.set_title("Tổng số môn học theo từng Giảng viên", fontsize=10, fontweight="bold")
-                                        ax_gv.tick_params(axis="x", rotation=45 if len(df_chart_gv) > 5 else 0)
+                                        ax_gv.tick_params(axis="x", rotation=0)
                                         ax_gv.grid(axis="y", linestyle="--", alpha=0.5)
                                         st.pyplot(fig_gv, bbox_inches="tight")
+        
+                                        # Hiển thị bảng chú thích ký hiệu giảng viên
+                                        st.markdown("**📝 Chú thích ký hiệu trục hoành (Giảng viên):**")
+                                        with st.expander("📅 **(Bấm để xem danh sách chú thích chi tiết)**", expanded=True):
+                                            note_gv_df = pd.DataFrame(list(gv_label_mapping.items()), columns=["Ký hiệu", "Tên Giảng viên đầy đủ"])
+                                            st.dataframe(note_gv_df, use_container_width=True, hide_index=True)
                                 else:
                                     st.warning("⚠️ Không có dữ liệu giảng viên cho năm học đã chọn.")
                                 
