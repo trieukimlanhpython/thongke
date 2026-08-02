@@ -843,16 +843,17 @@ with tab1:
                                             fig_y2, ax_y2 = plt.subplots(figsize=(dyn_w_yr, 4.0))
                                             df_pivot_lop.plot(kind="bar", ax=ax_y2, width=0.8, colormap="tab20")
                                              
-                                            for p in ax2.patches if 'ax2' in locals() else ax_y2.patches:
+                                            # Sửa lại thành ax_y2.patches ở đây:
+                                            for p in ax_y2.patches:
                                                 h = p.get_height()
                                                 if h > 0:
                                                     ax_y2.annotate(f"{int(h):,}",
-                                                               (p.get_x() + p.get_width() / 2., h),
-                                                               ha='center', va='bottom',
-                                                               fontsize=f_size_yr, fontweight='bold',
-                                                               rotation=45 if num_bars_yr > 8 else 0,
-                                                               xytext=(0, 2),
-                                                               textcoords='offset points')
+                                                                 (p.get_x() + p.get_width() / 2., h),
+                                                                 ha='center', va='bottom',
+                                                                 fontsize=f_size_yr, fontweight='bold',
+                                                                 rotation=45 if num_bars_yr > 8 else 0,
+                                                                 xytext=(0, 2),
+                                                                 textcoords='offset points')
                                              
                                             ax_y2.set_xlabel("Ký hiệu" if needs_mapping_yr else other_col, fontsize=9)
                                             ax_y2.set_ylabel("Số lượng lớp", fontsize=9)
