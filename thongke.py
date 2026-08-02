@@ -1223,77 +1223,117 @@ with tab1:
                                 st.warning("⚠️ Vui lòng chọn ít nhất một tiêu chí gom nhóm ở phần cấu hình phía trên.")
                           
                             # ==========================================
-                            # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG CHO NCKH (DỰA TRÊN BẢNG THỐNG KÊ 2)
+                            # 📊 3. BIỂU ĐỒ TRỰC QUAN ĐỘNG CHO NCKH (GIỮ NGUYÊN LOGIC CŨ)
                             # ==========================================
                             if 'df_grouped_stat' in locals() and not df_grouped_stat.empty:
-                                st.markdown("##### 📊 3. Biểu đồ trực quan NCKH")
+                                # Lọc bỏ các dòng tổng cộng để đưa vào vẽ biểu đồ
+                                df_plot_nckh = df_grouped_stat.copy()
+                                if "Năm học" in df_plot_nckh.columns:
+                                    df_plot_nckh = df_plot_nckh[~df_plot_nckh["Năm học"].astype(str).str.contains("Tổng cộng", na=False)]
                                 
-                                # Loại bỏ các dòng tổng cộng tạm thời nếu có trong df_grouped_stat để vẽ biểu đồ chính xác
-                                df_plot_source = df_grouped_stat.copy()
-                                if "Năm học" in df_plot_source.columns:
-                                    df_plot_source = df_plot_source[~df_plot_source["Năm học"].astype(str).str.contains("Tổng cộng", na=False)]
-                                
-                                col_tinh_chi_name = [c for c in df_plot_source.columns if c not in ["Năm học", "Số lượng", "Số tiết", "Thành_viên"]][0]
+                                # Xác định tên cột chứa nội dung tổ hợp tiêu chí
+                                col_tinh_chi_name = [c for c in df_plot_nckh.columns if c not in ["Năm học", "Số lượng", "Số tiết", "Thành_viên"]][0]
+                                display_name_chart = "Tổ hợp tiêu chí" if not active_stat_names else " + ".join(active_stat_names)
     
-                                col_ch1, col_ch2 = st.columns(2)
-    
-                                # --- BIỂU ĐỒ 1: SỐ LƯỢNG ---
-                                with col_ch1:
-                                    fig_ch1, ax_ch1 = plt.subplots(figsize=(7, 4.0))
+                                if not df_plot_nckh.empty:
+                                    st.markdown(f"##### 📊 3. Biểu đồ trực quan theo các tiêu chí đã chọn (Dựa trên bảng thống kê)")
                                     
-                                    if "Năm học" in df_plot_source.columns and opt_y:
-                                        # Nếu có năm học, vẽ biểu đồ nhóm theo Năm học
-                                        df_pivot_q = df_plot_source.pivot_table(index=col_tinh_chi_name, columns="Năm học", values="Số lượng", aggfunc="sum").fillna(0)
-                                        df_pivot_q.plot(kind="bar", stacked=False, ax=ax_ch1, width=0.8, colormap="tab20")
-                                        ax_ch1.legend(title="Năm học", fontsize=8, title_fontsize=8)
-                                    else:
-                                        # Nếu không có năm học, vẽ biểu đồ theo tổ hợp tiêu chí
-                                        df_bar_q = df_plot_source.set_index(col_tinh_chi_name)["Số lượng"]
-                                        df_bar_q.plot(kind="bar", ax=ax_ch1, width=0.7, color="skyblue")
-    
-                                    for p in ax_ch1.patches:
-                                        h = p.get_height()
-                                        if h > 0:
-                                            ax_ch1.annotate(f"{int(h):,}",
-                                                           (p.get_x() + p.get_width() / 2., h),
-                                                           ha='center', va='bottom', fontsize=8, fontweight='bold',
-                                                           xytext=(0, 2), textcoords='offset points')
-    
-                                    ax_ch1.set_xlabel("Tổ hợp tiêu chí" if not active_stat_names else " + ".join(active_stat_names), fontsize=9)
-                                    ax_ch1.set_ylabel("Số lượng sản phẩm", fontsize=9)
-                                    ax_ch1.set_title("So sánh Số lượng sản phẩm", fontsize=10, fontweight="bold")
-                                    ax_ch1.tick_params(axis="x", rotation=45)
-                                    ax_ch1.grid(axis="y", linestyle="--", alpha=0.5)
-                                    st.pyplot(fig_ch1, bbox_inches="tight")
-    
-                                # --- BIỂU ĐỒ 2: SỐ TIẾT ---
-                                with col_ch2:
-                                    fig_ch2, ax_ch2 = plt.subplots(figsize=(7, 4.0))
+                                    # Tạo danh sách cho phép lọc trên biểu đồ theo cột nội dung chính
+                                    unique_vals_nckh = sorted(df_plot_nckh[col_tinh_chi_name].astype(str).unique())
+                                    selected_vals_nckh = st.multiselect(
+                                        f"🎯 Lọc {display_name_chart} hiển thị trên biểu đồ (Bỏ trống = Hiện toàn bộ):",
+                                        options=unique_vals_nckh,
+                                        key=f"filter_nckh_dynamic_stat"
+                                    )
                                     
-                                    if "Năm học" in df_plot_source.columns and opt_y:
-                                        # Nếu có năm học, vẽ biểu đồ nhóm theo Năm học
-                                        df_pivot_t = df_plot_source.pivot_table(index=col_tinh_chi_name, columns="Năm học", values="Số tiết", aggfunc="sum").fillna(0)
-                                        df_pivot_t.plot(kind="bar", stacked=False, ax=ax_ch2, width=0.8, colormap="Accent")
-                                        ax_ch2.legend(title="Năm học", fontsize=8, title_fontsize=8)
+                                    if selected_vals_nckh:
+                                        df_plot_nckh = df_plot_nckh[df_plot_nckh[col_tinh_chi_name].astype(str).isin(selected_vals_nckh)]
+                                    
+                                    if df_plot_nckh.empty:
+                                        st.warning(f"⚠️ Không có dữ liệu phù hợp với bộ lọc cho biểu đồ.")
                                     else:
-                                        # Nếu không có năm học, vẽ biểu đồ theo tổ hợp tiêu chí
-                                        df_bar_t = df_plot_source.set_index(col_tinh_chi_name)["Số tiết"]
-                                        df_bar_t.plot(kind="bar", ax=ax_ch2, width=0.7, color="salmon")
-    
-                                    for p in ax_ch2.patches:
-                                        h = p.get_height()
-                                        if h > 0:
-                                            ax_ch2.annotate(f"{int(h):,}",
-                                                           (p.get_x() + p.get_width() / 2., h),
-                                                           ha='center', va='bottom', fontsize=8, fontweight='bold',
-                                                           xytext=(0, 2), textcoords='offset points')
-    
-                                    ax_ch2.set_xlabel("Tổ hợp tiêu chí" if not active_stat_names else " + ".join(active_stat_names), fontsize=9)
-                                    ax_ch2.set_ylabel("Tổng số tiết thực hiện", fontsize=9)
-                                    ax_ch2.set_title("So sánh Tổng số tiết thực hiện", fontsize=10, fontweight="bold")
-                                    ax_ch2.tick_params(axis="x", rotation=45)
-                                    ax_ch2.grid(axis="y", linestyle="--", alpha=0.5)
-                                    st.pyplot(fig_ch2, bbox_inches="tight")
+                                        col_chart1, col_chart2 = st.columns(2)
+                                        
+                                        # Kiểm tra xem có tách nhóm theo Năm học hay không
+                                        has_year_nckh = "Năm học" in df_plot_nckh.columns and opt_y
+                                        
+                                        if has_year_nckh:
+                                            df_pivot_qty = df_plot_nckh.pivot_table(index=col_tinh_chi_name, columns="Năm học", values="Số lượng", aggfunc="sum").fillna(0)
+                                            df_pivot_tiet = df_plot_nckh.pivot_table(index=col_tinh_chi_name, columns="Năm học", values="Số tiết", aggfunc="sum").fillna(0)
+                                            is_grouped_years = True
+                                        else:
+                                            df_pivot_qty = df_plot_nckh.groupby(col_tinh_chi_name)[["Số lượng"]].sum()
+                                            df_pivot_tiet = df_plot_nckh.groupby(col_tinh_chi_name)[["Số tiết"]].sum()
+                                            is_grouped_years = False
+                                        
+                                        # Xử lý rút gọn nhãn nếu tên quá dài (logic y chang bản cũ)
+                                        unique_labels = df_pivot_qty.index.astype(str).tolist()
+                                        needs_mapping = any(len(lbl) > 15 for lbl in unique_labels)
+                                        
+                                        label_mapping = {}
+                                        if needs_mapping:
+                                            label_mapping = {lbl: f"K{i+1}" for i, lbl in enumerate(unique_labels)}
+                                            df_pivot_qty.index = df_pivot_qty.index.map(label_mapping)
+                                            df_pivot_tiet.index = df_pivot_tiet.index.map(label_mapping)
+                                        
+                                        num_bars_nckh = len(df_pivot_qty)
+                                        dynamic_width_nckh = max(7.0, num_bars_nckh * 0.6)
+                                        val_font_size_nckh = 6 if num_bars_nckh > 15 else (7 if num_bars_nckh > 10 else 8)
+                                        
+                                        # --- BIỂU ĐỒ 1: SỐ LƯỢNG ---
+                                        with col_chart1:
+                                            fig1, ax1 = plt.subplots(figsize=(dynamic_width_nckh, 4.0))
+                                            df_pivot_qty.plot(kind="bar", stacked=False, ax=ax1, width=0.8, colormap="tab20")
+                                            
+                                            for p in ax1.patches:
+                                                h = p.get_height()
+                                                if h > 0:
+                                                    ax1.annotate(f"{int(h):,}",
+                                                                 (p.get_x() + p.get_width() / 2., h),
+                                                                 ha='center', va='bottom',
+                                                                 fontsize=val_font_size_nckh, fontweight='bold',
+                                                                 rotation=45 if num_bars_nckh > 8 else 0,
+                                                                 xytext=(0, 2), textcoords='offset points')
+                                            
+                                            ax1.set_xlabel("Ký hiệu" if needs_mapping else display_name_chart, fontsize=9)
+                                            ax1.set_ylabel("Số lượng sản phẩm", fontsize=9)
+                                            ax1.set_title(f"So sánh Số lượng theo {display_name_chart}", fontsize=10, fontweight="bold")
+                                            ax1.tick_params(axis="x", rotation=45 if num_bars_nckh > 8 else 0)
+                                            if is_grouped_years:
+                                                ax1.legend(title="Năm học", fontsize=8, title_fontsize=8)
+                                            ax1.grid(axis="y", linestyle="--", alpha=0.5)
+                                            st.pyplot(fig1, bbox_inches="tight")
+                                        
+                                        # --- BIỂU ĐỒ 2: SỐ TIẾT ---
+                                        with col_chart2:
+                                            fig2, ax2 = plt.subplots(figsize=(dynamic_width_nckh, 4.0))
+                                            df_pivot_tiet.plot(kind="bar", stacked=False, ax=ax2, width=0.8, colormap="Accent")
+                                            
+                                            for p in ax2.patches:
+                                                h = p.get_height()
+                                                if h > 0:
+                                                    ax2.annotate(f"{int(h):,}",
+                                                                 (p.get_x() + p.get_width() / 2., h),
+                                                                 ha='center', va='bottom',
+                                                                 fontsize=val_font_size_nckh, fontweight='bold',
+                                                                 rotation=45 if num_bars_nckh > 2 else 0,
+                                                                 xytext=(0, 2), textcoords='offset points')
+                                            
+                                            ax2.set_xlabel("Ký hiệu" if needs_mapping else display_name_chart, fontsize=9)
+                                            ax2.set_ylabel("Tổng số tiết thực hiện", fontsize=9)
+                                            ax2.set_title(f"So sánh Số tiết theo {display_name_chart}", fontsize=10, fontweight="bold")
+                                            ax2.tick_params(axis="x", rotation=45 if num_bars_nckh > 8 else 0)
+                                            if is_grouped_years:
+                                                ax2.legend(title="Năm học", fontsize=8, title_fontsize=8)
+                                            ax2.grid(axis="y", linestyle="--", alpha=0.5)
+                                            st.pyplot(fig2, bbox_inches="tight")
+                                        
+                                        # --- BẢNG CHÚ THÍCH NẾU TÊN QUÁ DÀI ---
+                                        if needs_mapping:
+                                            st.markdown(f"**📝 Chú thích ký hiệu trục hoành cho ({display_name_chart}):**")
+                                            with st.expander(f"📅 **(Bấm để mở/đóng)**", expanded=True):
+                                                note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", "Tên đầy đủ"])
+                                                st.dataframe(note_df, use_container_width=True, hide_index=True)
             else:
                 st.info("ℹ️ Không tìm thấy cột 'SỐ TIẾT KÊ KHAI' hoặc cột thời gian phù hợp để vẽ biểu đồ.")
         else:
