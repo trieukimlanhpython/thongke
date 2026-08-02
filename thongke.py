@@ -713,6 +713,35 @@ with tab1:
     
                                     with st.expander("📅 **(Bấm để mở/đóng xem tổng hợp khối lượng giảng viên)**", expanded=True):
                                         st.dataframe(df_gv_display, use_container_width=True, hide_index=True)
+                                    # ==========================================
+                                    # 📊 BIỂU ĐỒ TRỰC QUAN TỔNG SỐ MÔN THEO TỪNG GIẢNG VIÊN
+                                    # ==========================================
+                                    st.markdown("##### 📊 Biểu đồ trực quan: Tổng số môn đã giảng theo từng Giảng viên")
+                                    
+                                    # Lọc ra các dòng tổng cộng của từng giảng viên hoặc gom nhóm trực tiếp từ df_gv_filtered
+                                    df_chart_gv = df_gv_filtered.groupby("_full_name").agg(
+                                        Tổng_số_môn=(c_subject, "nunique"),
+                                        Tổng_số_tiết=(tiet_col, "sum")
+                                    ).reset_index().rename(columns={"_full_name": "Giảng viên"}).sort_values("Tổng_số_môn", ascending=False)
+        
+                                    if not df_chart_gv.empty:
+                                        fig_gv, ax_gv = plt.subplots(figsize=(max(8, len(df_chart_gv) * 0.4), 4.5))
+                                        bars_gv = ax_gv.bar(df_chart_gv["Giảng viên"].astype(str), df_chart_gv["Tổng_số_môn"], color="#59a14f", width=0.6)
+                                        
+                                        for bar in bars_gv:
+                                            h = bar.get_height()
+                                            if h > 0:
+                                                ax_gv.annotate(f"{int(h)}", 
+                                                               (bar.get_x() + bar.get_width() / 2., h),
+                                                               ha='center', va='bottom', fontsize=8, fontweight='bold',
+                                                               xytext=(0, 2), textcoords='offset points')
+                                                
+                                        ax_gv.set_xlabel("Giảng viên", fontsize=9)
+                                        ax_gv.set_ylabel("Số lượng môn đã giảng", fontsize=9)
+                                        ax_gv.set_title("Tổng số môn học theo từng Giảng viên", fontsize=10, fontweight="bold")
+                                        ax_gv.tick_params(axis="x", rotation=45 if len(df_chart_gv) > 5 else 0)
+                                        ax_gv.grid(axis="y", linestyle="--", alpha=0.5)
+                                        st.pyplot(fig_gv, bbox_inches="tight")
                                 else:
                                     st.warning("⚠️ Không có dữ liệu giảng viên cho năm học đã chọn.")
                                 
