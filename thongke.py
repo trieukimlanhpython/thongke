@@ -121,6 +121,18 @@ def update_password(user_id, new_pass, sheet_url, must_change_value="0"):
         st.error(f"Không tìm thấy ID {user_id} trên hệ thống để đổi mật khẩu.")
         st.stop()
 
+def reset_all_passwords(new_pass, sheet_url, must_change_value="1"):
+    scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    creds_dict = get_creds()
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    client = gspread.authorize(creds)
+    sheet = client.open_by_url(sheet_url).sheet1
+    all_data = sheet.get_all_values()
+    
+    for i in range(1, len(all_data)):
+        sheet.update_cell(i + 1, 5, f"'{new_pass}")
+        sheet.update_cell(i + 1, 6, must_change_value)
+
 def filter_dataframe_by_permission(df, user_info):
     if df is None or df.empty:
         return df
@@ -304,11 +316,12 @@ for k, df in raw_detail_dfs.items():
 st.session_state["filtered_detail_dfs"] = filtered_detail_dfs
 
 # ==========================================================
-# 📑 TẠO GIAO DIỆN 2 TAB CHÍNH
+# 📑 TẠO GIAO DIỆN 3 TAB CHÍNH
 # ==========================================================
-tab1, tab2 = st.tabs([
+tab1, tab2, tab3 = st.tabs([
     "🔍 1. Tra cứu nâng cao", 
-    "📂 2. Dữ liệu gốc"
+    "📂 2. Dữ liệu gốc",
+    "🛠️ 3. Quản trị Admin"
 ])
 
 # ----------------------------------------------------------
@@ -1592,3 +1605,79 @@ with tab2:
         st.warning(f"⚠️ Nhóm {selected_group_view} hiện chưa có dữ liệu hoặc bạn không có quyền xem.")
     else:
       st.error("❌ Không thể tải dữ liệu chi tiết từ Google Sheets.")
+
+# ----------------------------------------------------------
+# TAB 3: QUẢN TRỊ ADMIN (CÀI ĐẶT MẬT KHẨU, RESET, XEM LINK USER)
+# ----------------------------------------------------------
+with tab3:
+    st.markdown("#### 🛠️ Quản trị Hệ thống & Phân quyền Quản lý Mật khẩu")
+    
+    if "admin" not in pos:
+        st.warning("⚠️ Bạn không có quyền truy cập trang quản trị hệ thống này (Chỉ dành cho tài khoản Admin).")
+    else:
+        st.success("✅ Đã xác thực quyền Quản trị viên hệ thống.")
+        
+        # Chọn chế độ reset mật khẩu thông qua Radio
+        reset_mode = st.radio(
+            "📂 Chọn chế độ thao tác quản lý mật khẩu:",
+            options=["🔑 Reset mật khẩu từng người", "🔄 Reset toàn bộ mật khẩu"],
+            horizontal=True
+        )
+        
+        st.divider()
+        
+        user_table_df = read_gsheet(LINK_USER)
+        
+        if reset_mode == "🔑 Reset mật khẩu từng người":
+            st.markdown("##### 👤 Cập nhật lại mật khẩu cho từng tài khoản cá nhân")
+            if user_table_df is not None and not user_table_df.empty:
+                # Tạo danh sách lựa chọn user theo Họ tên + ID
+                user_table_df.columns = [str(c).strip().lower() for c in user_table_df.columns]
+                id_c = next((c for c in user_table_df.columns if c in ["id", "mã"]), user_table_df.columns[0])
+                sur_c = next((c for c in user_table_df.columns if "sur" in c or "ho" in c), None)
+                name_c = next((c for c in user_table_df.columns if c == "name" or "tên" in c), None)
+                
+                if sur_c and name_c:
+                    user_table_df["_display_name"] = user_table_df[id_c].astype(str) + " — " + user_table_df[sur_c].astype(str) + " " + user_table_df[name_c].astype(str)
+                else:
+                    user_table_df["_display_name"] = user_table_df[id_c].astype(str)
+                
+                chosen_user_label = st.selectbox("Chọn tài khoản cần đổi mật khẩu:", user_table_df["_display_name"].tolist())
+                selected_row = user_table_df[user_table_df["_display_name"] == chosen_user_label]
+                
+                if not selected_row.empty:
+                    target_id = str(selected_row.iloc[0][id_c])
+                    st.info(f"📌 Đang thao tác cho Mã định danh (ID): **{target_id}**")
+                    
+                    new_pwd_single = st.text_input("Nhập mật khẩu mới:", type="password", key="input_single_pwd")
+                    if st.button("💾 Xác nhận đổi mật khẩu tài khoản"):
+                        if new_pwd_single:
+                            update_password(target_id, new_pwd_single, LINK_USER, "0")
+                            st.cache_data.clear()
+                            st.success(f"✅ Đã đổi mật khẩu thành công cho ID: {target_id}")
+                        else:
+                            st.warning("⚠️ Vui lòng nhập mật khẩu mới hợp lệ.")
+            else:
+                st.error("❌ Không tải được danh sách từ bảng User.")
+                
+        else:
+            st.markdown("##### 🔄 Thiết lập lại mật khẩu hàng loạt cho toàn bộ hệ thống")
+            st.warning("⚠️ Thao tác này sẽ thay đổi mật khẩu của **tất cả** các tài khoản có trên hệ thống và yêu cầu họ phải đổi lại mật khẩu trong lần đăng nhập tiếp theo.")
+            
+            new_pwd_all = st.text_input("Nhập mật khẩu chung mới cho toàn bộ:", type="password", key="input_all_pwd")
+            if st.button("🚨 Xác nhận Reset toàn bộ hệ thống"):
+                if new_pwd_all:
+                    reset_all_passwords(new_pwd_all, LINK_USER, "1")
+                    st.cache_data.clear()
+                    st.success("✅ Đã reset thành công mật khẩu cho toàn bộ danh sách người dùng!")
+                else:
+                    st.warning("⚠️ Vui lòng nhập mật khẩu mới.")
+                    
+        st.divider()
+        st.markdown("##### 📋 Dữ liệu nguồn phân quyền người dùng (Google Sheet Link User)")
+        st.caption(f"Đường dẫn liên kết trực tiếp: `{LINK_USER}`")
+        if user_table_df is not None and not user_table_df.empty:
+            with st.expander("📅 **(Bấm để mở/đóng xem bảng thông tin User hiện tại)**", expanded=True):
+                st.dataframe(user_table_df, use_container_width=True)
+        else:
+            st.warning("⚠️ Không thể tải dữ liệu bảng User.")
