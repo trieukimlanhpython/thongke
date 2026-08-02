@@ -983,12 +983,31 @@ with tab1:
 
                             df_clean_unified = df_temp_detail.groupby(group_keys_final, dropna=False).agg(agg_rules_detail).reset_index()
 
+                            with st.expander("⚙️ **Chọn tiêu chí gom nhóm Bảng chi tiết (Bấm để mở/đóng)**", expanded=True):
+                                col_c1, col_c2, col_c3, col_c4, col_c5 = st.columns(5)
+                                
+                                with col_c1:
+                                    opt_y = st.checkbox("Năm học", value=True, key="chk_nckh_year")
+                                    opt_ma = st.checkbox("Mã sản phẩm", value=False, key="chk_nckh_ma")
+                                with col_c2:
+                                    opt_loai = st.checkbox("Loại HĐ", value=True, key="chk_nckh_loai")
+                                    opt_issn = st.checkbox("Số ISBN / Số ISSN", value=False, key="chk_nckh_issn")
+                                with col_c3:
+                                    opt_cap = st.checkbox("Cấp độ", value=True, key="chk_nckh_cap")
+                                    opt_role = st.checkbox("Vai trò", value=False, key="chk_nckh_role")
+                                with col_c4:
+                                    opt_pl1 = st.checkbox("PL Cấp 1", value=True, key="chk_nckh_pl1")
+                                    opt_prod = st.checkbox("Tên sản phẩm", value=False, key="chk_nckh_prod")
+                                with col_c5:
+                                    opt_pl2 = st.checkbox("PL Cấp 2", value=False, key="chk_nckh_pl2")
+                                    opt_pl3 = st.checkbox("PL Cấp 3", value=False, key="chk_nckh_pl3")
+                                opt_tap = st.checkbox("Tên Tạp chí / Hội thảo, Sách", value=False, key="chk_nckh_tap")
+
                             # ==========================================
-                            # 📈 1. THỐNG KÊ CHI TIẾT NCKH THEO TỔ HỢP TIÊU CHÍ ĐỘNG
+                            # 📈 ĐẶT ĐOẠN CODE THỐNG KÊ TỔ HỢP Ở NGAY DƯỚI ĐÂY
                             # ==========================================
-                            st.markdown("##### 📈 1. Thống kê số lượng & tổng số tiết theo tổ hợp tiêu chí động")
-    
-                            # Các tiêu chí có thể chọn để thống kê tổ hợp
+                            st.markdown("##### 📈 1. Thống kê số lượng & tổng số tiết theo tổ hợp")
+
                             stat_options_mapping = [
                                 (opt_y, "Năm học", "Năm học"),
                                 (opt_loai, loai_hd_col, "Loại HĐ"),
@@ -1002,40 +1021,33 @@ with tab1:
                                 (opt_tap, col_tap_chi, "Tên Tạp chí / Hội thảo, Sách"),
                                 (opt_issn, col_isbn, "Số ISBN / ISSN"),
                             ]
-    
-                            # Lọc ra các cột thực tế người dùng đã tick và tồn tại trong df
+
                             active_stat_cols = []
                             active_stat_names = []
                             for is_checked, col_name, display_name in stat_options_mapping:
                                 if is_checked and col_name and col_name in df_clean_unified.columns:
                                     active_stat_cols.append(col_name)
                                     active_stat_names.append(display_name)
-    
+
                             if active_stat_cols and not df_clean_unified.empty:
-                                # Tạo bản sao để xử lý gộp nhóm tổ hợp
                                 df_stat_work = df_clean_unified.copy()
                                 
-                                # Chuẩn hóa các cột thành dạng chuỗi để ghép nối không bị lỗi NaN
                                 for c in active_stat_cols:
                                     df_stat_work[c] = df_stat_work[c].fillna("Không xác định").astype(str).str.strip()
-    
-                                # Tạo cột tổ hợp tên hiển thị (Ví dụ: "Bài báo khoa học + Cấp quốc tế")
-                                # Nếu chỉ chọn 1 cột thì giữ nguyên giá trị, nếu chọn nhiều thì nối bằng dấu " + "
+
                                 if len(active_stat_cols) > 1:
                                     df_stat_work["_Tổ_hợp_tiêu_chí"] = df_stat_work[active_stat_cols].agg(' + '.join, axis=1)
                                 else:
                                     df_stat_work["_Tổ_hợp_tiêu_chí"] = df_stat_work[active_stat_cols[0]]
-    
-                                # Gom nhóm theo Năm học và Tổ hợp tiêu chí vừa tạo để ĐẾM số lượng và TỔNG số tiết
+
                                 group_stat_keys = ["Năm học", "_Tổ_hợp_tiêu_chí"] if "Năm học" in df_stat_work.columns else ["_Tổ_hợp_tiêu_chí"]
-    
+
                                 df_grouped_stat = df_stat_work.groupby(group_stat_keys, dropna=False).agg(
                                     Số_lượng=(tiet_col_target, "count"),
                                     Tổng_số_tiết=(tiet_col_target, "sum"),
                                     Thành_viên=("_full_name", lambda x: ", ".join(x.dropna().unique()))
                                 ).reset_index()
-    
-                                # Nếu có cột Năm học, ta làm bảng Pivot (Cột là Năm học, Dòng là Tổ hợp tiêu chí) giống yêu cầu bạn muốn
+
                                 if "Năm học" in df_grouped_stat.columns:
                                     df_pivot_count = df_grouped_stat.pivot_table(
                                         index="_Tổ_hợp_tiêu_chí", 
@@ -1043,7 +1055,7 @@ with tab1:
                                         values="Số_lượng", 
                                         aggfunc="sum"
                                     ).fillna(0)
-    
+
                                     df_pivot_tiet = df_grouped_stat.pivot_table(
                                         index="_Tổ_hợp_tiêu_chí", 
                                         columns="Năm học", 
@@ -1051,20 +1063,17 @@ with tab1:
                                         aggfunc="sum"
                                     ).fillna(0)
                                     
-                                    # Gộp lại thành bảng hiển thị trực quan tổng hợp
                                     df_final_stat_display = pd.DataFrame()
                                     for col_year in df_pivot_count.columns:
                                         df_final_stat_display[f"SL ({col_year})"] = df_pivot_count[col_year]
                                         df_final_stat_display[f"Tiết ({col_year})"] = df_pivot_tiet[col_year]
                                     
-                                    # Thêm cột Tổng cộng các năm
                                     df_final_stat_display["Tổng số lượng"] = df_pivot_count.sum(axis=1)
                                     df_final_stat_display["Tổng số tiết"] = df_pivot_tiet.sum(axis=1)
                                     df_final_stat_display = df_final_stat_display.reset_index().rename(columns={"_Tổ_hợp_tiêu_chí": "Tổ hợp tiêu chí (" + " + ".join(active_stat_names) + ")"})
                                 else:
                                     df_final_stat_display = df_grouped_stat.rename(columns={"_Tổ_hợp_tiêu_chí": "Tổ hợp tiêu chí"})
-    
-                                # Hiển thị bảng thống kê động
+
                                 st.info(f"💡 Đang thống kê theo các tiêu chí đã chọn: **{' + '.join(active_stat_names)}**")
                                 st.dataframe(df_final_stat_display, use_container_width=True)
                             else:
