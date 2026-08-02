@@ -341,7 +341,7 @@ with tab1:
 
     keyword_input = (
         st.text_input(
-            "🔎 Nhập từ khóa cần tìm (các điều kiện cách nhau bằng & hoặc ,)"
+            "🔎 Nhập từ khóa cần tìm (các điều kiện cách nhau bằng & hoặc ,). Có thể gõ theo ID hoặc họ và lót, tên. Ví dụ: Triệu Kim, Lanh"
         )
         .strip()
         .lower()
@@ -1515,7 +1515,7 @@ with tab1:
                                                 ax1.set_xlabel("Ký hiệu" if needs_mapping else display_name_chart, fontsize=9)
                                                 ax1.set_ylabel("Số lượng sản phẩm", fontsize=9)
                                                 ax1.set_title(f"So sánh Số lượng theo {display_name_chart}", fontsize=10, fontweight="bold")
-                                                ax1.tick_params(axis="x", rotation=45 if num_bars_nckh > 8 else 0)
+                                                ax1.tick_params(axis="x", rotation=45 if num_bars_nckh > 4 else 0)
                                                 if is_grouped_years:
                                                     ax1.legend(title="Năm học", fontsize=8, title_fontsize=8)
                                                 ax1.grid(axis="y", linestyle="--", alpha=0.5)
@@ -1539,7 +1539,7 @@ with tab1:
                                                 ax2.set_xlabel("Ký hiệu" if needs_mapping else display_name_chart, fontsize=9)
                                                 ax2.set_ylabel("Tổng số tiết thực hiện", fontsize=9)
                                                 ax2.set_title(f"So sánh Số tiết theo {display_name_chart}", fontsize=10, fontweight="bold")
-                                                ax2.tick_params(axis="x", rotation=45 if num_bars_nckh > 8 else 0)
+                                                ax2.tick_params(axis="x", rotation=45 if num_bars_nckh > 4 else 0)
                                                 if is_grouped_years:
                                                     ax2.legend(title="Năm học", fontsize=8, title_fontsize=8)
                                                 ax2.grid(axis="y", linestyle="--", alpha=0.5)
