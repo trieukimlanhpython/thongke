@@ -307,7 +307,7 @@ st.session_state["filtered_detail_dfs"] = filtered_detail_dfs
 # 📑 TẠO GIAO DIỆN 2 TAB CHÍNH
 # ==========================================================
 tab1, tab2 = st.tabs([
-    "🔍 1. Tra cứu", 
+    "🔍 1. Tra cứu nâng cao", 
     "📂 2. Dữ liệu gốc"
 ])
 
@@ -315,8 +315,6 @@ tab1, tab2 = st.tabs([
 # TAB 1: TRA CỨU CÔNG VIỆC NÂNG CAO & THỐNG KÊ (GỐC + NCKH)
 # ----------------------------------------------------------
 with tab1:
-    
-    st.header("🔍 Tra cứu")
     search_scope = st.radio(
         "📂 Chọn phạm vi / hạng mục cần tìm kiếm:",
         options=[
@@ -335,7 +333,7 @@ with tab1:
         .strip()
         .lower()
     )
-    st.caption("💡 Mẹo: Để xem thông tin toàn khoa theo từng nội dung, gõ GD hoặc NCKH")
+    st.caption("💡 Mẹo: Để xem thông tin toàn khoa theo từng nội dung, gõ GD hoặc NCKH. Để xem theo bộ môn, gõ BM QFRM, BM TCDN, BM ĐTTC")
     
     df1 = st.session_state.get("df1")
     df2 = st.session_state.get("df2")
