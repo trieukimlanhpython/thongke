@@ -1688,7 +1688,7 @@ with tab3:
                     
         st.divider()
         st.markdown("##### 📋 Danh sách tài khoản người dùng hiện tại (Google Sheet Link User)")
-        st.caption(f"Đường dẫn liên kết trực tiếp: `{LINK_USER}`")
+        st.caption(f"Đường dẫn liên kết trực tiếp: `https://docs.google.com/spreadsheets/d/1F_w2yXvD66m0DeSmUrn-mFYcHwr2VKL6JYS6-bdATtQ/edit?gid=745357874#gid=745357874`")
         if user_table_df is not None and not user_table_df.empty:
             with st.expander("📅 **(Bấm để mở/đóng xem bảng thông tin User)**", expanded=True):
                 st.dataframe(user_table_df, use_container_width=True)
