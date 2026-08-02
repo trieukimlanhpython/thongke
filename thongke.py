@@ -1662,9 +1662,9 @@ with tab3:
             st.warning("⚠️ Thao tác này sẽ đặt lại mật khẩu của **tất cả** các tài khoản trên hệ thống về trùng với mã ID tương ứng của từng người và bắt buộc họ phải đổi lại mật khẩu trong lần đăng nhập tới.")
             
             if st.button("🚨 Xác nhận Reset toàn bộ hệ thống về mặc định", use_container_width=True):
-                if user_user_db := read_gsheet(LINK_USER):
+                user_user_db = read_gsheet(LINK_USER)
+                if user_user_db is not None and not user_user_db.empty:
                     user_user_db.columns = [str(c).strip().lower() for c in user_user_db.columns]
-                    id_col_all = next((c for c in user_user_db.columns if c in ["id", "mã"]), user_user_db.columns[0])
                     
                     scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
                     creds_dict = get_creds()
