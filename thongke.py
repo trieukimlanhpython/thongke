@@ -731,7 +731,7 @@ with tab1:
                                         
                                         df_chart_gv["Ký hiệu GV"] = df_chart_gv["Giảng viên"].map(gv_label_mapping)
         
-                                        fig_gv, ax_gv = plt.subplots(figsize=(max(6, len(df_chart_gv) * 0.5), 3.5))
+                                        fig_gv, ax_gv = plt.subplots(figsize=(max(6, len(df_chart_gv) * 0.5), 4.5))
                                         bars_gv = ax_gv.bar(df_chart_gv["Ký hiệu GV"].astype(str), df_chart_gv["Tổng_số_môn"], color="#59a14f", width=0.6)
                                         
                                         for bar in bars_gv:
