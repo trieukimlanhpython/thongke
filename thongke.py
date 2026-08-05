@@ -760,7 +760,7 @@ with tab1:
                                 # ==========================================
                                 # 📚 THỐNG KÊ CHI TIẾT: MỖI GIẢNG VIÊN GIẢNG MÔN NÀO & SỐ LỚP (CÓ DÒNG TỔNG CỘNG CHO TỪNG GV)
                                 # ==========================================
-                                st.markdown("##### 👥 Thống kê chi tiết môn học & số lượng lớp theo từng Giảng viên")
+                                st.markdown("##### 👥 Thống kê môn học & số lượng lớp theo từng Giảng viên từng năm học")
                                 
                                 df_gv_mon_raw = df_clean.groupby(["_full_name", "năm học", c_subject]).agg(
                                     Số_lượng_lớp=(c_class, "nunique"),
@@ -807,15 +807,15 @@ with tab1:
                                 # ==========================================
                                 # 📚 THỐNG KÊ TỔNG HỢP TOÀN BỘ MÔN HỌC CỦA TỪNG GIẢNG VIÊN (GỘP TẤT CẢ CÁC NĂM)
                                 # ==========================================
-                                st.markdown("##### 📚 Bảng tổng hợp toàn bộ các môn học theo từng Giảng viên (Tích lũy các năm)")
+                                st.markdown("##### 📚 Bảng tổng hợp môn học theo từng Giảng viên (Tích lũy các năm)")
                                 
-                                df_gv_all_years = df_clean.groupby(["_full_name", c_subject]).agg(
+                                df_gv_all_years_raw = df_clean.groupby(["_full_name", c_subject]).agg(
                                     Tổng_số_năm_dạy=("năm học", "nunique"),
                                     Tổng_số_lớp=(c_class, "nunique"),
                                     Tổng_số_tiết=(tiet_col, "sum")
                                 ).reset_index()
                                 
-                                df_gv_all_years = df_gv_all_years.rename(columns={
+                                df_gv_all_years_raw = df_gv_all_years_raw.rename(columns={
                                     "_full_name": "Giảng viên",
                                     c_subject: "Tên môn học",
                                     "Tổng_số_năm_dạy": "Số năm đã dạy",
@@ -823,10 +823,34 @@ with tab1:
                                     "Tổng_số_tiết": "Tổng số tiết"
                                 })
                                 
-                                df_gv_all_years = df_gv_all_years.sort_values(["Giảng viên", "Tên môn học"])
+                                df_gv_all_years_raw = df_gv_all_years_raw.sort_values(["Giảng viên", "Tên môn học"])
+                                
+                                # Chèn dòng tổng cộng và đếm số dòng (số môn) cho từng giảng viên
+                                list_gv_all_final = []
+                                for gv, group in df_gv_all_years_raw.groupby("Giảng viên"):
+                                    list_gv_all_final.append(group)
+                                    
+                                    count_mon = len(group)
+                                    sum_nam = group["Số năm đã dạy"].sum()
+                                    sum_lop = group["Tổng số lớp"].sum()
+                                    sum_tiet = group["Tổng số tiết"].sum()
+                                    
+                                    total_row_gv = pd.DataFrame({
+                                        "Giảng viên": [gv],
+                                        "Tên môn học": [f"**Tổng cộng ({count_mon} môn)**"],
+                                        "Số năm đã dạy": [sum_nam],
+                                        "Tổng số lớp": [sum_lop],
+                                        "Tổng số tiết": [sum_tiet]
+                                    })
+                                    list_gv_all_final.append(total_row_gv)
+                                
+                                if list_gv_all_final:
+                                    df_gv_all_display = pd.concat(list_gv_all_final, ignore_index=True)
+                                else:
+                                    df_gv_all_display = pd.DataFrame()
                                 
                                 with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
-                                    st.dataframe(df_gv_all_years, use_container_width=True, hide_index=True)
+                                    st.dataframe(df_gv_all_display, use_container_width=True, hide_index=True)
                                 # ==========================================
                                 # 🔍 2. BẢNG CHI TIẾT GIẢNG DẠY (BỔ SUNG TIÊU CHÍ ĐỢT)
                                 # ==========================================
