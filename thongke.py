@@ -148,7 +148,7 @@ def filter_dataframe_by_permission(df, user_info):
     fac_col = next((c for c in df_filtered.columns if any(x in c.lower() for x in ["faculty", "khoa", "bộ môn", "department"])), None)
     
     # 1. Admin & Lãnh đạo khoa: Xem toàn bộ dữ liệu hệ thống
-    if "admin" in position or "lãnh đạo khoa" in position:
+    if "admin" in position or "lãnh đạo khoa" or "quản lý khoa" in position:
         return df_filtered.copy()
     
     # 2. Lãnh đạo bộ môn: Xem dữ liệu cá nhân hoặc theo bộ môn/faculty tương ứng
