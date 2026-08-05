@@ -756,58 +756,11 @@ with tab1:
                                             st.dataframe(note_gv_df, use_container_width=True, hide_index=True)
                                 else:
                                     st.warning("⚠️ Không có dữ liệu giảng viên cho năm học đã chọn.")
-                                
-                                # ==========================================
-                                # 📚 THỐNG KÊ CHI TIẾT: MỖI GIẢNG VIÊN GIẢNG MÔN NÀO & SỐ LỚP (CÓ DÒNG TỔNG CỘNG CHO TỪNG GV)
-                                # ==========================================
-                                st.markdown("##### 👥 Thống kê môn học & số lượng lớp theo từng Giảng viên từng năm học")
-                                
-                                df_gv_mon_raw = df_clean.groupby(["_full_name", "năm học", c_subject]).agg(
-                                    Số_lượng_lớp=(c_class, "nunique"),
-                                    Tổng_số_tiết=(tiet_col, "sum")
-                                ).reset_index()
-                                
-                                df_gv_mon_raw = df_gv_mon_raw.rename(columns={
-                                    "_full_name": "Giảng viên",
-                                    "năm học": "Năm học",
-                                    c_subject: "Tên môn học",
-                                    "Số_lượng_lớp": "Số lượng lớp",
-                                    "Tổng_số_tiết": "Tổng số tiết"
-                                })
-                                
-                                df_gv_mon_raw = df_gv_mon_raw.sort_values(["Giảng viên", "Năm học", "Tên môn học"])
-                                
-                                # Tạo danh sách chèn dòng tổng cộng và đếm số dòng cho từng giảng viên
-                                list_gv_mon_final = []
-                                for (gv, yr), group in df_gv_mon_raw.groupby(["Giảng viên", "Năm học"]):
-                                    list_gv_mon_final.append(group)
-                                    
-                                    # Tính tổng số lớp, tổng số tiết và đếm số lượng dòng (số môn) trong nhóm
-                                    sum_lop = group["Số lượng lớp"].sum()
-                                    sum_tiet = group["Tổng số tiết"].sum()
-                                    count_mon = len(group)
-                                    
-                                    total_row_group = pd.DataFrame({
-                                        "Giảng viên": [gv],
-                                        "Năm học": [yr],
-                                        "Tên môn học": [f"**Tổng cộng ({count_mon} môn)**"],
-                                        "Số lượng lớp": [sum_lop],
-                                        "Tổng_số_tiết": [sum_tiet]
-                                    })
-                                    list_gv_mon_final.append(total_row_group)
-                                
-                                if list_gv_mon_final:
-                                    df_gv_mon_display = pd.concat(list_gv_mon_final, ignore_index=True)
-                                else:
-                                    df_gv_mon_display = pd.DataFrame()
-                                
-                                with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
-                                    st.dataframe(df_gv_mon_display, use_container_width=True, hide_index=True)
-
+                            
                                 # ==========================================
                                 # 📚 THỐNG KÊ TỔNG HỢP TOÀN BỘ MÔN HỌC CỦA TỪNG GIẢNG VIÊN (GỘP TẤT CẢ CÁC NĂM)
                                 # ==========================================
-                                st.markdown("##### 📚 Bảng tổng hợp môn học theo từng Giảng viên (Tích lũy các năm)")
+                                st.markdown("##### 📚 Bảng tổng hợp môn học theo từng Giảng viên")
                                 st.caption("💡 Để biết GV nào đã giảng những môn nào")
                                 
                                 df_gv_all_years_raw = df_clean.groupby(["_full_name", c_subject]).agg(
@@ -852,6 +805,54 @@ with tab1:
                                 
                                 with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
                                     st.dataframe(df_gv_all_display, use_container_width=True, hide_index=True)
+
+                                # ==========================================
+                                # 📚 THỐNG KÊ CHI TIẾT: MỖI GIẢNG VIÊN GIẢNG MÔN NÀO & SỐ LỚP (CÓ DÒNG TỔNG CỘNG CHO TỪNG GV)
+                                # ==========================================
+                                st.markdown("##### 👥 Bảng tổng hợp môn học theo từng Giảng viên từng năm học")
+                                st.caption("💡 Để biết GV nào, năm nào đã giảng những môn nào")
+                                df_gv_mon_raw = df_clean.groupby(["_full_name", "năm học", c_subject]).agg(
+                                    Số_lượng_lớp=(c_class, "nunique"),
+                                    Tổng_số_tiết=(tiet_col, "sum")
+                                ).reset_index()
+                                
+                                df_gv_mon_raw = df_gv_mon_raw.rename(columns={
+                                    "_full_name": "Giảng viên",
+                                    "năm học": "Năm học",
+                                    c_subject: "Tên môn học",
+                                    "Số_lượng_lớp": "Số lượng lớp",
+                                    "Tổng_số_tiết": "Tổng số tiết"
+                                })
+                                
+                                df_gv_mon_raw = df_gv_mon_raw.sort_values(["Giảng viên", "Năm học", "Tên môn học"])
+                                
+                                # Tạo danh sách chèn dòng tổng cộng và đếm số dòng cho từng giảng viên
+                                list_gv_mon_final = []
+                                for (gv, yr), group in df_gv_mon_raw.groupby(["Giảng viên", "Năm học"]):
+                                    list_gv_mon_final.append(group)
+                                    
+                                    # Tính tổng số lớp, tổng số tiết và đếm số lượng dòng (số môn) trong nhóm
+                                    sum_lop = group["Số lượng lớp"].sum()
+                                    sum_tiet = group["Tổng số tiết"].sum()
+                                    count_mon = len(group)
+                                    
+                                    total_row_group = pd.DataFrame({
+                                        "Giảng viên": [gv],
+                                        "Năm học": [yr],
+                                        "Tên môn học": [f"**Tổng cộng ({count_mon} môn)**"],
+                                        "Số lượng lớp": [sum_lop],
+                                        "Tổng_số_tiết": [sum_tiet]
+                                    })
+                                    list_gv_mon_final.append(total_row_group)
+                                
+                                if list_gv_mon_final:
+                                    df_gv_mon_display = pd.concat(list_gv_mon_final, ignore_index=True)
+                                else:
+                                    df_gv_mon_display = pd.DataFrame()
+                                
+                                with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
+                                    st.dataframe(df_gv_mon_display, use_container_width=True, hide_index=True)
+                                    
                                 # ==========================================
                                 # 🔍 2. BẢNG CHI TIẾT GIẢNG DẠY (BỔ SUNG TIÊU CHÍ ĐỢT)
                                 # ==========================================
