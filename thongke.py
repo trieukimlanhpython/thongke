@@ -808,6 +808,7 @@ with tab1:
                                 # 📚 THỐNG KÊ TỔNG HỢP TOÀN BỘ MÔN HỌC CỦA TỪNG GIẢNG VIÊN (GỘP TẤT CẢ CÁC NĂM)
                                 # ==========================================
                                 st.markdown("##### 📚 Bảng tổng hợp môn học theo từng Giảng viên (Tích lũy các năm)")
+                                st.caption("💡 Để biết GV nào đã giảng những môn nào")
                                 
                                 df_gv_all_years_raw = df_clean.groupby(["_full_name", c_subject]).agg(
                                     Tổng_số_năm_dạy=("năm học", "nunique"),
