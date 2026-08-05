@@ -960,7 +960,7 @@ with tab1:
                                 df_plot_data = df_gd_detail[df_gd_detail[first_col_name] != "**Tổng cộng**"].copy()
                                  
                                 if not df_plot_data.empty:
-                                    st.markdown("##### 📊 3. Biểu đồ trực quan Giảng dạy (Tự động vẽ theo các tiêu chí đã chọn)")
+                                    st.markdown("##### 📊 3. Biểu đồ trực quan Giảng dạy (Tự động vẽ theo các tiêu chí đã chọn tại mục 2)")
                                     
                                     metrics_cols = ["Tổng số tiết", "Số lượng lớp"]
                                     active_criteria_cols = [c for c in df_gd_detail.columns if c not in metrics_cols and c != "**Tổng cộng**"]
