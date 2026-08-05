@@ -711,7 +711,7 @@ with tab1:
                                     })
                                     df_gv_display = pd.concat([df_gv_display, total_row_all], ignore_index=True)
     
-                                    with st.expander("📅 **(Bấm để mở/đóng xem tổng hợp khối lượng giảng viên)**", expanded=True):
+                                    with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
                                         st.dataframe(df_gv_display, use_container_width=True, hide_index=True)
                                     # ==========================================
                                     # 📊 BIỂU ĐỒ TRỰC QUAN TỔNG SỐ MÔN THEO TỪNG GIẢNG VIÊN (CÓ RÚT GỌN KÝ HIỆU)
@@ -751,7 +751,7 @@ with tab1:
         
                                         # Hiển thị bảng chú thích ký hiệu giảng viên
                                         st.markdown("**📝 Chú thích ký hiệu trục hoành (Giảng viên):**")
-                                        with st.expander("📅 **(Bấm để xem danh sách chú thích chi tiết)**", expanded=True):
+                                        with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
                                             note_gv_df = pd.DataFrame(list(gv_label_mapping.items()), columns=["Ký hiệu", "Tên Giảng viên đầy đủ"])
                                             st.dataframe(note_gv_df, use_container_width=True, hide_index=True)
                                 else:
@@ -777,9 +777,32 @@ with tab1:
     
                                 df_gv_mon = df_gv_mon.sort_values(["Giảng viên", "Năm học", "Tên môn học"])
     
-                                with st.expander("📅 **(Bấm để mở/đóng xem chi tiết giảng viên dạy môn nào)**", expanded=True):
+                                with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
                                     st.dataframe(df_gv_mon, use_container_width=True)
+
+                                # ==========================================
+                                # 📚 THỐNG KÊ TỔNG HỢP TOÀN BỘ MÔN HỌC CỦA TỪNG GIẢNG VIÊN (GỘP TẤT CẢ CÁC NĂM)
+                                # ==========================================
+                                st.markdown("##### 📚 Bảng tổng hợp toàn bộ các môn học theo từng Giảng viên (Tích lũy các năm)")
                                 
+                                df_gv_all_years = df_clean.groupby(["_full_name", c_subject]).agg(
+                                    Tổng_số_năm_dạy=("năm học", "nunique"),
+                                    Tổng_số_lớp=(c_class, "nunique"),
+                                    Tổng_số_tiết=(tiet_col, "sum")
+                                ).reset_index()
+                                
+                                df_gv_all_years = df_gv_all_years.rename(columns={
+                                    "_full_name": "Giảng viên",
+                                    c_subject: "Tên môn học",
+                                    "Tổng_số_năm_dạy": "Số năm đã dạy",
+                                    "Tổng_số_lớp": "Tổng số lớp",
+                                    "Tổng_số_tiết": "Tổng số tiết"
+                                })
+                                
+                                df_gv_all_years = df_gv_all_years.sort_values(["Giảng viên", "Tên môn học"])
+                                
+                                with st.expander("📅 **(Bấm để mở/đóng)**", expanded=True):
+                                    st.dataframe(df_gv_all_years, use_container_width=True, hide_index=True)
                                 # ==========================================
                                 # 🔍 2. BẢNG CHI TIẾT GIẢNG DẠY (BỔ SUNG TIÊU CHÍ ĐỢT)
                                 # ==========================================
