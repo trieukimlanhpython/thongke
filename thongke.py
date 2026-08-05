@@ -831,14 +831,14 @@ with tab1:
                                     list_gv_all_final.append(group)
                                     
                                     count_mon = len(group)
-                                    sum_nam = group["Số năm đã dạy"].sum()
+                                    #sum_nam = group["Số năm đã dạy"].sum()
                                     sum_lop = group["Tổng số lớp"].sum()
                                     sum_tiet = group["Tổng số tiết"].sum()
                                     
                                     total_row_gv = pd.DataFrame({
                                         "Giảng viên": [gv],
                                         "Tên môn học": [f"**Tổng cộng ({count_mon} môn)**"],
-                                        "Số năm đã dạy": [sum_nam],
+                                        "Số năm đã dạy": " ",
                                         "Tổng số lớp": [sum_lop],
                                         "Tổng số tiết": [sum_tiet]
                                     })
