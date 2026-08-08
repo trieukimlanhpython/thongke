@@ -1190,34 +1190,35 @@ with tab1:
                                 st.markdown(f"####### 📌 Phân tích tiêu chí **{display_crit_name}** theo **Học kỳ & Năm học**")
 
                                 df_crit_filtered_32 = df_plot_data.copy()
-                                
+                                # 🛠️ Khởi tạo sẵn biến selected_chart_bm_42 để tránh lỗi NameError
+                                selected_chart_bm_42 = "Tất cả bộ môn"
                                 # 1. Kiểm tra nếu tiêu chí là Giảng viên
                                 if actual_crit_col == "_full_name":
-                                    st.markdown("📌 **Lọc nhanh giảng viên theo Bộ môn cho biểu đồ 4.1:**")
-                                    selected_chart_bm_41 = st.radio(
+                                    st.markdown("📌 **Lọc nhanh giảng viên theo Bộ môn cho biểu đồ 4.2:**")
+                                    selected_chart_bm_42 = st.radio(
                                         "Chọn bộ môn:",
                                         options=["Tất cả bộ môn", "BM TCDN", "BM ĐTTC", "BM QFRM"],
                                         horizontal=True,
-                                        key=f"radio_chart_filter_bm_gd_41_{actual_crit_col}"
+                                        key=f"radio_chart_filter_bm_gd_41_{actual_crit_col}_v2"
                                     )
                                     selected_chart_bm_subj = "Tất cả bộ môn"
 
                                 # 2. Kiểm tra nếu tiêu chí là Tên môn học (Dùng elif thay vì else đặt trước)
                                 elif actual_crit_col == c_subject:
-                                    st.markdown("📌 **Lọc nhanh môn học theo Bộ môn cho biểu đồ 4.1:**")
+                                    st.markdown("📌 **Lọc nhanh môn học theo Bộ môn cho biểu đồ 4.2:**")
                                     selected_chart_bm_subj = st.radio(
                                         "Chọn bộ môn quản lý môn học:",
                                         options=["Tất cả bộ môn", "BM TCDN", "BM ĐTTC", "BM QFRM"],
                                         horizontal=True,
                                         key=f"radio_chart_filter_bm_subj_{actual_crit_col}_{report_level}_v2"
                                     )
-                                    selected_chart_bm_41 = "Tất cả bộ môn"
+                                    #selected_chart_bm_42 = "Tất cả bộ môn"
                                     if selected_chart_bm_subj != "Tất cả bộ môn" and "_norm_fac" in df_crit_filtered.columns:
                                         df_crit_filtered = df_crit_filtered[df_crit_filtered["_norm_fac"].astype(str).str.lower().str.contains(selected_chart_bm_subj.lower(), na=False)]
 
                                 # 3. Trường hợp còn lại đặt ở cuối cùng bằng 'else'
                                 else:
-                                    selected_chart_bm_41 = "Tất cả bộ môn"
+                                    selected_chart_bm_42 = "Tất cả bộ môn"
                                     selected_chart_bm_subj = "Tất cả bộ môn"
                                     
                                     if selected_chart_bm_subj != "Tất cả bộ môn" and "_norm_fac" in df_crit_filtered.columns:
