@@ -3102,7 +3102,7 @@ with tab1:
                                     title=dim, 
                                     loc="upper center", 
                                     bbox_to_anchor=(0.5, -0.3),  # Đưa khung chú thích xuống dưới trục X
-                                    ncol=3,                       # Sắp xếp các mục chú thích thành các cột ngang gọn gàng
+                                    ncol=4,                       # Sắp xếp các mục chú thích thành các cột ngang gọn gàng
                                     frameon=True, 
                                     facecolor="white", 
                                     framealpha=0.8, 
