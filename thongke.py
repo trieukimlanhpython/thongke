@@ -3096,8 +3096,20 @@ with tab1:
                                 ax.tick_params(axis="x", rotation=45 if num_bars_tn > 3 else 0)
                                 ax.set_ylabel("Số lượng sinh viên", fontsize=9, labelpad=8)
                                 ax.grid(axis="y", linestyle="--", alpha=0.7)
-                                ax.legend(title=dim, loc="upper left", frameon=True, facecolor="white", framealpha=0.8, fontsize=8, title_fontsize=9)
-                               
+                                #ax.legend(title=dim, loc="upper left", frameon=True, facecolor="white", framealpha=0.8, fontsize=8, title_fontsize=9)
+                                # 👇 Cấu hình dời legend xuống dưới trục hoành
+                                ax.legend(
+                                    title=dim, 
+                                    loc="upper center", 
+                                    bbox_to_anchor=(0.5, -0.3),  # Đưa khung chú thích xuống dưới trục X
+                                    ncol=3,                       # Sắp xếp các mục chú thích thành các cột ngang gọn gàng
+                                    frameon=True, 
+                                    facecolor="white", 
+                                    framealpha=0.8, 
+                                    fontsize=8, 
+                                    title_fontsize=9
+                                )
+                                
                                 plt.tight_layout()
                                 st.pyplot(fig, bbox_inches="tight")
                                 plt.close(fig)
