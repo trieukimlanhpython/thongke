@@ -1209,7 +1209,7 @@ with tab1:
                                         "Chọn bộ môn quản lý môn học:",
                                         options=["Tất cả bộ môn", "BM TCDN", "BM ĐTTC", "BM QFRM"],
                                         horizontal=True,
-                                        key=f"radio_chart_filter_bm_subj_{actual_crit_col}_{report_level}"
+                                        key=f"radio_chart_filter_bm_subj_{actual_crit_col}_{report_level}_v2"
                                     )
                                     selected_chart_bm_41 = "Tất cả bộ môn"
                                     if selected_chart_bm_subj != "Tất cả bộ môn" and "_norm_fac" in df_crit_filtered.columns:
