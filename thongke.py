@@ -3080,6 +3080,8 @@ with tab1:
                                     fill_value=0
                                 ).sort_index()
                                 num_bars_tn = len(df_pivot_chart)
+                                # 🛠️ Khai báo bổ sung biến f_size_yr để tránh lỗi NameError
+                                f_size_yr = 8
                                 fig, ax = plt.subplots(figsize=(max(8, len(df_pivot_chart) * 0.8), 4.8))
                                 df_pivot_chart.plot(kind="bar", ax=ax, rot=30, width=0.8, colormap="tab10")
                                 for p in ax.patches:
