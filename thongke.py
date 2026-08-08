@@ -1076,10 +1076,12 @@ with tab1:
                                         horizontal=True,
                                         key=f"radio_chart_filter_bm_gd_41_{actual_crit_col}"
                                     )
-                                    pass
-                                # 🏢 Nếu tiêu chí là "Tên môn học", bổ sung thêm radio chọn Bộ môn để lọc nhanh danh sách môn hiển thị trên biểu đồ
-                                elif actual_crit_col == c_subject:
-                                    st.markdown("📌 **Lọc nhanh môn học theo Bộ môn cho biểu đồ 4.1::**")
+                                else:
+                                    selected_chart_bm_41 = "Tất cả bộ môn"
+
+                                # 🏢 Nếu tiêu chí là "Tên môn học", bổ sung thêm radio chọn Bộ môn
+                                if actual_crit_col == c_subject:
+                                    st.markdown("📌 **Lọc nhanh môn học theo Bộ môn cho biểu đồ 4.1:**")
                                     selected_chart_bm_subj = st.radio(
                                         "Chọn bộ môn quản lý môn học:",
                                         options=["Tất cả bộ môn", "BM TCDN", "BM ĐTTC", "BM QFRM"],
@@ -1089,10 +1091,11 @@ with tab1:
                                     if selected_chart_bm_subj != "Tất cả bộ môn" and "_norm_fac" in df_crit_filtered.columns:
                                         df_crit_filtered = df_crit_filtered[df_crit_filtered["_norm_fac"].astype(str).str.lower().str.contains(selected_chart_bm_subj.lower(), na=False)]
                                 
-                                    if selected_chart_bm_41 != "Tất cả bộ môn" and not user_df_raw.empty:
-                                        bm_target_ids = user_df_raw[user_df_raw["normalized_faculty"] == selected_chart_bm_41][u_id_col].apply(normalize_id).tolist()
-                                        if c_id_gd:
-                                            df_crit_filtered = df_crit_filtered[df_crit_filtered[c_id_gd].apply(normalize_id).isin(bm_target_ids)]
+                                # Thực hiện lọc ID giảng viên nếu đã chọn radio bộ môn ở trên
+                                if selected_chart_bm_41 != "Tất cả bộ môn" and not user_df_raw.empty:
+                                    bm_target_ids = user_df_raw[user_df_raw["normalized_faculty"] == selected_chart_bm_41][u_id_col].apply(normalize_id).tolist()
+                                    if c_id_gd:
+                                        df_crit_filtered = df_crit_filtered[df_crit_filtered[c_id_gd].apply(normalize_id).isin(bm_target_ids)]
 
                                 if actual_crit_col in [c_subject, "_full_name"]:
                                     unique_vals_crit = sorted(df_crit_filtered[actual_crit_col].astype(str).unique())
@@ -1188,30 +1191,41 @@ with tab1:
 
                                 df_crit_filtered_32 = df_plot_data.copy()
                                 
+                                # 1. Kiểm tra nếu tiêu chí là Giảng viên
                                 if actual_crit_col == "_full_name":
-                                    st.markdown("📌 **Lọc nhanh giảng viên theo Bộ môn cho biểu đồ 4.2:**")
-                                    selected_chart_bm_42 = st.radio(
+                                    st.markdown("📌 **Lọc nhanh giảng viên theo Bộ môn cho biểu đồ 4.1:**")
+                                    selected_chart_bm_41 = st.radio(
                                         "Chọn bộ môn:",
                                         options=["Tất cả bộ môn", "BM TCDN", "BM ĐTTC", "BM QFRM"],
                                         horizontal=True,
-                                        key="radio_chart_filter_bm_gd_42"
+                                        key=f"radio_chart_filter_bm_gd_41_{actual_crit_col}"
                                     )
-                                    pass
-                                # 🏢 Nếu tiêu chí là Giảng viên, bổ sung radio 3 bộ môn để lọc
+                                    selected_chart_bm_subj = "Tất cả bộ môn"
+
+                                # 2. Kiểm tra nếu tiêu chí là Tên môn học (Dùng elif thay vì else đặt trước)
                                 elif actual_crit_col == c_subject:
-                                    st.markdown("📌 **Lọc nhanh môn học theo Bộ môn:**")
+                                    st.markdown("📌 **Lọc nhanh môn học theo Bộ môn cho biểu đồ 4.1:**")
                                     selected_chart_bm_subj = st.radio(
                                         "Chọn bộ môn quản lý môn học:",
                                         options=["Tất cả bộ môn", "BM TCDN", "BM ĐTTC", "BM QFRM"],
                                         horizontal=True,
                                         key=f"radio_chart_filter_bm_subj_{actual_crit_col}_{report_level}"
                                     )
+                                    selected_chart_bm_41 = "Tất cả bộ môn"
                                     if selected_chart_bm_subj != "Tất cả bộ môn" and "_norm_fac" in df_crit_filtered.columns:
                                         df_crit_filtered = df_crit_filtered[df_crit_filtered["_norm_fac"].astype(str).str.lower().str.contains(selected_chart_bm_subj.lower(), na=False)]
-                                    if selected_chart_bm_42 != "Tất cả bộ môn" and not user_df_raw.empty:
-                                        bm_target_ids_42 = user_df_raw[user_df_raw["normalized_faculty"] == selected_chart_bm_42][u_id_col].apply(normalize_id).tolist()
-                                        if c_id_gd:
-                                            df_crit_filtered_32 = df_crit_filtered_32[df_crit_filtered_32[c_id_gd].apply(normalize_id).isin(bm_target_ids_42)]
+
+                                # 3. Trường hợp còn lại đặt ở cuối cùng bằng 'else'
+                                else:
+                                    selected_chart_bm_41 = "Tất cả bộ môn"
+                                    selected_chart_bm_subj = "Tất cả bộ môn"
+                                    
+                                    if selected_chart_bm_subj != "Tất cả bộ môn" and "_norm_fac" in df_crit_filtered.columns:
+                                        df_crit_filtered = df_crit_filtered[df_crit_filtered["_norm_fac"].astype(str).str.lower().str.contains(selected_chart_bm_subj.lower(), na=False)]
+                                if selected_chart_bm_42 != "Tất cả bộ môn" and not user_df_raw.empty:
+                                    bm_target_ids_42 = user_df_raw[user_df_raw["normalized_faculty"] == selected_chart_bm_42][u_id_col].apply(normalize_id).tolist()
+                                    if c_id_gd:
+                                        df_crit_filtered_32 = df_crit_filtered_32[df_crit_filtered_32[c_id_gd].apply(normalize_id).isin(bm_target_ids_42)]
 
                                 if actual_crit_col in [c_subject, "_full_name"]:
                                     unique_vals_crit = sorted(df_crit_filtered_32[actual_crit_col].astype(str).unique())
