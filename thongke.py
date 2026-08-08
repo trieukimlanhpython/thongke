@@ -2882,7 +2882,7 @@ with tab1:
                 )
                 st.info(f"📌 Chế độ hiển thị sinh viên theo bộ môn phụ trách: **{u_faculty}**")
             else:
-                report_level = "(3) Từng lớp"
+                report_level_sv = "(3) Từng lớp"
                 st.info(f"📌 Chế độ hiển thị cá nhân cho Giảng viên: **{current_user['fullname']}**")
 
             all_sv_years = sorted(df_sv_tab1["Năm học"].dropna().unique().tolist(), reverse=True)
