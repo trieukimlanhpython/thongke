@@ -174,7 +174,7 @@ def filter_dataframe_by_permission(df, user_info, is_sv_data=False):
     for col in potential_id_cols:
         col_vals = df_filtered[col].astype(str).str.strip().str.lower()
         mask |= (col_vals == uid.lower())
-        if fullname and len(fullname) > 2:
+        if fullname and len(fullname) > 4:
             mask |= col_vals.str.contains(re.escape(fullname), na=False)
             
     if not mask.any():
@@ -701,6 +701,7 @@ with tab1:
                     # 🧹 1. BẢNG TỔNG HỢP GIẢNG DẠY THEO NĂM HỌC (Tích hợp radio chọn Bộ môn)
                     # ==========================================
                     st.markdown("##### 🧹 1. Bảng tổng hợp giảng dạy theo Năm học")
+                    st.caption("Để xem chi tiết theo học kỳ, sử dụng bảng 3 tuỳ chỉnh theo tiêu chí")
                     
                     # Thêm radio chọn nhanh bộ môn để lọc bảng 1
                     selected_table1_bm = st.radio(
@@ -1065,7 +1066,7 @@ with tab1:
                                 st.markdown(f"####### 📌 Phân tích tiêu chí **{display_crit_name}** so sánh theo **Năm học**")
                                 
                                 df_crit_filtered = df_plot_data.copy()
-                                
+
                                 # 🏢 Nếu tiêu chí là Giảng viên, bổ sung radio 3 bộ môn để lọc
                                 if actual_crit_col == "_full_name":
                                     st.markdown("📌 **Lọc nhanh giảng viên theo Bộ môn cho biểu đồ 4.1:**")
@@ -1075,6 +1076,19 @@ with tab1:
                                         horizontal=True,
                                         key=f"radio_chart_filter_bm_gd_41_{actual_crit_col}"
                                     )
+                                    pass
+                                # 🏢 Nếu tiêu chí là "Tên môn học", bổ sung thêm radio chọn Bộ môn để lọc nhanh danh sách môn hiển thị trên biểu đồ
+                                elif actual_crit_col == c_subject:
+                                    st.markdown("📌 **Lọc nhanh môn học theo Bộ môn cho biểu đồ 4.1::**")
+                                    selected_chart_bm_subj = st.radio(
+                                        "Chọn bộ môn quản lý môn học:",
+                                        options=["Tất cả bộ môn", "BM TCDN", "BM ĐTTC", "BM QFRM"],
+                                        horizontal=True,
+                                        key=f"radio_chart_filter_bm_subj_{actual_crit_col}_{report_level}"
+                                    )
+                                    if selected_chart_bm_subj != "Tất cả bộ môn" and "_norm_fac" in df_crit_filtered.columns:
+                                        df_crit_filtered = df_crit_filtered[df_crit_filtered["_norm_fac"].astype(str).str.lower().str.contains(selected_chart_bm_subj.lower(), na=False)]
+                                
                                     if selected_chart_bm_41 != "Tất cả bộ môn" and not user_df_raw.empty:
                                         bm_target_ids = user_df_raw[user_df_raw["normalized_faculty"] == selected_chart_bm_41][u_id_col].apply(normalize_id).tolist()
                                         if c_id_gd:
@@ -1125,11 +1139,11 @@ with tab1:
                                         if h > 0:
                                             ax_y1.annotate(f"{int(h):,}", (p.get_x() + p.get_width() / 2., h),
                                                            ha='center', va='bottom', fontsize=f_size_yr, fontweight='bold',
-                                                           rotation=45 if num_bars_yr > 8 else 0, xytext=(0, 2), textcoords='offset points')
+                                                           rotation=45 if num_bars_yr > 2 else 0, xytext=(0, 2), textcoords='offset points')
                                     ax_y1.set_xlabel("Ký hiệu" if needs_mapping_yr else display_crit_name, fontsize=9)
                                     ax_y1.set_ylabel("Tổng số tiết", fontsize=9)
                                     ax_y1.set_title(f"So sánh Tổng số tiết - {display_crit_name} qua các Năm học", fontsize=10, fontweight="bold")
-                                    ax_y1.tick_params(axis="x", rotation=45 if num_bars_yr > 8 else 0)
+                                    ax_y1.tick_params(axis="x", rotation=45 if num_bars_yr > 4 else 0)
                                     ax_y1.legend(title="Năm học", fontsize=8, title_fontsize=8)
                                     ax_y1.grid(axis="y", linestyle="--", alpha=0.5)
                                     st.pyplot(fig_y1, bbox_inches="tight")
@@ -1143,11 +1157,11 @@ with tab1:
                                         if h > 0:
                                             ax_y2.annotate(f"{int(h):,}", (p.get_x() + p.get_width() / 2., h),
                                                            ha='center', va='bottom', fontsize=f_size_yr, fontweight='bold',
-                                                           rotation=45 if num_bars_yr > 8 else 0, xytext=(0, 2), textcoords='offset points')
+                                                           rotation=45 if num_bars_yr > 2 else 0, xytext=(0, 2), textcoords='offset points')
                                     ax_y2.set_xlabel("Ký hiệu" if needs_mapping_yr else display_crit_name, fontsize=9)
                                     ax_y2.set_ylabel("Số lượng lớp", fontsize=9)
                                     ax_y2.set_title(f"So sánh Số lượng lớp - {display_crit_name} qua các Năm học", fontsize=10, fontweight="bold")
-                                    ax_y2.tick_params(axis="x", rotation=45 if num_bars_yr > 8 else 0)
+                                    ax_y2.tick_params(axis="x", rotation=45 if num_bars_yr > 4 else 0)
                                     ax_y2.legend(title="Năm học", fontsize=8, title_fontsize=8)
                                     ax_y2.grid(axis="y", linestyle="--", alpha=0.5)
                                     st.pyplot(fig_y2, bbox_inches="tight")
@@ -1182,6 +1196,18 @@ with tab1:
                                         horizontal=True,
                                         key="radio_chart_filter_bm_gd_42"
                                     )
+                                    pass
+                                # 🏢 Nếu tiêu chí là Giảng viên, bổ sung radio 3 bộ môn để lọc
+                                elif actual_crit_col == c_subject:
+                                    st.markdown("📌 **Lọc nhanh môn học theo Bộ môn:**")
+                                    selected_chart_bm_subj = st.radio(
+                                        "Chọn bộ môn quản lý môn học:",
+                                        options=["Tất cả bộ môn", "BM TCDN", "BM ĐTTC", "BM QFRM"],
+                                        horizontal=True,
+                                        key=f"radio_chart_filter_bm_subj_{actual_crit_col}_{report_level}"
+                                    )
+                                    if selected_chart_bm_subj != "Tất cả bộ môn" and "_norm_fac" in df_crit_filtered.columns:
+                                        df_crit_filtered = df_crit_filtered[df_crit_filtered["_norm_fac"].astype(str).str.lower().str.contains(selected_chart_bm_subj.lower(), na=False)]
                                     if selected_chart_bm_42 != "Tất cả bộ môn" and not user_df_raw.empty:
                                         bm_target_ids_42 = user_df_raw[user_df_raw["normalized_faculty"] == selected_chart_bm_42][u_id_col].apply(normalize_id).tolist()
                                         if c_id_gd:
@@ -1234,12 +1260,21 @@ with tab1:
                                         if h > 0:
                                             ax_t1.annotate(f"{int(h):,}", (p.get_x() + p.get_width() / 2., h),
                                                            ha='center', va='bottom', fontsize=f_size_term, fontweight='bold',
-                                                           rotation=45 if num_bars_term > 4 else 0, xytext=(0, 2), textcoords='offset points')
+                                                           rotation=45 if num_bars_term > 2 else 0, xytext=(0, 2), textcoords='offset points')
                                     ax_t1.set_xlabel("Ký hiệu" if needs_mapping_term else display_crit_name, fontsize=9)
                                     ax_t1.set_ylabel("Tổng số tiết", fontsize=9)
                                     ax_t1.set_title(f"So sánh Tổng số tiết - {display_crit_name} theo Học kỳ/Năm học", fontsize=10, fontweight="bold")
-                                    ax_t1.tick_params(axis="x", rotation=45 if num_bars_term > 8 else 0)
-                                    ax_t1.legend(title="Học kỳ (Năm học)", fontsize=7, title_fontsize=7, loc="upper right")
+                                    ax_t1.tick_params(axis="x", rotation=45 if num_bars_term > 4 else 0)
+                                    #ax_t1.legend(title="Học kỳ (Năm học)", fontsize=7, title_fontsize=7, loc="upper right")
+                                    # Cấu hình legend đặt bên dưới trục hoành
+                                    ax_t1.legend(
+                                        title="Học kỳ (Năm học)", 
+                                        fontsize=7, 
+                                        title_fontsize=7, 
+                                        loc="upper center", 
+                                        bbox_to_anchor=(0.5, -0.25),  # Đưa legend xuống dưới trục hoành
+                                        ncol=3                        # Chia thành các cột ngang cho gọn
+                                    )
                                     ax_t1.grid(axis="y", linestyle="--", alpha=0.5)
                                     st.pyplot(fig_t1, bbox_inches="tight")
                                     plt.close(fig_t1)
@@ -1252,12 +1287,21 @@ with tab1:
                                         if h > 0:
                                             ax_t2.annotate(f"{int(h):,}", (p.get_x() + p.get_width() / 2., h),
                                                            ha='center', va='bottom', fontsize=f_size_term, fontweight='bold',
-                                                           rotation=45 if num_bars_term > 8 else 0, xytext=(0, 2), textcoords='offset points')
+                                                           rotation=45 if num_bars_term > 2 else 0, xytext=(0, 2), textcoords='offset points')
                                     ax_t2.set_xlabel("Ký hiệu" if needs_mapping_term else display_crit_name, fontsize=9)
                                     ax_t2.set_ylabel("Số lượng lớp", fontsize=9)
                                     ax_t2.set_title(f"So sánh Số lượng lớp - {display_crit_name} theo Học kỳ/Năm học", fontsize=10, fontweight="bold")
-                                    ax_t2.tick_params(axis="x", rotation=45 if num_bars_term > 8 else 0)
-                                    ax_t2.legend(title="Học kỳ (Năm học)", fontsize=7, title_fontsize=7, loc="upper right")
+                                    ax_t2.tick_params(axis="x", rotation=45 if num_bars_term > 4 else 0)
+                                    #ax_t2.legend(title="Học kỳ (Năm học)", fontsize=7, title_fontsize=7, loc="upper right")
+                                    # Cấu hình legend đặt bên dưới trục hoành
+                                    ax_t2.legend(
+                                        title="Học kỳ (Năm học)", 
+                                        fontsize=7, 
+                                        title_fontsize=7, 
+                                        loc="upper center", 
+                                        bbox_to_anchor=(0.5, -0.25),  # Đưa legend xuống dưới trục hoành
+                                        ncol=3                        # Chia thành các cột ngang cho gọn
+                                    )
                                     ax_t2.grid(axis="y", linestyle="--", alpha=0.5)
                                     st.pyplot(fig_t2, bbox_inches="tight")
                                     plt.close(fig_t2)
@@ -1266,7 +1310,7 @@ with tab1:
                                     st.markdown(f"**📝 Chú thích ký hiệu trục hoành ({display_crit_name}):**")
                                     with st.expander(f"📅 **(Bấm để xem chú thích chi tiết)**", expanded=False):
                                         note_df_term = pd.DataFrame(list(label_mapping_term.items()), columns=["Ký hiệu", "Tên đầy đủ"])
-                                        st.dataframe(note_df_term, use_container_width=True, hide_index=True)
+                                        st.dataframe(note_df_term, use_container_width=True)
                     else:
                         st.warning("⚠️ Không có dữ liệu giảng dạy cho năm học đã chọn.")
                  
@@ -1338,7 +1382,7 @@ with tab1:
                         # 🧹 1. BẢNG TỔNG HỢP GIẢNG DẠY THEO NĂM HỌC (THUỘC BỘ MÔN)
                         # ==========================================
                         st.markdown(f"##### 🧹 1. Bảng tổng hợp giảng dạy theo Năm học ({selected_bm})")
-                        
+                        st.caption("Để xem chi tiết theo học kỳ, sử dụng bảng 3 tuỳ chỉnh theo tiêu chí")
                         df_bm_after = df_bm_filtered.groupby("năm học").agg(**{
                             "Tổng số tiết thực hiện": (tiet_col, "sum"),
                             "Số lượng lớp": (c_cls, "nunique"),
@@ -1543,6 +1587,17 @@ with tab1:
                                             options=unique_vals_crit,
                                             key=f"filter_bm_dyn_crit_{selected_bm}_{actual_crit_col}"
                                         )
+                                        pass
+                                    elif actual_crit_col == c_subject:
+                                        st.markdown("📌 **Lọc nhanh môn học theo Bộ môn:**")
+                                        selected_chart_bm_subj = st.radio(
+                                            "Chọn bộ môn quản lý môn học:",
+                                            options=["Tất cả bộ môn", "BM TCDN", "BM ĐTTC", "BM QFRM"],
+                                            horizontal=True,
+                                            key=f"radio_chart_filter_bm_subj_{actual_crit_col}_{report_level}"
+                                        )
+                                        if selected_chart_bm_subj != "Tất cả bộ môn" and "_norm_fac" in df_crit_filtered.columns:
+                                            df_crit_filtered = df_crit_filtered[df_crit_filtered["_norm_fac"].astype(str).str.lower().str.contains(selected_chart_bm_subj.lower(), na=False)]
                                         if selected_vals_crit:
                                             df_crit_filtered_bm = df_crit_filtered_bm[df_crit_filtered_bm[actual_crit_col].astype(str).isin(selected_vals_crit)]
 
@@ -1583,11 +1638,11 @@ with tab1:
                                             if h > 0:
                                                 ax_b1.annotate(f"{int(h):,}", (p.get_x() + p.get_width() / 2., h),
                                                                ha='center', va='bottom', fontsize=f_size_bm, fontweight='bold',
-                                                               rotation=45 if num_bars_bm > 8 else 0, xytext=(0, 2), textcoords='offset points')
+                                                               rotation=45 if num_bars_bm > 2 else 0, xytext=(0, 2), textcoords='offset points')
                                         ax_b1.set_xlabel("Ký hiệu" if needs_mapping_bm else display_crit_name, fontsize=9)
                                         ax_b1.set_ylabel("Tổng số tiết", fontsize=9)
                                         ax_b1.set_title(f"Tổng số tiết - {display_crit_name} ({selected_bm})", fontsize=10, fontweight="bold")
-                                        ax_b1.tick_params(axis="x", rotation=45 if num_bars_bm > 8 else 0)
+                                        ax_b1.tick_params(axis="x", rotation=45 if num_bars_bm > 4 else 0)
                                         ax_b1.legend(title="Năm học", fontsize=8, title_fontsize=8)
                                         ax_b1.grid(axis="y", linestyle="--", alpha=0.5)
                                         st.pyplot(fig_b1, bbox_inches="tight")
@@ -1602,11 +1657,11 @@ with tab1:
                                             if h > 0:
                                                 ax_b2.annotate(f"{int(h):,}", (p.get_x() + p.get_width() / 2., h),
                                                                ha='center', va='bottom', fontsize=f_size_bm, fontweight='bold',
-                                                               rotation=45 if num_bars_bm > 8 else 0, xytext=(0, 2), textcoords='offset points')
+                                                               rotation=45 if num_bars_bm > 2 else 0, xytext=(0, 2), textcoords='offset points')
                                         ax_b2.set_xlabel("Ký hiệu" if needs_mapping_bm else display_crit_name, fontsize=9)
                                         ax_b2.set_ylabel("Số lượng lớp", fontsize=9)
                                         ax_b2.set_title(f"Số lượng lớp - {display_crit_name} ({selected_bm})", fontsize=10, fontweight="bold")
-                                        ax_b2.tick_params(axis="x", rotation=45 if num_bars_bm > 8 else 0)
+                                        ax_b2.tick_params(axis="x", rotation=45 if num_bars_bm > 4 else 0)
                                         ax_b2.legend(title="Năm học", fontsize=8, title_fontsize=8)
                                         ax_b2.grid(axis="y", linestyle="--", alpha=0.5)
                                         st.pyplot(fig_b2, bbox_inches="tight")
@@ -1648,6 +1703,18 @@ with tab1:
                                                 options=unique_vals_crit,
                                                 key=f"filter_bm_32_crit_{selected_bm}_{actual_crit_col}"
                                             )
+                                            pass
+                                        elif actual_crit_col == c_subject:
+                                            st.markdown("📌 **Lọc nhanh môn học theo Bộ môn:**")
+                                            selected_chart_bm_subj = st.radio(
+                                                "Chọn bộ môn quản lý môn học:",
+                                                options=["Tất cả bộ môn", "BM TCDN", "BM ĐTTC", "BM QFRM"],
+                                                horizontal=True,
+                                                key=f"radio_chart_filter_bm_subj_{actual_crit_col}_{report_level}"
+                                            )
+                                            if selected_chart_bm_subj != "Tất cả bộ môn" and "_norm_fac" in df_crit_filtered.columns:
+                                                df_crit_filtered = df_crit_filtered[df_crit_filtered["_norm_fac"].astype(str).str.lower().str.contains(selected_chart_bm_subj.lower(), na=False)]
+                                                                                        
                                             if selected_vals_crit:
                                                 df_crit_filtered_32_bm = df_crit_filtered_32_bm[df_crit_filtered_32_bm[actual_crit_col].astype(str).isin(selected_vals_crit)]
         
@@ -1690,12 +1757,21 @@ with tab1:
                                                 if h > 0:
                                                     ax_t1.annotate(f"{int(h):,}", (p.get_x() + p.get_width() / 2., h),
                                                                    ha='center', va='bottom', fontsize=f_size_term_bm, fontweight='bold',
-                                                                   rotation=45 if num_bars_term_bm > 4 else 0, xytext=(0, 2), textcoords='offset points')
+                                                                   rotation=45 if num_bars_term_bm > 2 else 0, xytext=(0, 2), textcoords='offset points')
                                             ax_t1.set_xlabel("Ký hiệu" if needs_mapping_term_bm else display_crit_name, fontsize=9)
                                             ax_t1.set_ylabel("Tổng số tiết", fontsize=9)
                                             ax_t1.set_title(f"Tổng số tiết - {display_crit_name} theo Học kỳ ({selected_bm})", fontsize=10, fontweight="bold")
-                                            ax_t1.tick_params(axis="x", rotation=45 if num_bars_term_bm > 8 else 0)
-                                            ax_t1.legend(title="Học kỳ (Năm học)", fontsize=7, title_fontsize=7, loc="upper right")
+                                            ax_t1.tick_params(axis="x", rotation=45 if num_bars_term_bm > 4 else 0)
+                                            #ax_t1.legend(title="Học kỳ (Năm học)", fontsize=7, title_fontsize=7, loc="upper right")
+                                            # Cấu hình legend đặt bên dưới trục hoành
+                                            ax_t1.legend(
+                                                title="Học kỳ (Năm học)", 
+                                                fontsize=7, 
+                                                title_fontsize=7, 
+                                                loc="upper center", 
+                                                bbox_to_anchor=(0.5, -0.25),  # Đưa legend xuống dưới trục hoành
+                                                ncol=3                        # Chia thành các cột ngang cho gọn
+                                            )
                                             ax_t1.grid(axis="y", linestyle="--", alpha=0.5)
                                             st.pyplot(fig_t1, bbox_inches="tight")
                                             plt.close(fig_t1)
@@ -1709,12 +1785,21 @@ with tab1:
                                                 if h > 0:
                                                     ax_t2.annotate(f"{int(h):,}", (p.get_x() + p.get_width() / 2., h),
                                                                    ha='center', va='bottom', fontsize=f_size_term_bm, fontweight='bold',
-                                                                   rotation=45 if num_bars_term_bm > 8 else 0, xytext=(0, 2), textcoords='offset points')
+                                                                   rotation=45 if num_bars_term_bm > 2 else 0, xytext=(0, 2), textcoords='offset points')
                                             ax_t2.set_xlabel("Ký hiệu" if needs_mapping_term_bm else display_crit_name, fontsize=9)
                                             ax_t2.set_ylabel("Số lượng lớp", fontsize=9)
                                             ax_t2.set_title(f"Số lượng lớp - {display_crit_name} theo Học kỳ ({selected_bm})", fontsize=10, fontweight="bold")
-                                            ax_t2.tick_params(axis="x", rotation=45 if num_bars_term_bm > 8 else 0)
-                                            ax_t2.legend(title="Học kỳ (Năm học)", fontsize=7, title_fontsize=7, loc="upper right")
+                                            ax_t2.tick_params(axis="x", rotation=45 if num_bars_term_bm > 4 else 0)
+                                            #ax_t2.legend(title="Học kỳ (Năm học)", fontsize=7, title_fontsize=7, loc="upper right")
+                                            # Cấu hình legend đặt bên dưới trục hoành
+                                            ax_t2.legend(
+                                                title="Học kỳ (Năm học)", 
+                                                fontsize=7, 
+                                                title_fontsize=7, 
+                                                loc="upper center", 
+                                                bbox_to_anchor=(0.5, -0.25),  # Đưa legend xuống dưới trục hoành
+                                                ncol=3                        # Chia thành các cột ngang cho gọn
+                                            )
                                             ax_t2.grid(axis="y", linestyle="--", alpha=0.5)
                                             st.pyplot(fig_t2, bbox_inches="tight")
                                             plt.close(fig_t2)
@@ -2081,7 +2166,7 @@ with tab1:
                                                        (p.get_x() + p.get_width() / 2., h),
                                                        ha='center', va='bottom',
                                                        fontsize=f_size_nckh, fontweight='bold',
-                                                       rotation=45 if num_years_nckh > 4 else 0,
+                                                       rotation=45 if num_years_nckh > 2 else 0,
                                                        xytext=(0, 2), textcoords='offset points')
 
                                 ax_nk.set_xlabel("Năm học", fontsize=9)
@@ -2377,7 +2462,7 @@ with tab1:
                                                                (p.get_x() + p.get_width() / 2., h),
                                                                ha='center', va='bottom',
                                                                fontsize=f_size, fontweight='bold',
-                                                               rotation=45 if num_bars_nckh > 8 else 0,
+                                                               rotation=45 if num_bars_nckh > 2 else 0,
                                                                xytext=(0, 2), textcoords='offset points')
                                                 
                                         ax1.set_xlabel("Ký hiệu" if needs_mapping else display_name_chart, fontsize=9)
@@ -2401,7 +2486,7 @@ with tab1:
                                                                (p.get_x() + p.get_width() / 2., h),
                                                                ha='center', va='bottom',
                                                                fontsize=f_size, fontweight='bold',
-                                                               rotation=45 if num_bars_nckh > 4 else 0,
+                                                               rotation=45 if num_bars_nckh > 2 else 0,
                                                                xytext=(0, 2), textcoords='offset points')
                                                 
                                         ax2.set_xlabel("Ký hiệu" if needs_mapping else display_name_chart, fontsize=9)
@@ -2481,13 +2566,13 @@ with tab1:
                                                                (p.get_x() + p.get_width() / 2., h),
                                                                ha='center', va='bottom',
                                                                fontsize=f_size_yr, fontweight='bold',
-                                                               rotation=45 if num_bars_yr > 8 else 0,
+                                                               rotation=45 if num_bars_yr > 2 else 0,
                                                                xytext=(0, 2), textcoords='offset points')
                                         
                                         ax_y1.set_xlabel("Ký hiệu" if needs_mapping_yr else other_col, fontsize=9)
                                         ax_y1.set_ylabel("Tổng số tiết", fontsize=9)
                                         ax_y1.set_title(f"So sánh Tổng số tiết - {other_col} qua các Năm học", fontsize=10, fontweight="bold")
-                                        ax_y1.tick_params(axis="x", rotation=45 if num_bars_yr > 8 else 0)
+                                        ax_y1.tick_params(axis="x", rotation=45 if num_bars_yr > 4 else 0)
                                         ax_y1.legend(title="Năm học", fontsize=8, title_fontsize=8)
                                         ax_y1.grid(axis="y", linestyle="--", alpha=0.5)
                                         st.pyplot(fig_y1, bbox_inches="tight")
@@ -2504,13 +2589,13 @@ with tab1:
                                                                (p.get_x() + p.get_width() / 2., h),
                                                                ha='center', va='bottom',
                                                                fontsize=f_size_yr, fontweight='bold',
-                                                               rotation=45 if num_bars_yr > 8 else 0,
+                                                               rotation=45 if num_bars_yr > 2 else 0,
                                                                xytext=(0, 2), textcoords='offset points')
                                         
                                         ax_y2.set_xlabel("Ký hiệu" if needs_mapping_yr else other_col, fontsize=9)
                                         ax_y2.set_ylabel("Số lượng sản phẩm", fontsize=9)
                                         ax_y2.set_title(f"So sánh Số lượng - {other_col} qua các Năm học", fontsize=10, fontweight="bold")
-                                        ax_y2.tick_params(axis="x", rotation=45 if num_bars_yr > 8 else 0)
+                                        ax_y2.tick_params(axis="x", rotation=45 if num_bars_yr > 4 else 0)
                                         ax_y2.legend(title="Năm học", fontsize=8, title_fontsize=8)
                                         ax_y2.grid(axis="y", linestyle="--", alpha=0.5)
                                         st.pyplot(fig_y2, bbox_inches="tight")
