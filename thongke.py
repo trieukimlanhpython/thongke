@@ -1213,9 +1213,9 @@ with tab1:
                                         horizontal=True,
                                         key=f"radio_chart_filter_bm_subj_{actual_crit_col}_{report_level}_v2"
                                     )
-                                    #selected_chart_bm_42 = "Tất cả bộ môn"
-                                    if selected_chart_bm_subj != "Tất cả bộ môn" and "_norm_fac" in df_crit_filtered.columns:
-                                        df_crit_filtered = df_crit_filtered[df_crit_filtered["_norm_fac"].astype(str).str.lower().str.contains(selected_chart_bm_subj.lower(), na=False)]
+                                    # 👈 Sử dụng đúng tên biến df_crit_filtered_32 tương ứng với biểu đồ 4.2
+                                    if selected_chart_bm_subj != "Tất cả bộ môn" and "_norm_fac" in df_crit_filtered_32.columns:
+                                        df_crit_filtered_32 = df_crit_filtered_32[df_crit_filtered_32["_norm_fac"].astype(str).str.lower().str.contains(selected_chart_bm_subj.lower(), na=False)]
 
                                 # 3. Trường hợp còn lại đặt ở cuối cùng bằng 'else'
                                 else:
