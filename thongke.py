@@ -741,7 +741,8 @@ with tab1:
                     # 👤 2. BẢNG TỔNG HỢP GIẢNG DẠY THEO TỪNG GIẢNG VIÊN (Tích hợp radio chọn Bộ môn)
                     # ==========================================
                     st.markdown("##### 👤 2. Bảng tổng hợp giảng dạy theo từng Giảng viên")
-                    st.caption("Để biết GV dạy bao nhiêu môn, cụ thể tên môn đã giảng. Muốn biết môn đó gồm có những GV nào giảng: xem theo BM hoặc xem theo tuỳ chỉnh tiêu chí tại bảng 3")
+                    st.caption("Bảng 2 để biết GV dạy bao nhiêu môn, cụ thể tên môn đã giảng")
+                    st.caption("Muốn biết môn đó gồm có những GV nào giảng: xem theo BM hoặc xem theo tuỳ chỉnh tiêu chí tại bảng 3")
                     
                     # Thêm radio chọn nhanh bộ môn để lọc bảng số 2
                     selected_gv_table2_bm = st.radio(
