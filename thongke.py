@@ -3000,7 +3000,7 @@ with tab1:
                             df_pivot_xl = pd.concat([df_pivot_xl, pd.DataFrame([sum_row])], ignore_index=True)
 
                             st.markdown("##### 📅 Thống kê Xếp loại Tốt nghiệp theo từng Năm học")
-                            st.dataframe(df_pivot_xl, use_container_width=True, hide_index=True)
+                            st.dataframe(df_pivot_xl, use_container_width=True)
                     else:
                         st.info("ℹ️ Đã tìm thấy sinh viên tốt nghiệp nhưng cột Xếp loại TN đang bị trống.")
                 else:
@@ -3079,19 +3079,23 @@ with tab1:
                                     aggfunc="count",
                                     fill_value=0
                                 ).sort_index()
-                                
+                                num_bars_tn = len(df_pivot_chart)
                                 fig, ax = plt.subplots(figsize=(max(8, len(df_pivot_chart) * 0.8), 4.8))
                                 df_pivot_chart.plot(kind="bar", ax=ax, rot=30, width=0.8, colormap="tab10")
-                                
+                                for p in ax.patches:
+                                        h = p.get_height()
+                                        if h > 0:
+                                            ax.annotate(f"{int(h):,}", (p.get_x() + p.get_width() / 2., h),
+                                                           ha='center', va='bottom', fontsize=f_size_yr, fontweight='bold',
+                                                           rotation=45 if num_bars_tn > 4 else 0, xytext=(0, 2), textcoords='offset points')
+                                            
                                 ax.set_title(f"Biến động {dim} theo Năm học", fontsize=11, fontweight="bold", pad=15)
                                 ax.set_xlabel("Năm học", fontsize=9, labelpad=8)
+                                ax.tick_params(axis="x", rotation=45 if num_bars_tn > 3 else 0)
                                 ax.set_ylabel("Số lượng sinh viên", fontsize=9, labelpad=8)
                                 ax.grid(axis="y", linestyle="--", alpha=0.7)
                                 ax.legend(title=dim, loc="upper left", frameon=True, facecolor="white", framealpha=0.8, fontsize=8, title_fontsize=9)
-                                
-                                for container in ax.containers:
-                                    ax.bar_label(container, fmt='%d', padding=2, fontsize=7, fontweight='bold')
-
+                               
                                 plt.tight_layout()
                                 st.pyplot(fig, bbox_inches="tight")
                                 plt.close(fig)
@@ -3135,7 +3139,7 @@ with tab1:
                                     st.markdown(f"**📝 Chú thích ký hiệu trục hoành ({dim}):**")
                                     with st.expander(f"📅 **(Bấm để mở/đóng chú thích {dim})**", expanded=True):
                                         note_df = pd.DataFrame(list(label_mapping.items()), columns=["Ký hiệu", f"Tên đầy đủ ({dim})"])
-                                        st.dataframe(note_df, use_container_width=True, hide_index=True)
+                                        st.dataframe(note_df, use_container_width=True)
 
                         elif selected_group_cols == ["Năm học"]:
                             st.markdown("###### 📈 Biểu đồ tổng số lượng sinh viên theo Năm học")
